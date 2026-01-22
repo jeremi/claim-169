@@ -284,8 +284,8 @@ impl WasmDecodeOptions {
 
     /// Set clock skew tolerance in seconds for timestamp validation
     #[wasm_bindgen(js_name = "setClockSkewToleranceSeconds")]
-    pub fn set_clock_skew_tolerance_seconds(mut self, seconds: i64) -> WasmDecodeOptions {
-        self.clock_skew_tolerance_seconds = seconds.max(0);
+    pub fn set_clock_skew_tolerance_seconds(mut self, seconds: i32) -> WasmDecodeOptions {
+        self.clock_skew_tolerance_seconds = i64::from(seconds).max(0);
         self
     }
 }
