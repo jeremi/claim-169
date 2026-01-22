@@ -113,16 +113,12 @@ jobs:
       - name: Generate test vectors
         run: cargo run -p generate-vectors -- all
 
-      - name: Build Python SDK wheel
-        working-directory: core/claim169-python
-        run: maturin build --release
-
-      - name: Install test dependencies and claim169
+      - name: Install test dependencies and build claim169
         working-directory: core/claim169-python
         run: |
           uv sync
-          # Install the built wheel
-          uv pip install ../../target/wheels/claim169-*.whl
+          # Build and install in one step using maturin develop
+          uv run maturin develop --release
 
       - name: Run Python tests
         working-directory: core/claim169-python
