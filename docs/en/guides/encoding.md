@@ -39,31 +39,27 @@ Create a credential with common fields:
 === "Rust"
 
     ```rust
-    use claim169_core::{Encoder, Claim169Input, CwtMetaInput, Gender, MaritalStatus};
+    use claim169_core::{Encoder, Claim169, CwtMeta, Gender, MaritalStatus};
 
-    let claim = Claim169Input {
-        id: Some("ID-12345-ABCDE".to_string()),
-        full_name: Some("Jane Marie Smith".to_string()),
-        first_name: Some("Jane".to_string()),
-        middle_name: Some("Marie".to_string()),
-        last_name: Some("Smith".to_string()),
-        date_of_birth: Some("19900515".to_string()),
-        gender: Some(Gender::Female),
-        email: Some("jane.smith@example.com".to_string()),
-        phone: Some("+1 555 123 4567".to_string()),
-        address: Some("123 Main St\nNew York, NY 10001".to_string()),
-        nationality: Some("USA".to_string()),
-        marital_status: Some(MaritalStatus::Married),
-        ..Default::default()
-    };
+    let claim = Claim169::new()
+        .with_id("ID-12345-ABCDE")
+        .with_full_name("Jane Marie Smith")
+        .with_first_name("Jane")
+        .with_middle_name("Marie")
+        .with_last_name("Smith")
+        .with_date_of_birth("19900515")
+        .with_gender(Gender::Female)
+        .with_email("jane.smith@example.com")
+        .with_phone("+1 555 123 4567")
+        .with_address("123 Main St\nNew York, NY 10001")
+        .with_nationality("USA")
+        .with_marital_status(MaritalStatus::Married);
 
-    let meta = CwtMetaInput {
-        issuer: Some("https://identity.example.org".to_string()),
-        subject: Some("ID-12345-ABCDE".to_string()),
-        issued_at: Some(1700000000),
-        expires_at: Some(1800000000),
-        ..Default::default()
-    };
+    let meta = CwtMeta::new()
+        .with_issuer("https://identity.example.org")
+        .with_subject("ID-12345-ABCDE")
+        .with_issued_at(1700000000)
+        .with_expires_at(1800000000);
     ```
 
 === "Python"

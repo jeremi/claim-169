@@ -61,7 +61,40 @@ pub struct DecodeResult {
 
 ### Claim169
 
-Decoded identity data.
+Identity data structure with builder methods for ergonomic construction.
+
+```rust
+// Using builder pattern (recommended)
+let claim = Claim169::new()
+    .with_id("USER-001")
+    .with_full_name("Alice Smith")
+    .with_gender(Gender::Female)
+    .with_email("alice@example.com");
+
+// Or using minimal constructor
+let claim = Claim169::minimal("USER-001", "Alice Smith");
+```
+
+#### Builder Methods
+
+| Method | Description |
+|--------|-------------|
+| `new()` | Create empty claim |
+| `minimal(id, full_name)` | Create claim with ID and name |
+| `with_id(id)` | Set unique identifier |
+| `with_full_name(name)` | Set full name |
+| `with_first_name(name)` | Set first name |
+| `with_last_name(name)` | Set last name |
+| `with_date_of_birth(dob)` | Set DOB (YYYYMMDD) |
+| `with_gender(gender)` | Set gender |
+| `with_email(email)` | Set email |
+| `with_phone(phone)` | Set phone |
+| `with_address(addr)` | Set address |
+| `with_nationality(nat)` | Set nationality |
+| `with_marital_status(status)` | Set marital status |
+| ... | (all fields have `with_*` methods) |
+
+#### Fields
 
 ```rust
 pub struct Claim169 {
@@ -90,21 +123,6 @@ pub struct Claim169 {
     pub best_quality_fingers: Option<Vec<u8>>,
     pub biometrics: Option<Vec<Biometric>>,
     pub unknown_fields: HashMap<i64, ciborium::Value>,
-}
-```
-
-### Claim169Input
-
-Input for encoding credentials.
-
-```rust
-pub struct Claim169Input {
-    pub id: Option<String>,
-    pub version: Option<String>,
-    pub language: Option<String>,
-    pub full_name: Option<String>,
-    pub first_name: Option<String>,
-    // ... same fields as Claim169
 }
 ```
 
@@ -190,23 +208,19 @@ pub enum DecodeError {
 ```rust
 use claim169_core::{
     Decoder, Encoder,
-    Claim169Input, CwtMetaInput,
+    Claim169, CwtMeta,
     Gender, DecodeError
 };
 
 fn main() -> Result<(), DecodeError> {
-    // Create a credential
-    let claim = Claim169Input {
-        id: Some("USER-001".to_string()),
-        full_name: Some("Alice Smith".to_string()),
-        gender: Some(Gender::Female),
-        ..Default::default()
-    };
+    // Create a credential using builder pattern
+    let claim = Claim169::new()
+        .with_id("USER-001")
+        .with_full_name("Alice Smith")
+        .with_gender(Gender::Female);
 
-    let meta = CwtMetaInput {
-        issuer: Some("https://example.com".to_string()),
-        ..Default::default()
-    };
+    let meta = CwtMeta::new()
+        .with_issuer("https://example.com");
 
     // Encode (unsigned for demo)
     let qr_data = Encoder::new(claim, meta)

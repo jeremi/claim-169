@@ -113,20 +113,16 @@ Créez un nouvel identifiant QR avec des données d'identité.
 === "Rust"
 
     ```rust
-    use claim169_core::{Encoder, Claim169Input, CwtMetaInput};
+    use claim169_core::{Encoder, Claim169, CwtMeta};
 
-    let claim = Claim169Input {
-        id: Some("USER-12345".to_string()),
-        full_name: Some("Jean Dupont".to_string()),
-        date_of_birth: Some("19900115".to_string()),
-        ..Default::default()
-    };
+    let claim = Claim169::new()
+        .with_id("USER-12345")
+        .with_full_name("Jean Dupont")
+        .with_date_of_birth("19900115");
 
-    let meta = CwtMetaInput {
-        issuer: Some("https://example.com".to_string()),
-        expires_at: Some(1800000000),
-        ..Default::default()
-    };
+    let meta = CwtMeta::new()
+        .with_issuer("https://example.com")
+        .with_expires_at(1800000000);
 
     let private_key: [u8; 32] = /* clé privée Ed25519 */;
 
