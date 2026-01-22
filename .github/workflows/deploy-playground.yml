@@ -1,4 +1,4 @@
-name: Deploy Playground
+name: Deploy Site
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
       - 'playground/**'
       - 'sdks/typescript/**'
       - 'core/claim169-wasm/**'
+      - 'docs/**'
+      - 'mkdocs.yml'
       - '.github/workflows/deploy-playground.yml'
   workflow_dispatch:
 
@@ -40,6 +42,14 @@ jobs:
             sdks/typescript/package-lock.json
             playground/package-lock.json
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
@@ -59,6 +69,12 @@ jobs:
           cd playground
           npm ci
           npm run build
+
+      - name: Install docs dependencies
+        run: uv sync --dev
+
+      - name: Build Documentation
+        run: uv run mkdocs build --site-dir playground/dist/docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

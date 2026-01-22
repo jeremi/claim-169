@@ -1,0 +1,106 @@
+site_name: Claim 169
+site_description: MOSIP Claim 169 QR Code Library - Encode and verify digital identity credentials
+site_url: https://jeremi.github.io/claim-169/docs
+repo_url: https://github.com/jeremi/claim-169
+repo_name: jeremi/claim-169
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: fr
+          name: Français
+          build: true
+        - locale: es
+          name: Español
+          build: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jeremi/claim-169
+  alternate:
+    - name: English
+      link: /claim-169/docs/
+      lang: en
+    - name: Français
+      link: /claim-169/docs/fr/
+      lang: fr
+    - name: Español
+      link: /claim-169/docs/es/
+      lang: es
+  homepage: https://jeremi.github.io/claim-169/
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+  - Guides:
+    - Encoding Credentials: guides/encoding.md
+    - Decoding & Verification: guides/decoding.md
+    - Encryption: guides/encryption.md
+  - API Reference:
+    - Rust: api/rust.md
+    - Python: api/python.md
+    - TypeScript: api/typescript.md
+  - Specification: specification.md
+  - Playground: playground.md

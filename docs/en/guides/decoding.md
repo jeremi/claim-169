@@ -1,0 +1,296 @@
+# Decoding & Verification
+
+This guide covers decoding Claim 169 credentials and verifying their authenticity.
+
+## Decoding Pipeline
+
+When decoding, the data flows through these stages:
+
+```
+QR Code → Base45 → zlib → COSE → CWT → Claim 169
+```
+
+Each stage can fail independently, and the library provides specific error types for each.
+
+## Basic Decoding
+
+### With Verification (Production)
+
+Always verify signatures in production:
+
+=== "Rust"
+
+    ```rust
+    use claim169_core::Decoder;
+
+    let result = Decoder::new(qr_data)
+        .verify_with_ed25519(&public_key)?
+        .decode()?;
+
+    // Access identity data
+    println!("ID: {:?}", result.claim169.id);
+    println!("Name: {:?}", result.claim169.full_name);
+
+    // Access CWT metadata
+    println!("Issuer: {:?}", result.cwt_meta.issuer);
+    println!("Expires: {:?}", result.cwt_meta.expires_at);
+    ```
+
+=== "Python"
+
+    ```python
+    from claim169 import decode_with_ed25519
+
+    result = decode_with_ed25519(qr_data, public_key)
+
+    # Access identity data
+    print(f"ID: {result.claim169.id}")
+    print(f"Name: {result.claim169.full_name}")
+
+    # Access CWT metadata
+    print(f"Issuer: {result.cwt_meta.issuer}")
+    print(f"Expires: {result.cwt_meta.expires_at}")
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    import { Decoder } from 'claim169';
+
+    const result = new Decoder(qrData)
+      .verifyWithEd25519(publicKey)
+      .decode();
+
+    // Access identity data
+    console.log(`ID: ${result.claim169.id}`);
+    console.log(`Name: ${result.claim169.fullName}`);
+
+    // Access CWT metadata
+    console.log(`Issuer: ${result.cwtMeta.issuer}`);
+    console.log(`Expires: ${result.cwtMeta.expiresAt}`);
+    ```
+
+### Without Verification (Testing Only)
+
+!!! danger "Security Warning"
+    Never use `allow_unverified()` in production. Unverified credentials may be forged.
+
+=== "Rust"
+
+    ```rust
+    let result = Decoder::new(qr_data)
+        .allow_unverified()
+        .decode()?;
+    ```
+
+=== "Python"
+
+    ```python
+    from claim169 import decode_unverified
+
+    result = decode_unverified(qr_data)
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    const result = new Decoder(qrData)
+      .allowUnverified()
+      .decode();
+    ```
+
+## Verification Methods
+
+### Ed25519
+
+Ed25519 uses 32-byte public keys:
+
+```python
+# Public key must be exactly 32 bytes
+public_key = bytes.fromhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
+result = decode_with_ed25519(qr_data, public_key)
+```
+
+### ECDSA P-256
+
+ECDSA P-256 accepts compressed (33-byte) or uncompressed (65-byte) public keys:
+
+```python
+# Compressed public key (33 bytes, starts with 02 or 03)
+compressed_key = bytes.fromhex("02...")
+
+# Uncompressed public key (65 bytes, starts with 04)
+uncompressed_key = bytes.fromhex("04...")
+
+result = decode_with_ecdsa_p256(qr_data, compressed_key)
+```
+
+## Handling Encrypted Credentials
+
+Encrypted credentials must be decrypted before verification:
+
+=== "Rust"
+
+    ```rust
+    let result = Decoder::new(qr_data)
+        .decrypt_with_aes256(&encryption_key)?  // First decrypt
+        .verify_with_ed25519(&public_key)?       // Then verify
+        .decode()?;
+    ```
+
+=== "Python"
+
+    ```python
+    result = (Decoder(qr_data)
+        .decrypt_with_aes256(encryption_key)  # First decrypt
+        .verify_with_ed25519(public_key)      # Then verify
+        .decode())
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    const result = new Decoder(qrData)
+      .decryptWithAes256(encryptionKey)  // First decrypt
+      .verifyWithEd25519(publicKey)      // Then verify
+      .decode();
+    ```
+
+!!! note "Order Matters"
+    Decryption must be configured before verification. The encrypted payload contains the signed COSE structure.
+
+## Checking Expiration
+
+Credentials may have expiration times set via CWT claims:
+
+=== "Rust"
+
+    ```rust
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    if let Some(exp) = result.cwt_meta.expires_at {
+        if exp < now {
+            println!("Credential has expired!");
+        }
+    }
+
+    if let Some(nbf) = result.cwt_meta.not_before {
+        if nbf > now {
+            println!("Credential is not yet valid!");
+        }
+    }
+    ```
+
+=== "Python"
+
+    ```python
+    import time
+
+    now = int(time.time())
+
+    if result.cwt_meta.expires_at and result.cwt_meta.expires_at < now:
+        print("Credential has expired!")
+
+    if result.cwt_meta.not_before and result.cwt_meta.not_before > now:
+        print("Credential is not yet valid!")
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    const now = Math.floor(Date.now() / 1000);
+
+    if (result.cwtMeta.expiresAt && result.cwtMeta.expiresAt < now) {
+      console.log("Credential has expired!");
+    }
+
+    if (result.cwtMeta.notBefore && result.cwtMeta.notBefore > now) {
+      console.log("Credential is not yet valid!");
+    }
+    ```
+
+## Error Handling
+
+The decoder can fail at various stages. Handle errors appropriately:
+
+=== "Rust"
+
+    ```rust
+    use claim169_core::{Decoder, DecodeError};
+
+    match Decoder::new(qr_data).allow_unverified().decode() {
+        Ok(result) => {
+            println!("Decoded: {:?}", result.claim169.full_name);
+        }
+        Err(DecodeError::Base45(e)) => {
+            println!("Invalid Base45 encoding: {}", e);
+        }
+        Err(DecodeError::Decompression(e)) => {
+            println!("Decompression failed: {}", e);
+        }
+        Err(DecodeError::Cose(e)) => {
+            println!("Invalid COSE structure: {}", e);
+        }
+        Err(DecodeError::Signature(e)) => {
+            println!("Signature verification failed: {}", e);
+        }
+        Err(e) => {
+            println!("Decoding failed: {}", e);
+        }
+    }
+    ```
+
+=== "Python"
+
+    ```python
+    from claim169 import decode_unverified, Claim169Error
+
+    try:
+        result = decode_unverified(qr_data)
+    except Claim169Error as e:
+        print(f"Decoding failed: {e}")
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    import { Decoder } from 'claim169';
+
+    try {
+      const result = new Decoder(qrData)
+        .allowUnverified()
+        .decode();
+    } catch (error) {
+      console.error(`Decoding failed: ${error.message}`);
+    }
+    ```
+
+## Security Considerations
+
+### Decompression Limits
+
+The library protects against zip bomb attacks with a default decompression limit of 64KB. This is sufficient for most credentials.
+
+### CBOR Depth Limits
+
+Nested CBOR structures are limited to 128 levels to prevent stack overflow attacks.
+
+### Weak Key Rejection
+
+The library rejects weak cryptographic keys:
+
+- **Ed25519**: Small-order points (including all-zeros)
+- **ECDSA**: Identity point (point at infinity)
+
+### Timestamp Validation
+
+When decoding, consider validating:
+
+1. `expires_at` - Credential should not be expired
+2. `not_before` - Credential should be within validity period
+3. `issued_at` - Should not be in the future (with clock skew tolerance)
