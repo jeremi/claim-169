@@ -17,12 +17,29 @@ use super::enums::{Gender, MaritalStatus, PhotoFormat};
 /// - **Biometrics** (keys 50-65): Fingerprints, iris scans, face images, voice samples
 /// - **Unknown** (other keys): Forward-compatible storage for new fields
 ///
-/// # Example
+/// # Examples
+///
+/// Using the builder pattern (recommended):
+///
+/// ```rust
+/// use claim169_core::model::{Claim169, Gender, MaritalStatus};
+///
+/// let claim = Claim169::new()
+///     .with_id("ID-12345-ABCDE")
+///     .with_full_name("Jane Marie Smith")
+///     .with_first_name("Jane")
+///     .with_last_name("Smith")
+///     .with_date_of_birth("19900515")
+///     .with_gender(Gender::Female)
+///     .with_email("jane.smith@example.com")
+///     .with_marital_status(MaritalStatus::Married);
+/// ```
+///
+/// Using the minimal constructor:
 ///
 /// ```rust
 /// use claim169_core::model::Claim169;
 ///
-/// // Create a minimal claim
 /// let claim = Claim169::minimal("ID-12345", "Jane Doe");
 /// assert_eq!(claim.id, Some("ID-12345".to_string()));
 ///
@@ -285,6 +302,244 @@ impl Claim169 {
             + count_opt(&self.voice)
     }
 
+    // ========== Builder Methods ==========
+
+    /// Set the unique ID (key 1).
+    pub fn with_id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+
+    /// Set the version (key 2).
+    pub fn with_version(mut self, version: impl Into<String>) -> Self {
+        self.version = Some(version.into());
+        self
+    }
+
+    /// Set the language code ISO 639-3 (key 3).
+    pub fn with_language(mut self, language: impl Into<String>) -> Self {
+        self.language = Some(language.into());
+        self
+    }
+
+    /// Set the full name (key 4).
+    pub fn with_full_name(mut self, full_name: impl Into<String>) -> Self {
+        self.full_name = Some(full_name.into());
+        self
+    }
+
+    /// Set the first name (key 5).
+    pub fn with_first_name(mut self, first_name: impl Into<String>) -> Self {
+        self.first_name = Some(first_name.into());
+        self
+    }
+
+    /// Set the middle name (key 6).
+    pub fn with_middle_name(mut self, middle_name: impl Into<String>) -> Self {
+        self.middle_name = Some(middle_name.into());
+        self
+    }
+
+    /// Set the last name (key 7).
+    pub fn with_last_name(mut self, last_name: impl Into<String>) -> Self {
+        self.last_name = Some(last_name.into());
+        self
+    }
+
+    /// Set the date of birth in YYYYMMDD format (key 8).
+    pub fn with_date_of_birth(mut self, date_of_birth: impl Into<String>) -> Self {
+        self.date_of_birth = Some(date_of_birth.into());
+        self
+    }
+
+    /// Set the gender (key 9).
+    pub fn with_gender(mut self, gender: Gender) -> Self {
+        self.gender = Some(gender);
+        self
+    }
+
+    /// Set the address with \n separators (key 10).
+    pub fn with_address(mut self, address: impl Into<String>) -> Self {
+        self.address = Some(address.into());
+        self
+    }
+
+    /// Set the email address (key 11).
+    pub fn with_email(mut self, email: impl Into<String>) -> Self {
+        self.email = Some(email.into());
+        self
+    }
+
+    /// Set the phone number in E.123 format (key 12).
+    pub fn with_phone(mut self, phone: impl Into<String>) -> Self {
+        self.phone = Some(phone.into());
+        self
+    }
+
+    /// Set the nationality ISO 3166-1/2 (key 13).
+    pub fn with_nationality(mut self, nationality: impl Into<String>) -> Self {
+        self.nationality = Some(nationality.into());
+        self
+    }
+
+    /// Set the marital status (key 14).
+    pub fn with_marital_status(mut self, marital_status: MaritalStatus) -> Self {
+        self.marital_status = Some(marital_status);
+        self
+    }
+
+    /// Set the guardian name/id (key 15).
+    pub fn with_guardian(mut self, guardian: impl Into<String>) -> Self {
+        self.guardian = Some(guardian.into());
+        self
+    }
+
+    /// Set the binary photo data (key 16).
+    pub fn with_photo(mut self, photo: impl Into<Vec<u8>>) -> Self {
+        self.photo = Some(photo.into());
+        self
+    }
+
+    /// Set the photo format (key 17).
+    pub fn with_photo_format(mut self, photo_format: PhotoFormat) -> Self {
+        self.photo_format = Some(photo_format);
+        self
+    }
+
+    /// Set the best quality fingers positions 0-10 (key 18).
+    pub fn with_best_quality_fingers(mut self, fingers: impl Into<Vec<u8>>) -> Self {
+        self.best_quality_fingers = Some(fingers.into());
+        self
+    }
+
+    /// Set the full name in secondary language (key 19).
+    pub fn with_secondary_full_name(mut self, name: impl Into<String>) -> Self {
+        self.secondary_full_name = Some(name.into());
+        self
+    }
+
+    /// Set the secondary language code ISO 639-3 (key 20).
+    pub fn with_secondary_language(mut self, language: impl Into<String>) -> Self {
+        self.secondary_language = Some(language.into());
+        self
+    }
+
+    /// Set the geo location/code (key 21).
+    pub fn with_location_code(mut self, location_code: impl Into<String>) -> Self {
+        self.location_code = Some(location_code.into());
+        self
+    }
+
+    /// Set the legal status of identity (key 22).
+    pub fn with_legal_status(mut self, legal_status: impl Into<String>) -> Self {
+        self.legal_status = Some(legal_status.into());
+        self
+    }
+
+    /// Set the country of issuance (key 23).
+    pub fn with_country_of_issuance(mut self, country: impl Into<String>) -> Self {
+        self.country_of_issuance = Some(country.into());
+        self
+    }
+
+    // ========== Biometric Builder Methods ==========
+
+    /// Set right thumb biometrics (key 50).
+    pub fn with_right_thumb(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.right_thumb = Some(biometrics);
+        self
+    }
+
+    /// Set right pointer finger biometrics (key 51).
+    pub fn with_right_pointer_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.right_pointer_finger = Some(biometrics);
+        self
+    }
+
+    /// Set right middle finger biometrics (key 52).
+    pub fn with_right_middle_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.right_middle_finger = Some(biometrics);
+        self
+    }
+
+    /// Set right ring finger biometrics (key 53).
+    pub fn with_right_ring_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.right_ring_finger = Some(biometrics);
+        self
+    }
+
+    /// Set right little finger biometrics (key 54).
+    pub fn with_right_little_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.right_little_finger = Some(biometrics);
+        self
+    }
+
+    /// Set left thumb biometrics (key 55).
+    pub fn with_left_thumb(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.left_thumb = Some(biometrics);
+        self
+    }
+
+    /// Set left pointer finger biometrics (key 56).
+    pub fn with_left_pointer_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.left_pointer_finger = Some(biometrics);
+        self
+    }
+
+    /// Set left middle finger biometrics (key 57).
+    pub fn with_left_middle_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.left_middle_finger = Some(biometrics);
+        self
+    }
+
+    /// Set left ring finger biometrics (key 58).
+    pub fn with_left_ring_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.left_ring_finger = Some(biometrics);
+        self
+    }
+
+    /// Set left little finger biometrics (key 59).
+    pub fn with_left_little_finger(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.left_little_finger = Some(biometrics);
+        self
+    }
+
+    /// Set right iris biometrics (key 60).
+    pub fn with_right_iris(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.right_iris = Some(biometrics);
+        self
+    }
+
+    /// Set left iris biometrics (key 61).
+    pub fn with_left_iris(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.left_iris = Some(biometrics);
+        self
+    }
+
+    /// Set face biometrics (key 62).
+    pub fn with_face(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.face = Some(biometrics);
+        self
+    }
+
+    /// Set right palm biometrics (key 63).
+    pub fn with_right_palm(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.right_palm = Some(biometrics);
+        self
+    }
+
+    /// Set left palm biometrics (key 64).
+    pub fn with_left_palm(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.left_palm = Some(biometrics);
+        self
+    }
+
+    /// Set voice biometrics (key 65).
+    pub fn with_voice(mut self, biometrics: Vec<Biometric>) -> Self {
+        self.voice = Some(biometrics);
+        self
+    }
+
     /// Create a clone of this claim with all biometric fields removed.
     ///
     /// Useful for encoding smaller QR codes that exclude biometric data.
@@ -395,6 +650,51 @@ mod tests {
         assert_eq!(claim.id, Some("12345".to_string()));
         assert_eq!(claim.full_name, Some("John Doe".to_string()));
         assert!(!claim.has_biometrics());
+    }
+
+    #[test]
+    fn test_builder_pattern() {
+        let claim = Claim169::new()
+            .with_id("ID-12345-ABCDE")
+            .with_full_name("Jane Marie Smith")
+            .with_first_name("Jane")
+            .with_middle_name("Marie")
+            .with_last_name("Smith")
+            .with_date_of_birth("19900515")
+            .with_gender(Gender::Female)
+            .with_email("jane.smith@example.com")
+            .with_phone("+1 555 123 4567")
+            .with_address("123 Main St\nNew York, NY 10001")
+            .with_nationality("USA")
+            .with_marital_status(MaritalStatus::Married);
+
+        assert_eq!(claim.id, Some("ID-12345-ABCDE".to_string()));
+        assert_eq!(claim.full_name, Some("Jane Marie Smith".to_string()));
+        assert_eq!(claim.first_name, Some("Jane".to_string()));
+        assert_eq!(claim.middle_name, Some("Marie".to_string()));
+        assert_eq!(claim.last_name, Some("Smith".to_string()));
+        assert_eq!(claim.date_of_birth, Some("19900515".to_string()));
+        assert_eq!(claim.gender, Some(Gender::Female));
+        assert_eq!(claim.email, Some("jane.smith@example.com".to_string()));
+        assert_eq!(claim.phone, Some("+1 555 123 4567".to_string()));
+        assert_eq!(
+            claim.address,
+            Some("123 Main St\nNew York, NY 10001".to_string())
+        );
+        assert_eq!(claim.nationality, Some("USA".to_string()));
+        assert_eq!(claim.marital_status, Some(MaritalStatus::Married));
+    }
+
+    #[test]
+    fn test_builder_with_owned_strings() {
+        // Verify builder works with both &str and String
+        let name = String::from("Owned Name");
+        let claim = Claim169::new()
+            .with_id("literal-id")
+            .with_full_name(name);
+
+        assert_eq!(claim.id, Some("literal-id".to_string()));
+        assert_eq!(claim.full_name, Some("Owned Name".to_string()));
     }
 
     #[test]
