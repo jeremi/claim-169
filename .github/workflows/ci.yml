@@ -67,7 +67,7 @@ jobs:
           key: ${{ runner.os }}-cargo-vectors-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Generate test vectors
-        run: cargo run -p generate-vectors
+        run: cargo run -p generate-vectors -- all
 
       - name: Verify vectors exist
         run: |
@@ -111,7 +111,7 @@ jobs:
         run: pip install maturin
 
       - name: Generate test vectors
-        run: cargo run -p generate-vectors
+        run: cargo run -p generate-vectors -- all
 
       - name: Build Python SDK
         working-directory: core/claim169-python
@@ -156,7 +156,7 @@ jobs:
           key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Generate test vectors
-        run: cargo run -p generate-vectors
+        run: cargo run -p generate-vectors -- all
 
       - name: Build WASM
         working-directory: sdks/typescript
@@ -216,7 +216,7 @@ jobs:
           key: ${{ runner.os }}-cargo-conformance-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Generate test vectors
-        run: cargo run -p generate-vectors
+        run: cargo run -p generate-vectors -- all
 
       - name: Build Python SDK
         working-directory: core/claim169-python
