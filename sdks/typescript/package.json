@@ -26,7 +26,8 @@
     "build": "npm run build:wasm && npm run build:ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rm -rf dist wasm"
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist wasm coverage"
   },
   "keywords": [
     "mosip",
@@ -43,6 +44,7 @@
     "url": "https://github.com/jeremi/claim-169"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.0",
     "typescript": "^5.7.0",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",

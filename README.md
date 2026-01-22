@@ -2,6 +2,8 @@
 
 > **Alpha Software**: This library is under active development. APIs may change without notice. Not recommended for production use without thorough testing.
 
+[![CI](https://github.com/jeremi/claim-169/actions/workflows/ci.yml/badge.svg)](https://github.com/jeremi/claim-169/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jeremi/claim-169/graph/badge.svg)](https://codecov.io/gh/jeremi/claim-169)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 

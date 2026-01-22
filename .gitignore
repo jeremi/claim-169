@@ -37,3 +37,9 @@ Thumbs.db
 
 # MkDocs
 site/
+
+# Coverage
+coverage/
+*.lcov
+*-lcov.info
+*-coverage.xml

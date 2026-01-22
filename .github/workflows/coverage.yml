@@ -1,0 +1,97 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack@0.13.1 --locked
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Generate test vectors
+        run: cargo run -p generate-vectors -- all
+
+      # Rust coverage
+      - name: Rust coverage
+        run: |
+          cargo llvm-cov --all-features --workspace --lcov --output-path rust-lcov.info
+
+      # Python coverage
+      - name: Build Python SDK
+        working-directory: core/claim169-python
+        run: |
+          uv sync
+          uv run maturin develop --release
+
+      - name: Python coverage
+        working-directory: core/claim169-python
+        run: |
+          uv run pytest tests/ --cov=claim169 --cov-report=xml:../../python-coverage.xml --cov-report=term
+
+      # TypeScript coverage
+      - name: Build TypeScript SDK
+        working-directory: sdks/typescript
+        run: |
+          npm run build:wasm
+          npm ci
+          npm run build:ts
+
+      - name: TypeScript coverage
+        working-directory: sdks/typescript
+        run: npm run test:coverage
+
+      # Upload to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./rust-lcov.info,./python-coverage.xml,./sdks/typescript/coverage/lcov.info
+          flags: rust,python,typescript
+          fail_ci_if_error: false
+          verbose: true
