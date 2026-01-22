@@ -223,7 +223,13 @@ jobs:
 
       - name: Build Python SDK
         working-directory: core/claim169-python
-        run: maturin develop
+        run: maturin build --release
+
+      - name: Install Python SDK
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install target/wheels/claim169-*.whl
 
       - name: Build TypeScript SDK
         working-directory: sdks/typescript
@@ -234,5 +240,6 @@ jobs:
 
       - name: Run conformance tests
         run: |
+          source .venv/bin/activate
           chmod +x scripts/conformance-test.sh
           ./scripts/conformance-test.sh
