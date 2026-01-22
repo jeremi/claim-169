@@ -1,3 +1,7 @@
+// Allow pyo3 internal cfg checks and macro-generated conversions
+#![allow(unexpected_cfgs)]
+#![allow(clippy::useless_conversion)]
+
 //! Python bindings for MOSIP Claim 169 QR decoder
 //!
 //! This module provides Python bindings using PyO3 for the claim169-core library.

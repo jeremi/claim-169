@@ -242,6 +242,12 @@ pub struct WasmDecodeOptions {
     clock_skew_tolerance_seconds: i64,
 }
 
+impl Default for WasmDecodeOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[wasm_bindgen]
 impl WasmDecodeOptions {
     #[wasm_bindgen(constructor)]
@@ -309,7 +315,7 @@ pub fn decode_with_options(
     qr_text: &str,
     options: Option<WasmDecodeOptions>,
 ) -> Result<JsValue, JsError> {
-    let opts = options.unwrap_or_else(WasmDecodeOptions::new);
+    let opts = options.unwrap_or_default();
     let decode_options = DecodeOptions {
         max_decompressed_bytes: opts.max_decompressed_bytes,
         skip_biometrics: opts.skip_biometrics,
