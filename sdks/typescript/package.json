@@ -21,7 +21,7 @@
     "wasm"
   ],
   "scripts": {
-    "build:wasm": "wasm-pack build ../../core/claim169-wasm --target web --release --out-dir ../../sdks/typescript/wasm",
+    "build:wasm": "wasm-pack build ../../core/claim169-wasm --target bundler --release --out-dir ../../sdks/typescript/wasm",
     "build:ts": "tsc",
     "build": "npm run build:wasm && npm run build:ts",
     "test": "vitest run",

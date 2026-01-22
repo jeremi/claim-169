@@ -113,23 +113,20 @@ jobs:
       - name: Generate test vectors
         run: cargo run -p generate-vectors -- all
 
-      - name: Create virtualenv and build Python SDK
+      - name: Build Python SDK wheel
         working-directory: core/claim169-python
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          maturin develop
+        run: maturin build --release
 
-      - name: Install test dependencies
+      - name: Install test dependencies and claim169
         working-directory: sdks/python
-        run: uv sync
+        run: |
+          uv sync
+          # Install the built wheel
+          uv pip install ../../target/wheels/claim169-*.whl
 
       - name: Run Python tests
         working-directory: sdks/python
-        run: |
-          # Add the claim169 package from core build to PYTHONPATH
-          source ../../core/claim169-python/.venv/bin/activate
-          uv run pytest tests/ -v
+        run: uv run pytest tests/ -v
 
   # TypeScript SDK tests
   typescript:
