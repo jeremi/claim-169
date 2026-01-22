@@ -275,7 +275,7 @@ impl Claim169 {
 
     /// Convert to a Python dictionary
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let dict = PyDict::new_bound(py);
+        let dict = PyDict::new(py);
 
         if let Some(ref v) = self.id {
             dict.set_item("id", v)?;
@@ -404,13 +404,13 @@ impl DecodeResult {
 /// Python-callable signature verifier hook
 #[pyclass]
 pub struct PySignatureVerifier {
-    callback: PyObject,
+    callback: Py<PyAny>,
 }
 
 #[pymethods]
 impl PySignatureVerifier {
     #[new]
-    fn new(callback: PyObject) -> Self {
+    fn new(callback: Py<PyAny>) -> Self {
         PySignatureVerifier { callback }
     }
 }
@@ -423,12 +423,12 @@ impl CoreSignatureVerifier for PySignatureVerifier {
         data: &[u8],
         signature: &[u8],
     ) -> CryptoResult<()> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let alg_name = format!("{:?}", algorithm);
             let key_id_bytes: Option<Bound<'_, PyBytes>> =
-                key_id.map(|k| PyBytes::new_bound(py, k));
-            let data_bytes = PyBytes::new_bound(py, data);
-            let sig_bytes = PyBytes::new_bound(py, signature);
+                key_id.map(|k| PyBytes::new(py, k));
+            let data_bytes = PyBytes::new(py, data);
+            let sig_bytes = PyBytes::new(py, signature);
 
             let result = self
                 .callback
@@ -449,13 +449,13 @@ unsafe impl Sync for PySignatureVerifier {}
 /// Python-callable decryptor hook
 #[pyclass]
 pub struct PyDecryptor {
-    callback: PyObject,
+    callback: Py<PyAny>,
 }
 
 #[pymethods]
 impl PyDecryptor {
     #[new]
-    fn new(callback: PyObject) -> Self {
+    fn new(callback: Py<PyAny>) -> Self {
         PyDecryptor { callback }
     }
 }
@@ -469,13 +469,13 @@ impl CoreDecryptor for PyDecryptor {
         aad: &[u8],
         ciphertext: &[u8],
     ) -> CryptoResult<Vec<u8>> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let alg_name = format!("{:?}", algorithm);
             let key_id_bytes: Option<Bound<'_, PyBytes>> =
-                key_id.map(|k| PyBytes::new_bound(py, k));
-            let nonce_bytes = PyBytes::new_bound(py, nonce);
-            let aad_bytes = PyBytes::new_bound(py, aad);
-            let ct_bytes = PyBytes::new_bound(py, ciphertext);
+                key_id.map(|k| PyBytes::new(py, k));
+            let nonce_bytes = PyBytes::new(py, nonce);
+            let aad_bytes = PyBytes::new(py, aad);
+            let ct_bytes = PyBytes::new(py, ciphertext);
 
             let result = self.callback.call1(
                 py,
@@ -617,7 +617,7 @@ fn decode_with_ecdsa_p256(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeRe
 ///     result = decode_with_verifier(qr_text, my_hsm_verify)
 #[pyfunction]
 #[pyo3(name = "decode_with_verifier")]
-fn py_decode_with_verifier(qr_text: &str, verifier: PyObject) -> PyResult<DecodeResult> {
+fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<DecodeResult> {
     let py_verifier = PySignatureVerifier::new(verifier);
     let result = Decoder::new(qr_text)
         .verify_with(py_verifier)
@@ -645,7 +645,7 @@ fn py_decode_with_verifier(qr_text: &str, verifier: PyObject) -> PyResult<Decode
 fn decode_encrypted_aes(
     qr_text: &str,
     key: &[u8],
-    verifier: Option<PyObject>,
+    verifier: Option<Py<PyAny>>,
 ) -> PyResult<DecodeResult> {
     let decryptor =
         AesGcmDecryptor::from_bytes(key).map_err(|e| PyValueError::new_err(e.to_string()))?;
@@ -686,8 +686,8 @@ fn decode_encrypted_aes(
 #[pyo3(signature = (qr_text, decryptor, verifier=None))]
 fn decode_with_decryptor(
     qr_text: &str,
-    decryptor: PyObject,
-    verifier: Option<PyObject>,
+    decryptor: Py<PyAny>,
+    verifier: Option<Py<PyAny>>,
 ) -> PyResult<DecodeResult> {
     let py_decryptor = PyDecryptor::new(decryptor);
 
@@ -1019,21 +1019,21 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add exception types
     m.add(
         "Claim169Exception",
-        py.get_type_bound::<Claim169Exception>(),
+        py.get_type::<Claim169Exception>(),
     )?;
     m.add(
         "Base45DecodeError",
-        py.get_type_bound::<Base45DecodeError>(),
+        py.get_type::<Base45DecodeError>(),
     )?;
-    m.add("DecompressError", py.get_type_bound::<DecompressError>())?;
-    m.add("CoseParseError", py.get_type_bound::<CoseParseError>())?;
-    m.add("CwtParseError", py.get_type_bound::<CwtParseError>())?;
+    m.add("DecompressError", py.get_type::<DecompressError>())?;
+    m.add("CoseParseError", py.get_type::<CoseParseError>())?;
+    m.add("CwtParseError", py.get_type::<CwtParseError>())?;
     m.add(
         "Claim169NotFoundError",
-        py.get_type_bound::<Claim169NotFoundError>(),
+        py.get_type::<Claim169NotFoundError>(),
     )?;
-    m.add("SignatureError", py.get_type_bound::<SignatureError>())?;
-    m.add("DecryptionError", py.get_type_bound::<DecryptionError>())?;
+    m.add("SignatureError", py.get_type::<SignatureError>())?;
+    m.add("DecryptionError", py.get_type::<DecryptionError>())?;
 
     // Add classes
     m.add_class::<Biometric>()?;
