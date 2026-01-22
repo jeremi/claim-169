@@ -54,7 +54,8 @@ with open(sys.argv[1]) as f:
 results = []
 for v in vectors:
     try:
-        result = claim169.decode(v['qr_data'])
+        # Disable timestamp validation to match TypeScript defaults
+        result = claim169.decode(v['qr_data'], validate_timestamps=False)
         results.append({
             'name': v['name'],
             'category': v['category'],
