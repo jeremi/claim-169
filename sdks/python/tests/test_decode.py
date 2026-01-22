@@ -174,8 +174,9 @@ class TestDecodeWithEd25519:
 
     def test_reject_wrong_key(self, ed25519_signed_vector):
         """Test that wrong key fails verification."""
-        wrong_key = bytes(32)  # All zeros
-        with pytest.raises(claim169.Claim169Exception):
+        # Use a non-zero key to avoid "weak key" rejection
+        wrong_key = bytes([0x01] + [0x00] * 31)
+        with pytest.raises((claim169.Claim169Exception, ValueError)):
             claim169.decode_with_ed25519(
                 ed25519_signed_vector["qr_data"],
                 wrong_key
