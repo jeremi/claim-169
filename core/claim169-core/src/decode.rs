@@ -159,8 +159,8 @@ impl Decoder {
     /// ```
     #[cfg(feature = "software-crypto")]
     pub fn verify_with_ed25519(self, public_key: &[u8]) -> Result<Self> {
-        let verifier =
-            Ed25519Verifier::from_bytes(public_key).map_err(|e| Claim169Error::Crypto(e.to_string()))?;
+        let verifier = Ed25519Verifier::from_bytes(public_key)
+            .map_err(|e| Claim169Error::Crypto(e.to_string()))?;
 
         Ok(self.verify_with(verifier))
     }
@@ -178,7 +178,8 @@ impl Decoder {
     /// Returns an error if the PEM is invalid or the key is weak.
     #[cfg(feature = "software-crypto")]
     pub fn verify_with_ed25519_pem(self, pem: &str) -> Result<Self> {
-        let verifier = Ed25519Verifier::from_pem(pem).map_err(|e| Claim169Error::Crypto(e.to_string()))?;
+        let verifier =
+            Ed25519Verifier::from_pem(pem).map_err(|e| Claim169Error::Crypto(e.to_string()))?;
 
         Ok(self.verify_with(verifier))
     }
@@ -196,8 +197,8 @@ impl Decoder {
     /// Returns an error if the public key format is invalid or represents a weak key.
     #[cfg(feature = "software-crypto")]
     pub fn verify_with_ecdsa_p256(self, public_key: &[u8]) -> Result<Self> {
-        let verifier =
-            EcdsaP256Verifier::from_sec1_bytes(public_key).map_err(|e| Claim169Error::Crypto(e.to_string()))?;
+        let verifier = EcdsaP256Verifier::from_sec1_bytes(public_key)
+            .map_err(|e| Claim169Error::Crypto(e.to_string()))?;
 
         Ok(self.verify_with(verifier))
     }
@@ -215,7 +216,8 @@ impl Decoder {
     /// Returns an error if the PEM is invalid or the key is weak.
     #[cfg(feature = "software-crypto")]
     pub fn verify_with_ecdsa_p256_pem(self, pem: &str) -> Result<Self> {
-        let verifier = EcdsaP256Verifier::from_pem(pem).map_err(|e| Claim169Error::Crypto(e.to_string()))?;
+        let verifier =
+            EcdsaP256Verifier::from_pem(pem).map_err(|e| Claim169Error::Crypto(e.to_string()))?;
 
         Ok(self.verify_with(verifier))
     }
@@ -363,10 +365,14 @@ impl Decoder {
         let mut warnings = Vec::new();
 
         // Convert trait objects for pipeline functions
-        let verifier_ref: Option<&dyn SignatureVerifier> =
-            self.verifier.as_ref().map(|v| v.as_ref() as &dyn SignatureVerifier);
-        let decryptor_ref: Option<&dyn Decryptor> =
-            self.decryptor.as_ref().map(|d| d.as_ref() as &dyn Decryptor);
+        let verifier_ref: Option<&dyn SignatureVerifier> = self
+            .verifier
+            .as_ref()
+            .map(|v| v.as_ref() as &dyn SignatureVerifier);
+        let decryptor_ref: Option<&dyn Decryptor> = self
+            .decryptor
+            .as_ref()
+            .map(|d| d.as_ref() as &dyn Decryptor);
 
         // Step 1: Base45 decode
         let compressed = pipeline::base45_decode(&self.qr_text)?;
@@ -378,9 +384,11 @@ impl Decoder {
         let cose_result = pipeline::cose_parse(&cose_bytes, verifier_ref, decryptor_ref)?;
 
         // Check if verification was required but skipped
-        if !self.allow_unverified && cose_result.verification_status == VerificationStatus::Skipped {
+        if !self.allow_unverified && cose_result.verification_status == VerificationStatus::Skipped
+        {
             return Err(Claim169Error::DecodingConfig(
-                "verification required but no verifier provided - use allow_unverified() to skip".to_string(),
+                "verification required but no verifier provided - use allow_unverified() to skip"
+                    .to_string(),
             ));
         }
 
@@ -528,7 +536,10 @@ mod tests {
             .unwrap();
 
         // Should have a warning about skipped biometrics
-        assert!(result.warnings.iter().any(|w| w.code == WarningCode::BiometricsSkipped));
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.code == WarningCode::BiometricsSkipped));
     }
 
     #[test]
@@ -660,15 +671,23 @@ mod tests {
             .decode();
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Claim169Error::SignatureInvalid(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            Claim169Error::SignatureInvalid(_)
+        ));
     }
 
     #[test]
     fn test_decoder_invalid_base45() {
-        let result = Decoder::new("!!!invalid base45!!!").allow_unverified().decode();
+        let result = Decoder::new("!!!invalid base45!!!")
+            .allow_unverified()
+            .decode();
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Claim169Error::Base45Decode(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            Claim169Error::Base45Decode(_)
+        ));
     }
 
     #[test]

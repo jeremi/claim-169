@@ -9,7 +9,9 @@
 //! Claim169 → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → Base45
 //! ```
 
-use coset::{iana, CborSerializable, CoseSign1Builder, Header, HeaderBuilder, TaggedCborSerializable};
+use coset::{
+    iana, CborSerializable, CoseSign1Builder, Header, HeaderBuilder, TaggedCborSerializable,
+};
 
 use crate::crypto::traits::{Encryptor, Signer};
 use crate::error::{Claim169Error, Result};
@@ -105,7 +107,8 @@ pub fn encode_signed_and_encrypted(
     let signed_bytes = create_signed_cose(&cwt_payload, signer, sign_algorithm)?;
 
     // Step 4: Encrypt with COSE_Encrypt0
-    let encrypted_bytes = create_encrypted_cose(&signed_bytes, encryptor, encrypt_algorithm, nonce)?;
+    let encrypted_bytes =
+        create_encrypted_cose(&signed_bytes, encryptor, encrypt_algorithm, nonce)?;
 
     // Step 5: Compress with zlib
     let compressed = compress(&encrypted_bytes);
@@ -182,7 +185,10 @@ fn create_encrypted_cose(
     let unprotected = HeaderBuilder::new().iv(nonce.to_vec()).build();
 
     // Serialize protected header for AAD computation (clone before consuming)
-    let protected_bytes = protected.clone().to_vec().map_err(|e| Claim169Error::CborEncode(e.to_string()))?;
+    let protected_bytes = protected
+        .clone()
+        .to_vec()
+        .map_err(|e| Claim169Error::CborEncode(e.to_string()))?;
 
     // Build AAD (Enc_structure)
     let aad = build_encrypt0_aad(&protected_bytes);
@@ -246,11 +252,9 @@ mod tests {
 
         // Base45 encoded data should be non-empty and contain valid chars
         assert!(!qr_data.is_empty());
-        assert!(qr_data.chars().all(|c| {
-            c.is_ascii_uppercase()
-                || c.is_ascii_digit()
-                || " $%*+-./:".contains(c)
-        }));
+        assert!(qr_data
+            .chars()
+            .all(|c| { c.is_ascii_uppercase() || c.is_ascii_digit() || " $%*+-./:".contains(c) }));
     }
 
     #[test]
@@ -274,7 +278,10 @@ mod tests {
 
         let result = encode_signed(&claim169, &cwt_meta, Some(&MockSigner), None, &config);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Claim169Error::EncodingConfig(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            Claim169Error::EncodingConfig(_)
+        ));
 
         // Algorithm without signer should also fail
         let result = encode_signed(
@@ -285,7 +292,10 @@ mod tests {
             &config,
         );
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Claim169Error::EncodingConfig(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            Claim169Error::EncodingConfig(_)
+        ));
     }
 
     #[cfg(feature = "software-crypto")]
@@ -360,10 +370,10 @@ mod tests {
     #[test]
     fn test_roundtrip_signed() {
         use crate::crypto::software::Ed25519Signer;
-        use crate::pipeline::{base45_decode, decompress};
+        use crate::pipeline::claim169::transform;
         use crate::pipeline::cose::parse_and_verify;
         use crate::pipeline::cwt::parse as cwt_parse;
-        use crate::pipeline::claim169::transform;
+        use crate::pipeline::{base45_decode, decompress};
 
         let original_claim = Claim169 {
             id: Some("roundtrip-test".to_string()),
@@ -418,10 +428,10 @@ mod tests {
     #[test]
     fn test_roundtrip_signed_and_encrypted() {
         use crate::crypto::software::{AesGcmDecryptor, AesGcmEncryptor, Ed25519Signer};
-        use crate::pipeline::{base45_decode, decompress};
+        use crate::pipeline::claim169::transform;
         use crate::pipeline::cose::parse_and_verify;
         use crate::pipeline::cwt::parse as cwt_parse;
-        use crate::pipeline::claim169::transform;
+        use crate::pipeline::{base45_decode, decompress};
 
         let original_claim = Claim169 {
             id: Some("encrypted-roundtrip".to_string()),

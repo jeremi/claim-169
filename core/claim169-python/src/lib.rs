@@ -17,8 +17,8 @@ use claim169_core::crypto::traits::{
 };
 use claim169_core::error::{Claim169Error, CryptoError, CryptoResult};
 use claim169_core::model::{
-    Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
-    Gender, MaritalStatus, PhotoFormat,
+    Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta, Gender,
+    MaritalStatus, PhotoFormat,
 };
 use claim169_core::{Decoder, Encoder as CoreEncoder};
 use coset::iana;
@@ -654,7 +654,10 @@ fn decode_encrypted_aes(
 
     let result = if let Some(v) = verifier {
         let py_verifier = PySignatureVerifier::new(v);
-        decoder.verify_with(py_verifier).decode().map_err(to_py_err)?
+        decoder
+            .verify_with(py_verifier)
+            .decode()
+            .map_err(to_py_err)?
     } else {
         decoder.allow_unverified().decode().map_err(to_py_err)?
     };
@@ -692,7 +695,10 @@ fn decode_with_decryptor(
 
     let result = if let Some(v) = verifier {
         let py_verifier = PySignatureVerifier::new(v);
-        decoder.verify_with(py_verifier).decode().map_err(to_py_err)?
+        decoder
+            .verify_with(py_verifier)
+            .decode()
+            .map_err(to_py_err)?
     } else {
         decoder.allow_unverified().decode().map_err(to_py_err)?
     };
@@ -796,7 +802,10 @@ impl Claim169Input {
     }
 
     fn __repr__(&self) -> String {
-        format!("Claim169Input(id={:?}, full_name={:?})", self.id, self.full_name)
+        format!(
+            "Claim169Input(id={:?}, full_name={:?})",
+            self.id, self.full_name
+        )
     }
 }
 
@@ -877,7 +886,10 @@ impl CwtMetaInput {
     }
 
     fn __repr__(&self) -> String {
-        format!("CwtMetaInput(issuer={:?}, expires_at={:?})", self.issuer, self.expires_at)
+        format!(
+            "CwtMetaInput(issuer={:?}, expires_at={:?})",
+            self.issuer, self.expires_at
+        )
     }
 }
 
@@ -981,10 +993,7 @@ fn encode_signed_encrypted(
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-fn encode_unsigned(
-    claim169: &Claim169Input,
-    cwt_meta: &CwtMetaInput,
-) -> PyResult<String> {
+fn encode_unsigned(claim169: &Claim169Input, cwt_meta: &CwtMetaInput) -> PyResult<String> {
     let core_claim: CoreClaim169 = claim169.into();
     let core_meta: CoreCwtMeta = cwt_meta.into();
 

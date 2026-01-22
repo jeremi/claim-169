@@ -390,7 +390,8 @@ impl Encoder {
         // Convert the boxed signer to a trait object reference
         // The cast is needed because Box<dyn Signer + Send + Sync> doesn't automatically
         // coerce to &dyn Signer, even though Signer: Send + Sync
-        let signer_ref: Option<&dyn Signer> = self.signer.as_ref().map(|s| s.as_ref() as &dyn Signer);
+        let signer_ref: Option<&dyn Signer> =
+            self.signer.as_ref().map(|s| s.as_ref() as &dyn Signer);
 
         match self.encrypt_config {
             Some(encrypt_config) => {
@@ -401,7 +402,8 @@ impl Encoder {
                 #[cfg(not(feature = "software-crypto"))]
                 let nonce = encrypt_config.nonce.ok_or_else(|| {
                     Claim169Error::EncodingConfig(
-                        "explicit nonce required when software-crypto feature is disabled".to_string(),
+                        "explicit nonce required when software-crypto feature is disabled"
+                            .to_string(),
                     )
                 })?;
 
@@ -572,9 +574,9 @@ mod tests {
     #[test]
     fn test_encoder_roundtrip() {
         use crate::crypto::software::{AesGcmDecryptor, Ed25519Signer};
-        use crate::pipeline::{base45_decode, cose_parse, cwt_parse, decompress};
-        use crate::pipeline::claim169::transform;
         use crate::model::VerificationStatus;
+        use crate::pipeline::claim169::transform;
+        use crate::pipeline::{base45_decode, cose_parse, cwt_parse, decompress};
 
         let original_claim = Claim169 {
             id: Some("roundtrip-builder".to_string()),
@@ -608,7 +610,10 @@ mod tests {
         let decryptor = AesGcmDecryptor::aes256(&encrypt_key).unwrap();
         let cose_result = cose_parse(&cose_bytes, Some(&verifier), Some(&decryptor)).unwrap();
 
-        assert_eq!(cose_result.verification_status, VerificationStatus::Verified);
+        assert_eq!(
+            cose_result.verification_status,
+            VerificationStatus::Verified
+        );
 
         let cwt_result = cwt_parse(&cose_result.payload).unwrap();
         let decoded_claim = transform(cwt_result.claim_169, false).unwrap();
