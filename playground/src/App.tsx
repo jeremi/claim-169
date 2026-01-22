@@ -5,7 +5,7 @@ import { EncodePanel } from "@/components/EncodePanel"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 function App() {
-  const [activeTab, setActiveTab] = useState("decode")
+  const [activeTab, setActiveTab] = useState("encode")
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Play, Loader2, Copy, Check, Download } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Play, Loader2, Copy, Check, Download, Sparkles } from "lucide-react"
 import { hexToBytes, copyToClipboard } from "@/lib/utils"
+
+// Sample test keys (from test vectors - for testing only!)
+const SAMPLE_ED25519_PRIVATE_KEY = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+const SAMPLE_ED25519_PUBLIC_KEY = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
 
 type SigningMethod = "ed25519" | "ecdsa" | "unsigned"
 type EncryptionMethod = "none" | "aes256" | "aes128"
@@ -29,6 +33,37 @@ export function EncodePanel() {
   const [qrData, setQrData] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [publicKeyDisplay, setPublicKeyDisplay] = useState("")
+
+  const loadSampleData = () => {
+    const now = Math.floor(Date.now() / 1000)
+    setClaim169({
+      id: "ID-12345-DEMO",
+      fullName: "Jane Marie Smith",
+      firstName: "Jane",
+      lastName: "Smith",
+      dateOfBirth: "1990-05-15",
+      gender: 2,
+      email: "jane.smith@example.com",
+      phone: "+1 555 123 4567",
+      address: "123 Main Street\nNew York, NY 10001",
+      nationality: "US",
+      maritalStatus: 2,
+    })
+    setCwtMeta({
+      issuer: "https://identity.example.org",
+      subject: "ID-12345-DEMO",
+      issuedAt: now,
+      expiresAt: now + 365 * 24 * 60 * 60, // 1 year
+    })
+    setSigningMethod("ed25519")
+    setPrivateKey(SAMPLE_ED25519_PRIVATE_KEY)
+    setPublicKeyDisplay(SAMPLE_ED25519_PUBLIC_KEY)
+    setEncryptionMethod("none")
+    setEncryptionKey("")
+    setQrData(null)
+    setError(null)
+  }
 
   const handleEncode = async () => {
     setIsEncoding(true)
@@ -158,7 +193,23 @@ export function EncodePanel() {
       <div className="space-y-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Identity Data</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Identity Data</CardTitle>
+              <Button variant="outline" size="sm" onClick={loadSampleData}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Load Sample
+              </Button>
+            </div>
+            {publicKeyDisplay && (
+              <CardDescription className="mt-2">
+                <span className="text-xs">
+                  Public key for verification:{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded text-[10px] font-mono break-all">
+                    {publicKeyDisplay}
+                  </code>
+                </span>
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

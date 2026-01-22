@@ -4,14 +4,51 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { QrScanner } from "@/components/QrScanner"
 import { ResultViewer } from "@/components/ResultViewer"
-import { Camera, Play, Loader2 } from "lucide-react"
+import { Camera, Play, Loader2, FileText } from "lucide-react"
 import { hexToBytes } from "@/lib/utils"
 
 type VerificationMethod = "ed25519" | "ecdsa" | "skip"
 type DecryptionMethod = "none" | "aes256" | "aes128"
+
+// Pre-made examples from test vectors
+const EXAMPLES = {
+  "": {
+    name: "Select an example...",
+    qrData: "",
+    verification: "skip" as VerificationMethod,
+    publicKey: "",
+    decryption: "none" as DecryptionMethod,
+    decryptionKey: "",
+  },
+  "ed25519-signed": {
+    name: "Ed25519 Signed (simple)",
+    qrData: "6BF590B20FFWJWG.FKJ05H7B0XKA8FA9DIWENPEJ/5P$DPQE88EB$CBECP9ERZC04E21DDF3/E96007F3ORAO001KL580 B9%W5*B9C+9%R8646%86HKESED1/DRTC5UA QE$345$CVQEX.DX88WBK0NG8PB4 O/38TL6XDALLKLPQATHO.3ZPJMUAVQFSB1:+B*21V FWMC6SU439YU774475LJ2U5T02$VBSIMLQ3:6J.E1-1STM$4",
+    verification: "ed25519" as VerificationMethod,
+    publicKey: "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+    decryption: "none" as DecryptionMethod,
+    decryptionKey: "",
+  },
+  "demographics-full": {
+    name: "Full Demographics (all fields)",
+    qrData: "6BFA$BMVPYUOM43QVJH.AB27/RBNIDSMGU*4WKQYPDP-MBVDN66$EQM0JBF6YRC/S9N%8T2M.52+11A9G+PQELUPWJ0$RK2GW0PTZJ$6EC/7Z$Q718XV1WGD$DE0%CBBS0I7YEPUMD1F4OPQ3LD:T50KNJ6DKSVG%63EUHK2LJB4BQH 8UMQI5S7-L24WFDVB2N*OQRRMLF15U7X9L1AGVFU0WCJC0.CCW/DB*C*YKTZM9ULPW5U0ND94X9F/07UK2K*EC%2$I0BH3YUA*4MRQQIHS9WDB813.3B11%RRAFFM23N263SG91CDMIWFEI40$43AAII9UNAN6 P01E$M7A*VSTCUL1LILRV2 4BSL5HWPWGSEQOGHPZBV2-P6902HFVZTBJ37-8YF9Y/8JCA9O3XA0:VES4",
+    verification: "skip" as VerificationMethod,
+    publicKey: "",
+    decryption: "none" as DecryptionMethod,
+    decryptionKey: "",
+  },
+  "encrypted-signed": {
+    name: "Encrypted + Signed",
+    qrData: "6BFCA0410DFWXQG.FKTK06U0 DKAPKT K33LMEL-PLV9BIQFGWFU2G8 N.BGZF1VSIYEV7Q3FLRS3AJNDF.3Z0N+ZE:MD1D8R22LF3WC9*9O-P9VYJ3NGZ%3L9BTN0/5LOP0X2RL0ERSVBHVN EUZUQ2C$Y05CLKYU+9653893EU%2ICEALJ864MHB:QK 2SSTKGY6EPJFFS:R0OBF7O57NDH$12PBS1GOQGKY2BDW0Z02NPQO0SPGZ1REG0GPGV6OCRN0RI$IN751T%2SO2TFI2DSV431V5TYUW5H9 9QJU.JN7M6$95:1FJKF9P84DRF/P:0",
+    verification: "ed25519" as VerificationMethod,
+    publicKey: "994c54604862f73d4bce14120b318f720119c6498b59257fb89cbead939ba0f5",
+    decryption: "aes256" as DecryptionMethod,
+    decryptionKey: "101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+  },
+}
 
 export function DecodePanel() {
   const [qrData, setQrData] = useState("")
@@ -23,6 +60,21 @@ export function DecodePanel() {
   const [isDecoding, setIsDecoding] = useState(false)
   const [result, setResult] = useState<DecodeResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedExample, setSelectedExample] = useState("")
+
+  const loadExample = (exampleKey: string) => {
+    setSelectedExample(exampleKey)
+    if (exampleKey && EXAMPLES[exampleKey as keyof typeof EXAMPLES]) {
+      const example = EXAMPLES[exampleKey as keyof typeof EXAMPLES]
+      setQrData(example.qrData)
+      setVerificationMethod(example.verification)
+      setPublicKey(example.publicKey)
+      setDecryptionMethod(example.decryption)
+      setDecryptionKey(example.decryptionKey)
+      setResult(null)
+      setError(null)
+    }
+  }
 
   const handleDecode = async () => {
     if (!qrData.trim()) {
@@ -98,7 +150,23 @@ export function DecodePanel() {
       <div className="space-y-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">QR Data Input</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">QR Data Input</CardTitle>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <Select
+                  value={selectedExample}
+                  onChange={(e) => loadExample(e.target.value)}
+                  className="w-48 text-sm"
+                >
+                  {Object.entries(EXAMPLES).map(([key, example]) => (
+                    <option key={key} value={key}>
+                      {example.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
