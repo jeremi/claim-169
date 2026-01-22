@@ -38,10 +38,10 @@ cargo fmt --all -- --check
 cd core/claim169-python && maturin develop
 
 # Run tests
-cd sdks/python && uv run pytest tests/ -v
+cd core/claim169-python && uv run pytest tests/ -v
 
 # Run single test
-cd sdks/python && uv run pytest tests/test_decode.py::test_name -v
+cd core/claim169-python && uv run pytest tests/test_decode.py::test_name -v
 ```
 
 ### TypeScript/WASM SDK
@@ -107,9 +107,10 @@ schema/              # JSON Schema for output validation
   - `biometrics.rs` - `Biometric` struct (data, format, sub_format, issuer)
   - `cwt_meta.rs` - CWT metadata (issuer, subject, timestamps)
 
-- **`options.rs`** - `DecodeOptions` with presets (default, strict, permissive)
 - **`error.rs`** - Error types for each pipeline stage
-- **`lib.rs`** - Public API: `decode()`, `decode_with_verifier()`, `decode_encrypted()`
+- **`decode.rs`** - Public decoding API: `Decoder` builder
+- **`encode.rs`** - Public encoding API: `Encoder` builder
+- **`lib.rs`** - Crate exports and top-level docs
 
 ### CBOR Key Mapping (from Claim 169 spec)
 

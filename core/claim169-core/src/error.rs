@@ -10,9 +10,9 @@
 //! All public functions return [`Result<T>`] which uses [`Claim169Error`]:
 //!
 //! ```rust,ignore
-//! use claim169_core::{decode, DecodeOptions, Claim169Error};
+//! use claim169_core::{Decoder, Claim169Error};
 //!
-//! match decode(qr_content, DecodeOptions::default().allow_unverified()) {
+//! match Decoder::new(qr_content).allow_unverified().decode() {
 //!     Ok(result) => println!("Decoded: {:?}", result.claim169.full_name),
 //!     Err(Claim169Error::Expired(ts)) => println!("Credential expired at {}", ts),
 //!     Err(Claim169Error::SignatureInvalid(msg)) => println!("Bad signature: {}", msg),
@@ -116,6 +116,27 @@ pub enum Claim169Error {
     /// I/O error
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
+
+    // ========== Encoding errors ==========
+    /// CBOR encoding failed
+    #[error("CBOR encoding failed: {0}")]
+    CborEncode(String),
+
+    /// Signing failed
+    #[error("signing failed: {0}")]
+    SignatureFailed(String),
+
+    /// Encryption failed
+    #[error("encryption failed: {0}")]
+    EncryptionFailed(String),
+
+    /// Encoding configuration error
+    #[error("encoding configuration error: {0}")]
+    EncodingConfig(String),
+
+    /// Decoding configuration error
+    #[error("decoding configuration error: {0}")]
+    DecodingConfig(String),
 }
 
 /// Errors specific to cryptographic operations.

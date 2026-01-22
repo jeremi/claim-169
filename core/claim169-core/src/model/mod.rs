@@ -20,7 +20,7 @@
 //! | 10 | `address` | Address (newline-separated) |
 //! | 50-65 | Biometrics | Fingerprints, iris, face, voice |
 //!
-//! See the [Claim 169 specification](https://docs.mosip.io/) for the complete field mapping.
+//! See the [Claim 169 specification](https://github.com/mosip/id-claim-169/tree/main) for the complete field mapping.
 //!
 //! # JSON Serialization
 //!

@@ -84,28 +84,50 @@ compare_outputs() {
     echo -n "Testing $name... "
 
     # Run Python
-    python_output=$(python "$TEMP_DIR/python_decode.py" "$qr_data" 2>&1) || true
+    python_output=$(python3 "$TEMP_DIR/python_decode.py" "$qr_data" 2>&1) || true
 
     # Run TypeScript
     ts_output=$(node "$TEMP_DIR/ts_decode.mjs" "$qr_data" 2>&1) || true
 
     # Check if both succeeded or both failed
-    python_success=$(echo "$python_output" | python -c "import sys, json; d=json.load(sys.stdin); print(d.get('success', False))" 2>/dev/null || echo "False")
+    python_success=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('success', False))" 2>/dev/null || echo "False")
     ts_success=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.success||false)" 2>/dev/null || echo "false")
 
     if [[ "$python_success" == "True" && "$ts_success" == "true" ]]; then
-        # Both succeeded - compare claim169 ID and fullName as basic check
-        python_id=$(echo "$python_output" | python -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('id',''))" 2>/dev/null || echo "")
+        # Both succeeded - compare claim169 fields and CWT metadata
+        python_id=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('id',''))" 2>/dev/null || echo "")
         ts_id=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.id||'')" 2>/dev/null || echo "")
 
-        python_name=$(echo "$python_output" | python -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('fullName',''))" 2>/dev/null || echo "")
+        python_name=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('fullName',''))" 2>/dev/null || echo "")
         ts_name=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.fullName||'')" 2>/dev/null || echo "")
 
-        if [[ "$python_id" == "$ts_id" && "$python_name" == "$ts_name" ]]; then
+        python_dob=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('dateOfBirth',''))" 2>/dev/null || echo "")
+        ts_dob=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.dateOfBirth||'')" 2>/dev/null || echo "")
+
+        python_gender=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('gender',''))" 2>/dev/null || echo "")
+        ts_gender=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.gender||'')" 2>/dev/null || echo "")
+
+        python_issuer=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('cwtMeta',{}).get('issuer',''))" 2>/dev/null || echo "")
+        ts_issuer=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.cwtMeta?.issuer||'')" 2>/dev/null || echo "")
+
+        python_expires=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('cwtMeta',{}).get('expiresAt',''))" 2>/dev/null || echo "")
+        ts_expires=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.cwtMeta?.expiresAt||'')" 2>/dev/null || echo "")
+
+        python_vstatus=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('verificationStatus',''))" 2>/dev/null || echo "")
+        ts_vstatus=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.verificationStatus||'')" 2>/dev/null || echo "")
+
+        if [[ "$python_id" == "$ts_id" && "$python_name" == "$ts_name" && "$python_dob" == "$ts_dob" && "$python_gender" == "$ts_gender" && "$python_issuer" == "$ts_issuer" && "$python_expires" == "$ts_expires" && "$python_vstatus" == "$ts_vstatus" ]]; then
             echo "PASS (id=$python_id)"
             ((PASS_COUNT++))
         else
-            echo "FAIL (mismatch: py_id=$python_id ts_id=$ts_id)"
+            echo "FAIL (mismatch)"
+            echo "  id: py=$python_id ts=$ts_id"
+            echo "  fullName: py=$python_name ts=$ts_name"
+            echo "  dateOfBirth: py=$python_dob ts=$ts_dob"
+            echo "  gender: py=$python_gender ts=$ts_gender"
+            echo "  cwtMeta.issuer: py=$python_issuer ts=$ts_issuer"
+            echo "  cwtMeta.expiresAt: py=$python_expires ts=$ts_expires"
+            echo "  verificationStatus: py=$python_vstatus ts=$ts_vstatus"
             ((FAIL_COUNT++))
         fi
     elif [[ "$python_success" == "False" && "$ts_success" == "false" ]]; then
@@ -121,7 +143,7 @@ compare_outputs() {
 echo "--- Valid Vectors ---"
 for vector_file in "$TEST_VECTORS/valid"/*.json; do
     name=$(basename "$vector_file" .json)
-    qr_data=$(python -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
+    qr_data=$(python3 -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
     compare_outputs "$name" "$qr_data"
 done
 
@@ -129,7 +151,7 @@ echo ""
 echo "--- Invalid Vectors ---"
 for vector_file in "$TEST_VECTORS/invalid"/*.json; do
     name=$(basename "$vector_file" .json)
-    qr_data=$(python -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
+    qr_data=$(python3 -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
     compare_outputs "$name" "$qr_data"
 done
 
@@ -137,7 +159,7 @@ echo ""
 echo "--- Edge Case Vectors ---"
 for vector_file in "$TEST_VECTORS/edge"/*.json; do
     name=$(basename "$vector_file" .json)
-    qr_data=$(python -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
+    qr_data=$(python3 -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
     compare_outputs "$name" "$qr_data"
 done
 

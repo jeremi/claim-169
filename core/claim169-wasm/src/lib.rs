@@ -1,7 +1,7 @@
-//! WebAssembly bindings for MOSIP Claim 169 QR decoder
+//! WebAssembly bindings for MOSIP Claim 169 QR encoder and decoder
 //!
 //! This module provides WASM bindings using wasm-bindgen for the claim169-core library.
-//! It supports custom crypto hooks for integration with WebCrypto or external systems.
+//! It supports encoding (signing, encryption) and decoding of Claim 169 QR codes.
 
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -15,7 +15,7 @@ pub fn init_panic_hook() {
 use claim169_core::model::{
     Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
 };
-use claim169_core::{decode as core_decode, DecodeOptions};
+use claim169_core::{Decoder, Encoder};
 
 // ============================================================================
 // JavaScript Error Types
@@ -230,68 +230,346 @@ pub struct JsDecodeResult {
 }
 
 // ============================================================================
-// Decode Options
+// WASM Decoder Builder
 // ============================================================================
 
-/// Options for decoding
+/// Decoder builder for Claim 169 credentials
 #[wasm_bindgen]
-pub struct WasmDecodeOptions {
-    max_decompressed_bytes: usize,
+pub struct WasmDecoder {
+    qr_text: String,
     skip_biometrics: bool,
     validate_timestamps: bool,
     clock_skew_tolerance_seconds: i64,
-}
-
-impl Default for WasmDecodeOptions {
-    fn default() -> Self {
-        Self::new()
-    }
+    max_decompressed_bytes: usize,
 }
 
 #[wasm_bindgen]
-impl WasmDecodeOptions {
+impl WasmDecoder {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> WasmDecodeOptions {
-        WasmDecodeOptions {
-            max_decompressed_bytes: 65536,
+    pub fn new(qr_text: &str) -> WasmDecoder {
+        WasmDecoder {
+            qr_text: qr_text.to_string(),
             skip_biometrics: false,
-            // WASM doesn't have access to system time, so disable timestamp validation by default
-            validate_timestamps: false,
+            validate_timestamps: false, // WASM doesn't have reliable system time
             clock_skew_tolerance_seconds: 0,
+            max_decompressed_bytes: 65536,
         }
     }
 
-    /// Set maximum decompressed size in bytes
-    #[wasm_bindgen(js_name = "setMaxDecompressedBytes")]
-    pub fn set_max_decompressed_bytes(mut self, bytes: usize) -> WasmDecodeOptions {
+    #[wasm_bindgen(js_name = "skipBiometrics")]
+    pub fn skip_biometrics(mut self) -> WasmDecoder {
+        self.skip_biometrics = true;
+        self
+    }
+
+    #[wasm_bindgen(js_name = "withTimestampValidation")]
+    pub fn with_timestamp_validation(mut self) -> WasmDecoder {
+        self.validate_timestamps = true;
+        self
+    }
+
+    #[wasm_bindgen(js_name = "clockSkewTolerance")]
+    pub fn clock_skew_tolerance(mut self, seconds: i32) -> WasmDecoder {
+        self.clock_skew_tolerance_seconds = i64::from(seconds).max(0);
+        self
+    }
+
+    #[wasm_bindgen(js_name = "maxDecompressedBytes")]
+    pub fn max_decompressed_bytes(mut self, bytes: usize) -> WasmDecoder {
         self.max_decompressed_bytes = bytes;
         self
     }
 
-    /// Skip biometric data parsing
-    #[wasm_bindgen(js_name = "setSkipBiometrics")]
-    pub fn set_skip_biometrics(mut self, skip: bool) -> WasmDecodeOptions {
-        self.skip_biometrics = skip;
-        self
-    }
+    /// Decode the QR code (without verification)
+    pub fn decode(self) -> Result<JsValue, JsError> {
+        let mut decoder = Decoder::new(&self.qr_text)
+            .allow_unverified()
+            .max_decompressed_bytes(self.max_decompressed_bytes);
 
-    /// Set timestamp validation
-    #[wasm_bindgen(js_name = "setValidateTimestamps")]
-    pub fn set_validate_timestamps(mut self, validate: bool) -> WasmDecodeOptions {
-        self.validate_timestamps = validate;
-        self
-    }
+        if self.skip_biometrics {
+            decoder = decoder.skip_biometrics();
+        }
 
-    /// Set clock skew tolerance in seconds for timestamp validation
-    #[wasm_bindgen(js_name = "setClockSkewToleranceSeconds")]
-    pub fn set_clock_skew_tolerance_seconds(mut self, seconds: i32) -> WasmDecodeOptions {
-        self.clock_skew_tolerance_seconds = i64::from(seconds).max(0);
-        self
+        if !self.validate_timestamps {
+            decoder = decoder.without_timestamp_validation();
+        } else {
+            decoder = decoder.clock_skew_tolerance(self.clock_skew_tolerance_seconds);
+        }
+
+        let result = decoder.decode().map_err(|e| JsError::new(&e.to_string()))?;
+
+        let js_result = JsDecodeResult {
+            claim169: JsClaim169::from(&result.claim169),
+            cwt_meta: JsCwtMeta::from(&result.cwt_meta),
+            verification_status: format!("{}", result.verification_status),
+        };
+
+        serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
 // ============================================================================
-// Public API
+// JS Input Types for Encoder
+// ============================================================================
+
+/// Input Claim 169 data from JavaScript
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JsClaim169Input {
+    id: Option<String>,
+    version: Option<String>,
+    language: Option<String>,
+    full_name: Option<String>,
+    first_name: Option<String>,
+    middle_name: Option<String>,
+    last_name: Option<String>,
+    date_of_birth: Option<String>,
+    gender: Option<i64>,
+    address: Option<String>,
+    email: Option<String>,
+    phone: Option<String>,
+    nationality: Option<String>,
+    marital_status: Option<i64>,
+    guardian: Option<String>,
+    photo: Option<Vec<u8>>,
+    photo_format: Option<i64>,
+    secondary_full_name: Option<String>,
+    secondary_language: Option<String>,
+    location_code: Option<String>,
+    legal_status: Option<String>,
+    country_of_issuance: Option<String>,
+}
+
+impl From<JsClaim169Input> for CoreClaim169 {
+    fn from(js: JsClaim169Input) -> Self {
+        use claim169_core::model::{Gender, MaritalStatus, PhotoFormat};
+
+        CoreClaim169 {
+            id: js.id,
+            version: js.version,
+            language: js.language,
+            full_name: js.full_name,
+            first_name: js.first_name,
+            middle_name: js.middle_name,
+            last_name: js.last_name,
+            date_of_birth: js.date_of_birth,
+            gender: js.gender.and_then(|g| match g {
+                1 => Some(Gender::Male),
+                2 => Some(Gender::Female),
+                3 => Some(Gender::Other),
+                _ => None,
+            }),
+            address: js.address,
+            email: js.email,
+            phone: js.phone,
+            nationality: js.nationality,
+            marital_status: js.marital_status.and_then(|m| match m {
+                1 => Some(MaritalStatus::Unmarried),
+                2 => Some(MaritalStatus::Married),
+                3 => Some(MaritalStatus::Divorced),
+                _ => None,
+            }),
+            guardian: js.guardian,
+            photo: js.photo,
+            photo_format: js.photo_format.and_then(|f| match f {
+                1 => Some(PhotoFormat::Jpeg),
+                2 => Some(PhotoFormat::Jpeg2000),
+                3 => Some(PhotoFormat::Avif),
+                4 => Some(PhotoFormat::Webp),
+                _ => None,
+            }),
+            secondary_full_name: js.secondary_full_name,
+            secondary_language: js.secondary_language,
+            location_code: js.location_code,
+            legal_status: js.legal_status,
+            country_of_issuance: js.country_of_issuance,
+            // Biometrics not supported in WASM encoder for now
+            ..Default::default()
+        }
+    }
+}
+
+/// Input CWT metadata from JavaScript
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JsCwtMetaInput {
+    issuer: Option<String>,
+    subject: Option<String>,
+    expires_at: Option<i64>,
+    not_before: Option<i64>,
+    issued_at: Option<i64>,
+}
+
+impl From<JsCwtMetaInput> for CoreCwtMeta {
+    fn from(js: JsCwtMetaInput) -> Self {
+        CoreCwtMeta {
+            issuer: js.issuer,
+            subject: js.subject,
+            expires_at: js.expires_at,
+            not_before: js.not_before,
+            issued_at: js.issued_at,
+        }
+    }
+}
+
+// ============================================================================
+// WASM Encoder Builder
+// ============================================================================
+
+/// Internal state for encoder signing configuration
+enum SignConfig {
+    None,
+    Ed25519(Vec<u8>),
+    EcdsaP256(Vec<u8>),
+    Unsigned,
+}
+
+/// Internal state for encoder encryption configuration
+struct WasmEncryptConfig {
+    key: Vec<u8>,
+    algorithm: EncryptAlgorithm,
+}
+
+#[derive(Clone, Copy)]
+enum EncryptAlgorithm {
+    Aes128Gcm,
+    Aes256Gcm,
+}
+
+/// Encoder builder for creating Claim 169 QR codes
+#[wasm_bindgen]
+pub struct WasmEncoder {
+    claim169: CoreClaim169,
+    cwt_meta: CoreCwtMeta,
+    sign_config: SignConfig,
+    encrypt_config: Option<WasmEncryptConfig>,
+    skip_biometrics: bool,
+}
+
+#[wasm_bindgen]
+impl WasmEncoder {
+    /// Create a new encoder with the given claim and CWT metadata.
+    ///
+    /// @param claim169 - The identity claim data to encode
+    /// @param cwtMeta - CWT metadata including issuer, expiration, etc.
+    #[wasm_bindgen(constructor)]
+    pub fn new(claim169: JsValue, cwt_meta: JsValue) -> Result<WasmEncoder, JsError> {
+        let js_claim: JsClaim169Input = serde_wasm_bindgen::from_value(claim169)
+            .map_err(|e| JsError::new(&format!("Invalid claim169: {}", e)))?;
+        let js_meta: JsCwtMetaInput = serde_wasm_bindgen::from_value(cwt_meta)
+            .map_err(|e| JsError::new(&format!("Invalid cwtMeta: {}", e)))?;
+
+        Ok(WasmEncoder {
+            claim169: js_claim.into(),
+            cwt_meta: js_meta.into(),
+            sign_config: SignConfig::None,
+            encrypt_config: None,
+            skip_biometrics: false,
+        })
+    }
+
+    /// Sign with Ed25519 private key (32 bytes)
+    #[wasm_bindgen(js_name = "signWithEd25519")]
+    pub fn sign_with_ed25519(mut self, private_key: &[u8]) -> Result<WasmEncoder, JsError> {
+        if private_key.len() != 32 {
+            return Err(JsError::new("Ed25519 private key must be 32 bytes"));
+        }
+        self.sign_config = SignConfig::Ed25519(private_key.to_vec());
+        Ok(self)
+    }
+
+    /// Sign with ECDSA P-256 private key (32 bytes)
+    #[wasm_bindgen(js_name = "signWithEcdsaP256")]
+    pub fn sign_with_ecdsa_p256(mut self, private_key: &[u8]) -> Result<WasmEncoder, JsError> {
+        if private_key.len() != 32 {
+            return Err(JsError::new("ECDSA P-256 private key must be 32 bytes"));
+        }
+        self.sign_config = SignConfig::EcdsaP256(private_key.to_vec());
+        Ok(self)
+    }
+
+    /// Encrypt with AES-256-GCM (32-byte key)
+    #[wasm_bindgen(js_name = "encryptWithAes256")]
+    pub fn encrypt_with_aes256(mut self, key: &[u8]) -> Result<WasmEncoder, JsError> {
+        if key.len() != 32 {
+            return Err(JsError::new("AES-256 key must be 32 bytes"));
+        }
+        self.encrypt_config = Some(WasmEncryptConfig {
+            key: key.to_vec(),
+            algorithm: EncryptAlgorithm::Aes256Gcm,
+        });
+        Ok(self)
+    }
+
+    /// Encrypt with AES-128-GCM (16-byte key)
+    #[wasm_bindgen(js_name = "encryptWithAes128")]
+    pub fn encrypt_with_aes128(mut self, key: &[u8]) -> Result<WasmEncoder, JsError> {
+        if key.len() != 16 {
+            return Err(JsError::new("AES-128 key must be 16 bytes"));
+        }
+        self.encrypt_config = Some(WasmEncryptConfig {
+            key: key.to_vec(),
+            algorithm: EncryptAlgorithm::Aes128Gcm,
+        });
+        Ok(self)
+    }
+
+    /// Allow encoding without a signature (INSECURE - testing only)
+    #[wasm_bindgen(js_name = "allowUnsigned")]
+    pub fn allow_unsigned(mut self) -> WasmEncoder {
+        self.sign_config = SignConfig::Unsigned;
+        self
+    }
+
+    /// Skip biometric fields during encoding
+    #[wasm_bindgen(js_name = "skipBiometrics")]
+    pub fn skip_biometrics(mut self) -> WasmEncoder {
+        self.skip_biometrics = true;
+        self
+    }
+
+    /// Encode the credential to a Base45 QR string
+    pub fn encode(self) -> Result<String, JsError> {
+        let mut encoder = Encoder::new(self.claim169, self.cwt_meta);
+
+        if self.skip_biometrics {
+            encoder = encoder.skip_biometrics();
+        }
+
+        // Apply signing
+        encoder = match self.sign_config {
+            SignConfig::None => {
+                return Err(JsError::new(
+                    "Must call signWithEd25519(), signWithEcdsaP256(), or allowUnsigned() before encode()",
+                ));
+            }
+            SignConfig::Ed25519(key) => encoder
+                .sign_with_ed25519(&key)
+                .map_err(|e| JsError::new(&e.to_string()))?,
+            SignConfig::EcdsaP256(key) => encoder
+                .sign_with_ecdsa_p256(&key)
+                .map_err(|e| JsError::new(&e.to_string()))?,
+            SignConfig::Unsigned => encoder.allow_unsigned(),
+        };
+
+        // Apply encryption
+        if let Some(encrypt_config) = self.encrypt_config {
+            encoder = match encrypt_config.algorithm {
+                EncryptAlgorithm::Aes256Gcm => encoder
+                    .encrypt_with_aes256(&encrypt_config.key)
+                    .map_err(|e| JsError::new(&e.to_string()))?,
+                EncryptAlgorithm::Aes128Gcm => encoder
+                    .encrypt_with_aes128(&encrypt_config.key)
+                    .map_err(|e| JsError::new(&e.to_string()))?,
+            };
+        }
+
+        encoder.encode().map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+// ============================================================================
+// Public API (Backwards Compatible)
 // ============================================================================
 
 /// Decode a Claim 169 QR code without signature verification.
@@ -301,38 +579,33 @@ impl WasmDecodeOptions {
 /// @throws Error if decoding fails
 #[wasm_bindgen(js_name = "decode")]
 pub fn decode(qr_text: &str) -> Result<JsValue, JsError> {
-    decode_with_options(qr_text, None)
+    WasmDecoder::new(qr_text).decode()
 }
 
 /// Decode a Claim 169 QR code with options.
 ///
 /// @param qrText - The QR code text content (Base45 encoded)
-/// @param options - Optional decode options
+/// @param skipBiometrics - Whether to skip biometric data parsing
+/// @param maxDecompressedBytes - Maximum decompressed size in bytes
 /// @returns The decoded result as a JavaScript object
 /// @throws Error if decoding fails
 #[wasm_bindgen(js_name = "decodeWithOptions")]
 pub fn decode_with_options(
     qr_text: &str,
-    options: Option<WasmDecodeOptions>,
+    skip_biometrics: Option<bool>,
+    max_decompressed_bytes: Option<usize>,
 ) -> Result<JsValue, JsError> {
-    let opts = options.unwrap_or_default();
-    let decode_options = DecodeOptions {
-        max_decompressed_bytes: opts.max_decompressed_bytes,
-        skip_biometrics: opts.skip_biometrics,
-        validate_timestamps: opts.validate_timestamps,
-        allow_unverified: true,
-        clock_skew_tolerance_seconds: opts.clock_skew_tolerance_seconds,
-    };
+    let mut decoder = WasmDecoder::new(qr_text);
 
-    let result = core_decode(qr_text, decode_options).map_err(|e| JsError::new(&e.to_string()))?;
+    if skip_biometrics.unwrap_or(false) {
+        decoder = decoder.skip_biometrics();
+    }
 
-    let js_result = JsDecodeResult {
-        claim169: JsClaim169::from(&result.claim169),
-        cwt_meta: JsCwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-    };
+    if let Some(bytes) = max_decompressed_bytes {
+        decoder = decoder.max_decompressed_bytes(bytes);
+    }
 
-    serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))
+    decoder.decode()
 }
 
 /// Get the library version
@@ -345,4 +618,10 @@ pub fn version() -> String {
 #[wasm_bindgen(js_name = "isLoaded")]
 pub fn is_loaded() -> bool {
     true
+}
+
+/// Generate a random 12-byte nonce for AES-GCM encryption
+#[wasm_bindgen(js_name = "generateNonce")]
+pub fn generate_nonce() -> Vec<u8> {
+    claim169_core::generate_random_nonce().to_vec()
 }

@@ -101,8 +101,11 @@ impl EcdsaP256Verifier {
     ///
     /// Supports both SPKI (SubjectPublicKeyInfo) format with "BEGIN PUBLIC KEY" headers
     /// and raw SEC1 encoded keys.
+    ///
+    /// Rejects weak keys including identity point and all-zeros coordinates.
     pub fn from_pem(pem: &str) -> CryptoResult<Self> {
         use p256::pkcs8::DecodePublicKey;
+        use p256::EncodedPoint;
 
         let pem = pem.trim();
 
@@ -110,6 +113,17 @@ impl EcdsaP256Verifier {
         if pem.contains("BEGIN PUBLIC KEY") {
             let public_key = PublicKey::from_public_key_pem(pem)
                 .map_err(|e| CryptoError::InvalidKeyFormat(format!("Invalid SPKI PEM: {}", e)))?;
+
+            // Validate against weak keys (same checks as from_sec1_bytes)
+            let encoded_point: EncodedPoint = public_key.into();
+            let sec1_bytes = encoded_point.as_bytes();
+
+            if let Some(reason) = is_weak_p256_key(sec1_bytes) {
+                return Err(CryptoError::InvalidKeyFormat(format!(
+                    "weak key rejected: {}",
+                    reason
+                )));
+            }
 
             let verifying_key = VerifyingKey::from(public_key);
             return Ok(Self { verifying_key });

@@ -118,14 +118,14 @@ jobs:
         run: maturin build --release
 
       - name: Install test dependencies and claim169
-        working-directory: sdks/python
+        working-directory: core/claim169-python
         run: |
           uv sync
           # Install the built wheel
           uv pip install ../../target/wheels/claim169-*.whl
 
       - name: Run Python tests
-        working-directory: sdks/python
+        working-directory: core/claim169-python
         run: uv run pytest tests/ -v
 
   # TypeScript SDK tests

@@ -102,6 +102,8 @@ impl Ed25519Verifier {
     ///
     /// Supports both SPKI (SubjectPublicKeyInfo) format with "BEGIN PUBLIC KEY" headers
     /// and raw base64-encoded 32-byte keys.
+    ///
+    /// Rejects weak keys including all-zeros and small-order points.
     pub fn from_pem(pem: &str) -> CryptoResult<Self> {
         use ed25519_dalek::pkcs8::DecodePublicKey;
 
@@ -111,6 +113,23 @@ impl Ed25519Verifier {
         if pem.contains("BEGIN PUBLIC KEY") {
             let public_key = VerifyingKey::from_public_key_pem(pem)
                 .map_err(|e| CryptoError::InvalidKeyFormat(format!("Invalid SPKI PEM: {}", e)))?;
+
+            // Validate against weak keys (same checks as from_bytes)
+            let bytes = public_key.to_bytes();
+
+            if bytes == ED25519_WEAK_KEY_ZEROS {
+                return Err(CryptoError::InvalidKeyFormat(
+                    "weak key rejected: all-zeros public key".to_string(),
+                ));
+            }
+
+            for weak_point in &ED25519_SMALL_ORDER_POINTS {
+                if bytes == *weak_point {
+                    return Err(CryptoError::InvalidKeyFormat(
+                        "weak key rejected: small-order point".to_string(),
+                    ));
+                }
+            }
 
             return Ok(Self { public_key });
         }

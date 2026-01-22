@@ -25,9 +25,18 @@ classifiers = [
 keywords = ["mosip", "claim169", "qr-code", "identity", "cbor", "cose"]
 
 [project.urls]
-Repository = "https://github.com/jeremi/claim-169"
+Repository = "https://github.com/openspp/claim-169"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "cryptography>=42.0",
+]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
 python-source = "python"
 module-name = "claim169"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

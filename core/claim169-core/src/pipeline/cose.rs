@@ -188,11 +188,21 @@ fn process_encrypt0_with_resolver<R: KeyResolver>(
         match parse_with_resolver(&plaintext, resolver) {
             Ok(inner_result) => return Ok(inner_result),
             Err(Claim169Error::SignatureInvalid(_)) => {
+                // Inner signature verification explicitly failed
+                // Extract the signature algorithm from the inner COSE_Sign1
+                let inner_alg = CoseSign1::from_tagged_slice(&plaintext)
+                    .or_else(|_| CoseSign1::from_slice(&plaintext))
+                    .ok()
+                    .and_then(|sign1| get_algorithm(&sign1.protected.header));
+                let inner_kid = CoseSign1::from_tagged_slice(&plaintext)
+                    .or_else(|_| CoseSign1::from_slice(&plaintext))
+                    .ok()
+                    .and_then(|sign1| get_key_id(&sign1.protected.header, &sign1.unprotected));
                 return Ok(CoseResult {
                     payload: plaintext,
                     verification_status: VerificationStatus::Failed,
-                    algorithm: Some(alg),
-                    key_id,
+                    algorithm: inner_alg,
+                    key_id: inner_kid,
                 });
             }
             Err(e) => return Err(e),
@@ -305,12 +315,20 @@ fn process_encrypt0(
                 Ok(inner_result) => return Ok(inner_result),
                 Err(Claim169Error::SignatureInvalid(_)) => {
                     // Inner signature verification explicitly failed
-                    // Return Failed status instead of silently returning Skipped
+                    // Extract the signature algorithm from the inner COSE_Sign1
+                    let inner_alg = CoseSign1::from_tagged_slice(&plaintext)
+                        .or_else(|_| CoseSign1::from_slice(&plaintext))
+                        .ok()
+                        .and_then(|sign1| get_algorithm(&sign1.protected.header));
+                    let inner_kid = CoseSign1::from_tagged_slice(&plaintext)
+                        .or_else(|_| CoseSign1::from_slice(&plaintext))
+                        .ok()
+                        .and_then(|sign1| get_key_id(&sign1.protected.header, &sign1.unprotected));
                     return Ok(CoseResult {
                         payload: plaintext,
                         verification_status: VerificationStatus::Failed,
-                        algorithm: Some(alg),
-                        key_id,
+                        algorithm: inner_alg,
+                        key_id: inner_kid,
                     });
                 }
                 Err(e) => return Err(e), // Other errors propagate

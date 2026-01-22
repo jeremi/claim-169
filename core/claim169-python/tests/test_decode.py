@@ -136,6 +136,28 @@ class TestDecodeEdgeCases:
         assert result.claim169.id == expected.get("id")
         assert result.claim169.full_name == expected.get("fullName")
 
+    def test_expired_token_rejected(self, expired_vector):
+        """Test that expired tokens are rejected when timestamp validation is enabled."""
+        # The library enforces timestamp validation and rejects expired tokens
+        with pytest.raises(claim169.Claim169Exception) as exc_info:
+            claim169.decode(expired_vector["qr_data"])
+
+        # Verify the error message indicates expiration
+        expected_meta = expired_vector["expected_cwt_meta"]
+        assert "expired" in str(exc_info.value).lower()
+        assert str(expected_meta["expiresAt"]) in str(exc_info.value)
+
+    def test_not_yet_valid_token_rejected(self, not_yet_valid_vector):
+        """Test that not-yet-valid tokens are rejected when timestamp validation is enabled."""
+        # The library enforces timestamp validation and rejects tokens with nbf in the future
+        with pytest.raises(claim169.Claim169Exception) as exc_info:
+            claim169.decode(not_yet_valid_vector["qr_data"])
+
+        # Verify the error message indicates the token is not yet valid
+        expected_meta = not_yet_valid_vector["expected_cwt_meta"]
+        assert "not valid" in str(exc_info.value).lower()
+        assert str(expected_meta["notBefore"]) in str(exc_info.value)
+
 
 class TestDecodeOptions:
     """Tests for decode options."""

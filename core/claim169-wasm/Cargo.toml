@@ -9,9 +9,10 @@ license.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-claim169-core = { path = "../claim169-core", default-features = false }
+claim169-core = { path = "../claim169-core" }
 wasm-bindgen.workspace = true
 serde-wasm-bindgen.workspace = true
 js-sys.workspace = true
 serde.workspace = true
 console_error_panic_hook = "0.1"
+getrandom = { version = "0.2", features = ["js"] }

@@ -1,6 +1,6 @@
 # MOSIP Claim 169 Field Mapping
 # Maps numeric CBOR keys to canonical field names
-# Based on https://docs.mosip.io/1.2.0/readme/standards-and-specifications/mosip-standards/169-qr-code-specification
+# Based on https://github.com/mosip/id-claim-169/tree/main
 
 version: "1.2.0"
 

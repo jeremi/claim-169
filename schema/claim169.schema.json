@@ -218,8 +218,14 @@
         "voice": {
           "$ref": "#/$defs/BiometricArray",
           "description": "Voice biometrics (key 65)"
+        },
+        "unknownFields": {
+          "type": "object",
+          "description": "Unknown CBOR keys preserved for forward compatibility",
+          "additionalProperties": true
         }
-      }
+      },
+      "additionalProperties": true
     },
     "BiometricArray": {
       "type": "array",

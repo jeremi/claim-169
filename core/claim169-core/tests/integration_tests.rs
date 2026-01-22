@@ -4,9 +4,8 @@
 
 use ciborium::Value;
 use claim169_core::{
-    decode, decode_encrypted, decode_with_verifier, AesGcmDecryptor, AesGcmEncryptor,
-    Claim169Error, CwtMeta, DecodeOptions, Ed25519Signer, Ed25519Verifier, Encryptor, Signer,
-    VerificationStatus,
+    AesGcmDecryptor, AesGcmEncryptor, Claim169Error, CwtMeta, Decoder, Ed25519Signer, Encryptor,
+    Signer, VerificationStatus,
 };
 use coset::{
     iana, CborSerializable, CoseEncrypt0Builder, CoseSign1Builder, HeaderBuilder,
@@ -135,7 +134,11 @@ fn test_full_pipeline_base45_to_claim169() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // Decode with permissive options (no verification required)
-    let result = decode(&qr_data, DecodeOptions::permissive()).expect("decode should succeed");
+    let result = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode()
+        .expect("decode should succeed");
 
     assert_eq!(result.claim169.id, Some("ID-PIPELINE-001".to_string()));
     assert_eq!(
@@ -164,12 +167,14 @@ fn test_full_pipeline_with_signature_verification() {
 
     // Generate key pair
     let signer = Ed25519Signer::generate();
-    let verifier = signer.verifying_key();
 
     let qr_data = encode_signed_qr(&meta, &claim_169, &signer);
 
     // Decode with verification
-    let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict())
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&signer.public_key_bytes())
+        .unwrap()
+        .decode()
         .expect("decode with verification should succeed");
 
     assert_eq!(result.claim169.id, Some("ID-SIGNED-PIPE".to_string()));
@@ -204,13 +209,12 @@ fn test_encrypted_credential_full_pipeline() {
     let qr_data = encode_encrypted_qr(&meta, &claim_169, &encryptor, &nonce);
 
     // Decode encrypted credential (permissive since inner content is not signed)
-    let result = decode_encrypted::<_, Ed25519Verifier>(
-        &qr_data,
-        &decryptor,
-        None,
-        DecodeOptions::permissive(),
-    )
-    .expect("encrypted decode should succeed");
+    let result = Decoder::new(&qr_data)
+        .decrypt_with(decryptor)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode()
+        .expect("encrypted decode should succeed");
 
     assert_eq!(result.claim169.id, Some("ID-ENCRYPTED-PIPE".to_string()));
     assert_eq!(
@@ -239,11 +243,7 @@ fn test_expired_credential_rejected() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // Use default options (validates timestamps) but allow unverified
-    let opts = DecodeOptions {
-        allow_unverified: true,
-        ..Default::default()
-    };
-    let result = decode(&qr_data, opts);
+    let result = Decoder::new(&qr_data).allow_unverified().decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -271,11 +271,7 @@ fn test_not_yet_valid_credential_rejected() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // Use default options (validates timestamps) but allow unverified
-    let opts = DecodeOptions {
-        allow_unverified: true,
-        ..Default::default()
-    };
-    let result = decode(&qr_data, opts);
+    let result = Decoder::new(&qr_data).allow_unverified().decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -302,7 +298,10 @@ fn test_expired_credential_accepted_when_validation_disabled() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // Permissive options (validation disabled)
-    let result = decode(&qr_data, DecodeOptions::permissive())
+    let result = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode()
         .expect("should decode when validation disabled");
 
     assert_eq!(result.claim169.id, Some("ID-EXPIRED-OK".to_string()));
@@ -326,15 +325,15 @@ fn test_strict_options_require_verifier() {
 
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
-    // Strict options require verification
-    let result = decode(&qr_data, DecodeOptions::strict());
+    // Strict options require verification (no allow_unverified, no verifier)
+    let result = Decoder::new(&qr_data).decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
-        Claim169Error::SignatureInvalid(msg) => {
+        Claim169Error::DecodingConfig(msg) => {
             assert!(msg.contains("verification required"));
         }
-        e => panic!("Expected SignatureInvalid error, got: {:?}", e),
+        e => panic!("Expected DecodingConfig error, got: {:?}", e),
     }
 }
 
@@ -356,9 +355,11 @@ fn test_wrong_verifier_fails() {
 
     // Verify with different key
     let wrong_signer = Ed25519Signer::generate();
-    let wrong_verifier = wrong_signer.verifying_key();
 
-    let result = decode_with_verifier(&qr_data, &wrong_verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&wrong_signer.public_key_bytes())
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -375,7 +376,10 @@ fn test_wrong_verifier_fails() {
 
 #[test]
 fn test_invalid_base45_rejected() {
-    let result = decode("THIS!IS@NOT#VALID$BASE45", DecodeOptions::permissive());
+    let result = Decoder::new("THIS!IS@NOT#VALID$BASE45")
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode();
 
     assert!(result.is_err());
     assert!(matches!(
@@ -389,7 +393,10 @@ fn test_invalid_zlib_rejected() {
     // Valid Base45 but garbage data
     let garbage = claim169_core::pipeline::base45::encode(&[0xDE, 0xAD, 0xBE, 0xEF]);
 
-    let result = decode(&garbage, DecodeOptions::permissive());
+    let result = Decoder::new(&garbage)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode();
 
     assert!(result.is_err());
     assert!(matches!(result.unwrap_err(), Claim169Error::Decompress(_)));
@@ -409,7 +416,10 @@ fn test_not_cose_rejected() {
     let compressed = claim169_core::pipeline::decompress::compress(&cbor_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
-    let result = decode(&qr_data, DecodeOptions::permissive());
+    let result = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode();
 
     assert!(result.is_err());
     assert!(matches!(result.unwrap_err(), Claim169Error::CoseParse(_)));
@@ -443,7 +453,10 @@ fn test_missing_claim_169_rejected() {
     let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
-    let result = decode(&qr_data, DecodeOptions::permissive());
+    let result = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode();
 
     assert!(result.is_err());
     assert!(matches!(
@@ -453,7 +466,7 @@ fn test_missing_claim_169_rejected() {
 }
 
 // ============================================================================
-// DecodeOptions Tests
+// Decoder Options Tests
 // ============================================================================
 
 #[test]
@@ -488,14 +501,21 @@ fn test_skip_biometrics_option() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // First decode without skip_biometrics - should have biometrics
-    let result_with_bio =
-        decode(&qr_data, DecodeOptions::permissive()).expect("decode should succeed");
+    let result_with_bio = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode()
+        .expect("decode should succeed");
     assert!(result_with_bio.claim169.face.is_some());
     assert!(result_with_bio.claim169.has_biometrics());
 
     // Now decode with skip_biometrics - should NOT have biometrics
-    let opts = DecodeOptions::permissive().skip_biometrics();
-    let result_without_bio = decode(&qr_data, opts).expect("decode should succeed");
+    let result_without_bio = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .skip_biometrics()
+        .decode()
+        .expect("decode should succeed");
 
     assert!(result_without_bio.claim169.face.is_none());
     assert!(!result_without_bio.claim169.has_biometrics());
@@ -531,13 +551,19 @@ fn test_max_decompressed_bytes_enforced() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // With default large limit, should work
-    let large_limit_opts = DecodeOptions::permissive().with_max_decompressed_bytes(100_000); // 100KB limit
-    let result = decode(&qr_data, large_limit_opts);
+    let result = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .max_decompressed_bytes(100_000) // 100KB limit
+        .decode();
     assert!(result.is_ok());
 
     // With very small limit, should fail
-    let small_limit_opts = DecodeOptions::permissive().with_max_decompressed_bytes(100); // Only 100 bytes allowed
-    let result = decode(&qr_data, small_limit_opts);
+    let result = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .max_decompressed_bytes(100) // Only 100 bytes allowed
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -576,15 +602,14 @@ fn test_clock_skew_tolerance() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // Without tolerance, should fail
-    let strict_opts = DecodeOptions::default().allow_unverified();
-    let result = decode(&qr_data, strict_opts);
+    let result = Decoder::new(&qr_data).allow_unverified().decode();
     assert!(result.is_err());
     assert!(matches!(result.unwrap_err(), Claim169Error::Expired(_)));
 
     // With 5 minute tolerance, should succeed
-    let tolerant_opts = DecodeOptions::default()
+    let result = Decoder::new(&qr_data)
         .allow_unverified()
-        .with_clock_skew_tolerance(300); // 5 minutes
-    let result = decode(&qr_data, tolerant_opts);
+        .clock_skew_tolerance(300) // 5 minutes
+        .decode();
     assert!(result.is_ok());
 }

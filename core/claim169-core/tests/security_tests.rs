@@ -4,8 +4,8 @@
 
 use ciborium::Value;
 use claim169_core::{
-    decode, decode_with_verifier, Claim169Error, CwtMeta, DecodeOptions, EcdsaP256Signer,
-    EcdsaP256Verifier, Ed25519Signer, Ed25519Verifier, Signer,
+    Claim169Error, CwtMeta, Decoder, EcdsaP256Signer, EcdsaP256Verifier, Ed25519Signer,
+    Ed25519Verifier, Signer,
 };
 use coset::{iana, CoseSign1Builder, HeaderBuilder, TaggedCborSerializable};
 
@@ -59,9 +59,12 @@ fn test_empty_signature_rejected() {
 
     // Try to verify - should fail
     let signer = Ed25519Signer::generate();
-    let verifier = signer.verifying_key();
+    let public_key = signer.public_key_bytes();
 
-    let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -100,9 +103,12 @@ fn test_truncated_signature_rejected() {
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let signer = Ed25519Signer::generate();
-    let verifier = signer.verifying_key();
+    let public_key = signer.public_key_bytes();
 
-    let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -127,7 +133,7 @@ fn test_corrupted_signature_rejected() {
 
     // Generate a real key pair
     let signer = Ed25519Signer::generate();
-    let verifier = signer.verifying_key();
+    let public_key = signer.public_key_bytes();
 
     // Build properly signed COSE_Sign1
     let protected = HeaderBuilder::new()
@@ -153,7 +159,10 @@ fn test_corrupted_signature_rejected() {
     let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
-    let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -192,9 +201,12 @@ fn test_missing_algorithm_rejected_with_verifier() {
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let signer = Ed25519Signer::generate();
-    let verifier = signer.verifying_key();
+    let public_key = signer.public_key_bytes();
 
-    let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -251,9 +263,12 @@ fn test_eddsa_signed_ecdsa_verifier_rejected() {
 
     // Try to verify with ECDSA verifier - should fail due to algorithm mismatch
     let ecdsa_signer = EcdsaP256Signer::generate();
-    let ecdsa_verifier = ecdsa_signer.verifying_key();
+    let public_key = ecdsa_signer.public_key_uncompressed();
 
-    let result = decode_with_verifier(&qr_data, &ecdsa_verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ecdsa_p256(&public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -327,9 +342,12 @@ fn test_ecdsa_signed_eddsa_verifier_rejected() {
 
     // Try to verify with EdDSA verifier - should fail due to algorithm mismatch
     let ed25519_signer = Ed25519Signer::generate();
-    let ed25519_verifier = ed25519_signer.verifying_key();
+    let public_key = ed25519_signer.public_key_bytes();
 
-    let result = decode_with_verifier(&qr_data, &ed25519_verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -386,7 +404,7 @@ fn test_ecdsa_p256_full_pipeline_sign_verify() {
 
     // Generate ECDSA P-256 key pair
     let signer = EcdsaP256Signer::generate();
-    let verifier = signer.verifying_key();
+    let public_key = signer.public_key_uncompressed();
 
     // Build and sign COSE_Sign1
     let protected = HeaderBuilder::new()
@@ -409,7 +427,10 @@ fn test_ecdsa_p256_full_pipeline_sign_verify() {
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Decode with verification
-    let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict())
+    let result = Decoder::new(&qr_data)
+        .verify_with_ecdsa_p256(&public_key)
+        .unwrap()
+        .decode()
         .expect("ECDSA verification should succeed");
 
     assert_eq!(result.claim169.id, Some("ID-ECDSA-P256".to_string()));
@@ -461,9 +482,12 @@ fn test_ecdsa_p256_wrong_verifier_fails() {
 
     // Try to verify with different ECDSA key
     let wrong_signer = EcdsaP256Signer::generate();
-    let wrong_verifier = wrong_signer.verifying_key();
+    let wrong_public_key = wrong_signer.public_key_uncompressed();
 
-    let result = decode_with_verifier(&qr_data, &wrong_verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ecdsa_p256(&wrong_public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -507,12 +531,11 @@ fn test_zip_bomb_protection() {
     let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
-    // Use strict options with small decompression limit
-    let opts = DecodeOptions::strict()
-        .with_max_decompressed_bytes(1024) // Only 1KB allowed
-        .allow_unverified();
-
-    let result = decode(&qr_data, opts);
+    // Use builder with small decompression limit
+    let result = Decoder::new(&qr_data)
+        .max_decompressed_bytes(1024) // Only 1KB allowed
+        .allow_unverified()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -574,7 +597,10 @@ fn test_deeply_nested_cbor_rejected() {
     let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
-    let result = decode(&qr_data, DecodeOptions::permissive());
+    let result = Decoder::new(&qr_data)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -610,7 +636,7 @@ fn test_all_zeros_key_rejected() {
     // The ed25519-dalek library accepts the all-zeros key technically,
     // but verification will fail. This test documents the behavior.
     // In production, key distribution should validate keys.
-    if let Ok(verifier) = result {
+    if result.is_ok() {
         // If the library accepts it, verify that verification fails
 
         let claim_169 = create_claim169_map(vec![
@@ -639,7 +665,10 @@ fn test_all_zeros_key_rejected() {
         let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
         let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
-        let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict());
+        let result = Decoder::new(&qr_data)
+            .verify_with_ed25519(&zero_key)
+            .unwrap()
+            .decode();
 
         // Verification should fail with zero key
         assert!(result.is_err());
@@ -686,7 +715,7 @@ fn test_tampered_payload_detected() {
 
     // Generate a real signature
     let signer = Ed25519Signer::generate();
-    let verifier = signer.verifying_key();
+    let public_key = signer.public_key_bytes();
 
     let protected = HeaderBuilder::new()
         .algorithm(iana::Algorithm::EdDSA)
@@ -717,7 +746,10 @@ fn test_tampered_payload_detected() {
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Verification should fail because signature doesn't match tampered content
-    let result = decode_with_verifier(&qr_data, &verifier, DecodeOptions::strict());
+    let result = Decoder::new(&qr_data)
+        .verify_with_ed25519(&public_key)
+        .unwrap()
+        .decode();
 
     assert!(result.is_err());
     match result.unwrap_err() {

@@ -1,6 +1,12 @@
 # claim169
 
-A Python library for decoding MOSIP Claim 169 QR codes. Built on Rust for performance and security.
+> **Alpha Software**: This library is under active development. APIs may change without notice. Not recommended for production use without thorough testing.
+
+[![PyPI](https://img.shields.io/pypi/v/claim169.svg)](https://pypi.org/project/claim169/)
+[![Python](https://img.shields.io/pypi/pyversions/claim169.svg)](https://pypi.org/project/claim169/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A Python library for encoding and decoding MOSIP Claim 169 QR codes. Built on Rust for performance and security.
 
 ## Installation
 
@@ -36,16 +42,66 @@ print(f"Issuer: {result.cwt_meta.issuer}")
 print(f"Expires: {result.cwt_meta.expires_at}")
 ```
 
+## Encoding
+
+Create Claim 169 QR code data with various signing and encryption options.
+In production, keys are typically provisioned and managed externally (HSM/KMS or secure key management). The examples below assume you already have key bytes.
+
+```python
+from claim169 import Claim169Input, CwtMetaInput, encode_with_ed25519, encode_signed_encrypted
+
+# Create identity data
+claim = Claim169Input(id="123456", full_name="John Doe")
+claim.date_of_birth = "1990-01-15"
+claim.email = "john@example.com"
+
+# Create CWT metadata
+meta = CwtMetaInput(issuer="https://issuer.example.com", expires_at=1800000000)
+
+# Encode with Ed25519 signature (32-byte private key)
+qr_data = encode_with_ed25519(claim, meta, private_key_bytes)
+
+# Encode with signature and AES-256 encryption
+qr_data = encode_signed_encrypted(claim, meta, sign_key_bytes, encrypt_key_bytes)
+```
+
+### Encoding Functions
+
+```python
+from claim169 import (
+    encode_with_ed25519,       # Ed25519 signed
+    encode_with_ecdsa_p256,    # ECDSA P-256 signed
+    encode_signed_encrypted,   # Signed + AES-256-GCM encrypted
+    encode_unsigned,           # Unsigned (testing only)
+    generate_nonce,            # Generate random 12-byte nonce
+)
+
+# Ed25519 signed (recommended)
+qr_data = encode_with_ed25519(claim, cwt_meta, private_key)  # 32-byte key
+
+# ECDSA P-256 signed
+qr_data = encode_with_ecdsa_p256(claim, cwt_meta, private_key)  # 32-byte key
+
+# Signed and encrypted (AES-256-GCM)
+qr_data = encode_signed_encrypted(claim, cwt_meta, sign_key, encrypt_key)
+
+# Unsigned (for testing only - not recommended for production)
+qr_data = encode_unsigned(claim, cwt_meta)
+
+# Generate a random 12-byte nonce for encryption
+nonce = generate_nonce()
+```
+
 ## Signature Verification
 
-### Ed25519 Verification
+### Ed25519 Verification (Recommended)
 
 ```python
 # Decode with Ed25519 signature verification
 public_key = bytes.fromhex("d75a980182b10ab7...")  # 32 bytes
 result = claim169.decode_with_ed25519(qr_text, public_key)
 
-if result.verification_status == "verified":
+if result.is_verified():
     print("Signature is valid!")
 ```
 
@@ -147,6 +203,42 @@ result.verification_status  # "verified", "skipped", or "failed"
 result.is_verified()      # True if signature was verified
 ```
 
+### Claim169Input
+
+Input class for encoding identity data into QR codes.
+
+```python
+from claim169 import Claim169Input
+
+claim = Claim169Input(id="123456", full_name="John Doe")
+
+# Set optional fields
+claim.first_name = "John"
+claim.last_name = "Doe"
+claim.date_of_birth = "1990-01-15"
+claim.gender = 1  # 1=Male, 2=Female, 3=Other
+claim.email = "john@example.com"
+claim.phone = "+1234567890"
+claim.address = "123 Main St"
+claim.nationality = "US"
+claim.marital_status = 1
+```
+
+### CwtMetaInput
+
+Input class for encoding CWT (CBOR Web Token) metadata.
+
+```python
+from claim169 import CwtMetaInput
+
+meta = CwtMetaInput(issuer="https://issuer.example.com", expires_at=1800000000)
+
+# Set optional fields
+meta.subject = "user-123"
+meta.not_before = 1700000000
+meta.issued_at = 1700000000
+```
+
 ### Claim169
 
 ```python
@@ -234,7 +326,7 @@ maturin develop
 ### Running Tests
 
 ```bash
-cd sdks/python
+cd core/claim169-python
 uv run pytest tests/ -v
 ```
 

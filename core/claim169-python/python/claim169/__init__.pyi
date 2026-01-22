@@ -37,7 +37,7 @@ class DecryptionError(Claim169Exception):
 class Biometric:
     """Biometric data extracted from claim 169."""
     data: bytes
-    format: int
+    format: Optional[int]
     sub_format: Optional[int]
     issuer: Optional[str]
 
@@ -135,6 +135,8 @@ def decode(
     qr_text: str,
     skip_biometrics: bool = False,
     max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
 ) -> DecodeResult:
     """
     Decode a Claim 169 QR code without signature verification.
@@ -143,6 +145,8 @@ def decode(
         qr_text: The QR code text content (Base45 encoded)
         skip_biometrics: If True, skip decoding biometric data
         max_decompressed_bytes: Maximum decompressed size
+        validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+        clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
 
     Returns:
         DecodeResult containing the decoded claim and CWT metadata
@@ -230,4 +234,160 @@ def decode_with_decryptor(
 
 def version() -> str:
     """Get the library version."""
+    ...
+
+# ============================================================================
+# Encoder Input Classes
+# ============================================================================
+
+class Claim169Input:
+    """Input data for encoding a Claim 169 credential.
+
+    Only `id` and `full_name` can be set in the constructor.
+    Other fields must be set as attributes after construction.
+    """
+
+    # Settable attributes
+    id: Optional[str]
+    version: Optional[str]
+    language: Optional[str]
+    full_name: Optional[str]
+    first_name: Optional[str]
+    middle_name: Optional[str]
+    last_name: Optional[str]
+    date_of_birth: Optional[str]
+    gender: Optional[int]
+    address: Optional[str]
+    email: Optional[str]
+    phone: Optional[str]
+    nationality: Optional[str]
+    marital_status: Optional[int]
+    guardian: Optional[str]
+    photo: Optional[bytes]
+    photo_format: Optional[int]
+    secondary_full_name: Optional[str]
+    secondary_language: Optional[str]
+    location_code: Optional[str]
+    legal_status: Optional[str]
+    country_of_issuance: Optional[str]
+
+    def __init__(
+        self,
+        id: Optional[str] = None,
+        full_name: Optional[str] = None,
+    ) -> None: ...
+
+class CwtMetaInput:
+    """Input metadata for encoding a CWT token.
+
+    All fields can be set as attributes after construction.
+    """
+
+    # Settable attributes
+    issuer: Optional[str]
+    subject: Optional[str]
+    expires_at: Optional[int]
+    not_before: Optional[int]
+    issued_at: Optional[int]
+
+    def __init__(self) -> None: ...
+
+# ============================================================================
+# Encoder Functions
+# ============================================================================
+
+def encode_with_ed25519(
+    claim169: Claim169Input,
+    cwt_meta: CwtMetaInput,
+    private_key: bytes,
+) -> str:
+    """
+    Encode a Claim 169 credential with Ed25519 signature.
+
+    Args:
+        claim169: Identity data to encode
+        cwt_meta: CWT metadata (issuer, expiration, etc.)
+        private_key: Ed25519 private key bytes (32 bytes)
+
+    Returns:
+        Base45-encoded string suitable for QR code generation
+
+    Raises:
+        ValueError: If private key is invalid
+        Claim169Exception: If encoding fails
+    """
+    ...
+
+def encode_with_ecdsa_p256(
+    claim169: Claim169Input,
+    cwt_meta: CwtMetaInput,
+    private_key: bytes,
+) -> str:
+    """
+    Encode a Claim 169 credential with ECDSA P-256 signature.
+
+    Args:
+        claim169: Identity data to encode
+        cwt_meta: CWT metadata (issuer, expiration, etc.)
+        private_key: ECDSA P-256 private key bytes (32 bytes)
+
+    Returns:
+        Base45-encoded string suitable for QR code generation
+
+    Raises:
+        ValueError: If private key is invalid
+        Claim169Exception: If encoding fails
+    """
+    ...
+
+def encode_signed_encrypted(
+    claim169: Claim169Input,
+    cwt_meta: CwtMetaInput,
+    sign_key: bytes,
+    encrypt_key: bytes,
+) -> str:
+    """
+    Encode a Claim 169 credential with Ed25519 signature and AES-256-GCM encryption.
+
+    Args:
+        claim169: Identity data to encode
+        cwt_meta: CWT metadata (issuer, expiration, etc.)
+        sign_key: Ed25519 private key bytes (32 bytes)
+        encrypt_key: AES-256 key bytes (32 bytes)
+
+    Returns:
+        Base45-encoded string suitable for QR code generation
+
+    Raises:
+        ValueError: If keys are invalid
+        Claim169Exception: If encoding fails
+    """
+    ...
+
+def encode_unsigned(
+    claim169: Claim169Input,
+    cwt_meta: CwtMetaInput,
+) -> str:
+    """
+    Encode a Claim 169 credential without signature (INSECURE - testing only).
+
+    Args:
+        claim169: Identity data to encode
+        cwt_meta: CWT metadata (issuer, expiration, etc.)
+
+    Returns:
+        Base45-encoded string suitable for QR code generation
+
+    Raises:
+        Claim169Exception: If encoding fails
+    """
+    ...
+
+def generate_nonce() -> bytes:
+    """
+    Generate a cryptographically secure random 12-byte nonce for AES-GCM encryption.
+
+    Returns:
+        12-byte nonce suitable for AES-GCM IV
+    """
     ...

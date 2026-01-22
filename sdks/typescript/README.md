@@ -1,5 +1,10 @@
 # claim169
 
+> **Alpha Software**: This library is under active development. APIs may change without notice. Not recommended for production use without thorough testing.
+
+[![npm](https://img.shields.io/npm/v/claim169.svg)](https://www.npmjs.com/package/claim169)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A TypeScript/JavaScript library for decoding MOSIP Claim 169 QR codes. Built on Rust/WebAssembly for performance and security.
 
 ## Installation
@@ -19,34 +24,129 @@ MOSIP Claim 169 defines a standard for encoding identity data in QR codes using:
 
 ## Quick Start
 
+### Builder Pattern (Recommended)
+
 ```typescript
-import { decode } from 'claim169';
+import { Decoder } from 'claim169';
 
-// Decode a QR code (without signature verification)
-const qrText = "6BF5YZB2...";  // Base45-encoded QR content
-const result = decode(qrText);
+// Simple decode
+const result = new Decoder(qrText).decode();
 
-// Access identity data
 console.log(`ID: ${result.claim169.id}`);
 console.log(`Name: ${result.claim169.fullName}`);
-console.log(`DOB: ${result.claim169.dateOfBirth}`);
-
-// Access CWT metadata
 console.log(`Issuer: ${result.cwtMeta.issuer}`);
-console.log(`Expires: ${result.cwtMeta.expiresAt}`);
+
+// With options
+const result = new Decoder(qrText)
+  .skipBiometrics()           // Skip biometric parsing
+  .maxDecompressedBytes(32768) // 32KB limit
+  .decode();
 ```
 
-## Decode Options
+### Function API
 
 ```typescript
-// Skip biometric data for faster parsing
-const result = decode(qrText, { skipBiometrics: true });
+import { decode, DecodeOptions } from 'claim169';
 
-// Limit decompressed size (default: 64KB)
-const result = decode(qrText, { maxDecompressedBytes: 32768 });
+// Simple decode
+const result = decode(qrText);
 
-// Enable timestamp validation (disabled by default in WASM)
-const result = decode(qrText, { validateTimestamps: true });
+// With options
+const options: DecodeOptions = {
+  maxDecompressedBytes: 32768,  // 32KB limit
+  skipBiometrics: true,         // Skip biometric parsing
+  validateTimestamps: false,    // Disabled by default in WASM
+};
+
+const result = decode(qrText, options);
+```
+
+## Decoder Class
+
+The `Decoder` class provides a fluent builder API:
+
+```typescript
+import { Decoder } from 'claim169';
+
+const result = new Decoder(qrText)
+  .skipBiometrics()              // Skip biometric data
+  .withTimestampValidation()     // Enable timestamp validation
+  .clockSkewTolerance(60)        // 60 seconds tolerance
+  .maxDecompressedBytes(32768)   // 32KB max size
+  .decode();
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `skipBiometrics()` | Skip biometric data parsing |
+| `withTimestampValidation()` | Enable exp/nbf validation |
+| `clockSkewTolerance(seconds)` | Set clock skew tolerance |
+| `maxDecompressedBytes(bytes)` | Set max decompressed size |
+| `decode()` | Execute the decode operation |
+
+## Encoding
+
+The `Encoder` class creates MOSIP Claim 169 QR code data from identity information.
+In production, keys should be provisioned and managed externally (HSM/KMS or secure key management). The examples below assume you already have key material.
+
+```typescript
+import { Encoder, Decoder, Claim169Input, CwtMetaInput, generateNonce } from 'claim169';
+
+// Create identity data
+const claim169: Claim169Input = {
+  id: "123456789",
+  fullName: "John Doe",
+  dateOfBirth: "1990-01-15",
+  gender: 1,  // Male
+};
+
+// Create CWT metadata
+const cwtMeta: CwtMetaInput = {
+  issuer: "https://issuer.example.com",
+  expiresAt: 1800000000,
+};
+
+// Encode with Ed25519 signature
+const privateKey = new Uint8Array(32);  // Your 32-byte private key
+const qrData = new Encoder(claim169, cwtMeta)
+  .signWithEd25519(privateKey)
+  .encode();
+
+// Encode with signature and AES-256 encryption
+const aesKey = new Uint8Array(32);  // Your 32-byte AES key
+const qrData = new Encoder(claim169, cwtMeta)
+  .signWithEd25519(privateKey)
+  .encryptWithAes256(aesKey)
+  .encode();
+
+// Unsigned (testing only)
+const qrData = new Encoder(claim169, cwtMeta)
+  .allowUnsigned()
+  .encode();
+```
+
+### Encoder Methods
+
+| Method | Description |
+|--------|-------------|
+| `signWithEd25519(privateKey)` | Sign with Ed25519 |
+| `signWithEcdsaP256(privateKey)` | Sign with ECDSA P-256 |
+| `encryptWithAes256(key)` | Encrypt with AES-256-GCM |
+| `encryptWithAes128(key)` | Encrypt with AES-128-GCM |
+| `allowUnsigned()` | Allow unsigned (testing only) |
+| `skipBiometrics()` | Skip biometric fields |
+| `encode()` | Produce the QR string |
+
+### generateNonce()
+
+Generate a cryptographically secure random nonce for encryption:
+
+```typescript
+import { generateNonce } from 'claim169';
+
+const nonce = generateNonce();  // Returns 12-byte Uint8Array
 ```
 
 ## Data Model
@@ -55,9 +155,9 @@ const result = decode(qrText, { validateTimestamps: true });
 
 ```typescript
 interface DecodeResult {
-  claim169: Claim169;           // Identity data
-  cwtMeta: CwtMeta;             // Token metadata
-  verificationStatus: VerificationStatus;  // "verified" | "skipped" | "failed"
+  claim169: Claim169;                    // Identity data
+  cwtMeta: CwtMeta;                      // Token metadata
+  verificationStatus: VerificationStatus; // "verified" | "skipped" | "failed"
 }
 ```
 
@@ -96,20 +196,7 @@ interface Claim169 {
   // Biometrics (when present)
   face?: Biometric[];           // Face biometrics
   rightThumb?: Biometric[];     // Right thumb fingerprint
-  rightPointerFinger?: Biometric[];
-  rightMiddleFinger?: Biometric[];
-  rightRingFinger?: Biometric[];
-  rightLittleFinger?: Biometric[];
-  leftThumb?: Biometric[];
-  leftPointerFinger?: Biometric[];
-  leftMiddleFinger?: Biometric[];
-  leftRingFinger?: Biometric[];
-  leftLittleFinger?: Biometric[];
-  rightIris?: Biometric[];
-  leftIris?: Biometric[];
-  rightPalm?: Biometric[];
-  leftPalm?: Biometric[];
-  voice?: Biometric[];
+  // ... (all finger/iris/palm biometrics)
 }
 ```
 
@@ -160,14 +247,34 @@ Error messages indicate the specific failure:
 - `SignatureError`: Signature verification failed
 - `DecryptionError`: Decryption failed
 
+## Limitations
+
+### No Signature Verification
+
+The current TypeScript SDK does not include built-in signature verification or decryption capabilities due to WASM/JavaScript callback complexity. For use cases requiring verification:
+
+1. **Use the Python SDK** for server-side verification
+2. **Use the Rust library** for full encoding/decoding with verification
+3. **Use WebCrypto API** for custom verification after decoding
+
+### Timestamp Validation
+
+Timestamp validation is disabled by default in the WASM build because WebAssembly does not have reliable access to system time. Enable it explicitly if your environment supports it:
+
+```typescript
+const result = new Decoder(qrText)
+  .withTimestampValidation()
+  .decode();
+```
+
 ## Browser Usage
 
 ```html
 <script type="module">
-  import { decode } from './node_modules/claim169/dist/index.js';
+  import { Decoder } from './node_modules/claim169/dist/index.js';
 
   const qrText = "6BF5YZB2...";
-  const result = decode(qrText);
+  const result = new Decoder(qrText).decode();
   console.log(result.claim169.fullName);
 </script>
 ```
@@ -208,26 +315,6 @@ console.log(version());  // "0.1.0"
 
 // Check if WASM module is loaded
 console.log(isLoaded());  // true
-```
-
-## Limitations
-
-### Signature Verification
-
-The current TypeScript SDK does not include built-in signature verification or decryption capabilities due to WASM/JavaScript callback complexity. For use cases requiring verification:
-
-1. **Use the Python SDK** for server-side verification
-2. **Verify externally** by extracting the signature and data from the decoded result
-3. **Use WebCrypto API** for custom verification after decoding
-
-Future versions may add WebCrypto-based verification hooks.
-
-### Timestamp Validation
-
-Timestamp validation is disabled by default in the WASM build because WebAssembly does not have reliable access to system time. Enable it explicitly if your environment supports it:
-
-```typescript
-const result = decode(qrText, { validateTimestamps: true });
 ```
 
 ## Development

@@ -113,6 +113,12 @@ def unknown_fields_vector() -> dict:
 
 
 @pytest.fixture
+def not_yet_valid_vector() -> dict:
+    """Load the not-yet-valid test vector."""
+    return load_test_vector("edge", "not-yet-valid")
+
+
+@pytest.fixture
 def claim169_example_vector() -> dict:
     """Load the claim169-example test vector (from claim_169.md)."""
     return load_test_vector("valid", "claim169-example")

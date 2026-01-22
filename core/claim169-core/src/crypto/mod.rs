@@ -57,16 +57,16 @@
 //! # Example: Using Software Crypto
 //!
 //! ```rust,ignore
-//! use claim169_core::{Ed25519Verifier, decode_with_verifier, DecodeOptions};
+//! use claim169_core::Decoder;
 //!
-//! // Load public key from PEM
-//! let verifier = Ed25519Verifier::from_pem(r#"
+//! // Using Ed25519 public key in PEM format
+//! let result = Decoder::new(qr_content)
+//!     .verify_with_ed25519_pem(r#"
 //! -----BEGIN PUBLIC KEY-----
 //! MCowBQYDK2VwAyEAExample...
 //! -----END PUBLIC KEY-----
-//! "#)?;
-//!
-//! let result = decode_with_verifier(qr_content, &verifier, DecodeOptions::default())?;
+//! "#)?
+//!     .decode()?;
 //! ```
 //!
 //! # Example: Custom HSM Integration

@@ -284,6 +284,69 @@ impl Claim169 {
             + count_opt(&self.left_palm)
             + count_opt(&self.voice)
     }
+
+    /// Create a clone of this claim with all biometric fields removed.
+    ///
+    /// Useful for encoding smaller QR codes that exclude biometric data.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use claim169_core::model::{Claim169, Biometric};
+    ///
+    /// let mut claim = Claim169::minimal("USER-001", "Alice Smith");
+    /// claim.face = Some(vec![Biometric::new(vec![1, 2, 3])]);
+    /// assert!(claim.has_biometrics());
+    ///
+    /// let without_bio = claim.without_biometrics();
+    /// assert!(!without_bio.has_biometrics());
+    /// assert_eq!(without_bio.id, claim.id);
+    /// ```
+    pub fn without_biometrics(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            version: self.version.clone(),
+            language: self.language.clone(),
+            full_name: self.full_name.clone(),
+            first_name: self.first_name.clone(),
+            middle_name: self.middle_name.clone(),
+            last_name: self.last_name.clone(),
+            date_of_birth: self.date_of_birth.clone(),
+            gender: self.gender,
+            address: self.address.clone(),
+            email: self.email.clone(),
+            phone: self.phone.clone(),
+            nationality: self.nationality.clone(),
+            marital_status: self.marital_status,
+            guardian: self.guardian.clone(),
+            photo: self.photo.clone(),
+            photo_format: self.photo_format,
+            best_quality_fingers: self.best_quality_fingers.clone(),
+            secondary_full_name: self.secondary_full_name.clone(),
+            secondary_language: self.secondary_language.clone(),
+            location_code: self.location_code.clone(),
+            legal_status: self.legal_status.clone(),
+            country_of_issuance: self.country_of_issuance.clone(),
+            unknown_fields: self.unknown_fields.clone(),
+            // All biometric fields are set to None
+            right_thumb: None,
+            right_pointer_finger: None,
+            right_middle_finger: None,
+            right_ring_finger: None,
+            right_little_finger: None,
+            left_thumb: None,
+            left_pointer_finger: None,
+            left_middle_finger: None,
+            left_ring_finger: None,
+            left_little_finger: None,
+            right_iris: None,
+            left_iris: None,
+            face: None,
+            right_palm: None,
+            left_palm: None,
+            voice: None,
+        }
+    }
 }
 
 /// Custom serde module for optional base64-encoded byte arrays

@@ -11,15 +11,16 @@ use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict};
 
-use claim169_core::crypto::software::{AesGcmDecryptor, EcdsaP256Verifier, Ed25519Verifier};
+use claim169_core::crypto::software::AesGcmDecryptor;
 use claim169_core::crypto::traits::{
     Decryptor as CoreDecryptor, SignatureVerifier as CoreSignatureVerifier,
 };
 use claim169_core::error::{Claim169Error, CryptoError, CryptoResult};
 use claim169_core::model::{
     Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
+    Gender, MaritalStatus, PhotoFormat,
 };
-use claim169_core::{decode as core_decode, decode_encrypted, decode_with_verifier, DecodeOptions};
+use claim169_core::{Decoder, Encoder as CoreEncoder};
 use coset::iana;
 
 // ============================================================================
@@ -61,7 +62,7 @@ pub struct Biometric {
     #[pyo3(get)]
     pub data: Vec<u8>,
     #[pyo3(get)]
-    pub format: i64,
+    pub format: Option<i64>,
     #[pyo3(get)]
     pub sub_format: Option<i64>,
     #[pyo3(get)]
@@ -72,7 +73,7 @@ pub struct Biometric {
 impl Biometric {
     fn __repr__(&self) -> String {
         format!(
-            "Biometric(format={}, sub_format={:?}, data_len={})",
+            "Biometric(format={:?}, sub_format={:?}, data_len={})",
             self.format,
             self.sub_format,
             self.data.len()
@@ -84,7 +85,7 @@ impl From<&CoreBiometric> for Biometric {
     fn from(b: &CoreBiometric) -> Self {
         Biometric {
             data: b.data.clone(),
-            format: b.format.map(|f| f as i64).unwrap_or(0),
+            format: b.format.map(|f| f as i64),
             sub_format: b.sub_format.as_ref().map(|s| s.to_value()),
             issuer: b.issuer.clone(),
         }
@@ -441,6 +442,10 @@ impl CoreSignatureVerifier for PySignatureVerifier {
     }
 }
 
+// SAFETY: PySignatureVerifier is only used in single-threaded Python context
+unsafe impl Send for PySignatureVerifier {}
+unsafe impl Sync for PySignatureVerifier {}
+
 /// Python-callable decryptor hook
 #[pyclass]
 pub struct PyDecryptor {
@@ -492,6 +497,10 @@ impl CoreDecryptor for PyDecryptor {
     }
 }
 
+// SAFETY: PyDecryptor is only used in single-threaded Python context
+unsafe impl Send for PyDecryptor {}
+unsafe impl Sync for PyDecryptor {}
+
 // ============================================================================
 // Public API Functions
 // ============================================================================
@@ -502,6 +511,8 @@ impl CoreDecryptor for PyDecryptor {
 ///     qr_text: The QR code text content (Base45 encoded)
 ///     skip_biometrics: If True, skip decoding biometric data (default: False)
 ///     max_decompressed_bytes: Maximum decompressed size (default: 65536)
+///     validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+///     clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
 ///
 /// Returns:
 ///     DecodeResult containing the decoded claim and CWT metadata
@@ -513,21 +524,28 @@ impl CoreDecryptor for PyDecryptor {
 ///     CwtParseError: If CWT parsing fails
 ///     Claim169NotFoundError: If claim 169 is not present
 #[pyfunction]
-#[pyo3(signature = (qr_text, skip_biometrics=false, max_decompressed_bytes=65536))]
+#[pyo3(signature = (qr_text, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
 fn decode(
     qr_text: &str,
     skip_biometrics: bool,
     max_decompressed_bytes: usize,
+    validate_timestamps: bool,
+    clock_skew_tolerance_seconds: i64,
 ) -> PyResult<DecodeResult> {
-    let options = DecodeOptions {
-        max_decompressed_bytes,
-        skip_biometrics,
-        validate_timestamps: true,
-        allow_unverified: true,
-        clock_skew_tolerance_seconds: 0,
-    };
+    let mut decoder = Decoder::new(qr_text)
+        .allow_unverified()
+        .max_decompressed_bytes(max_decompressed_bytes)
+        .clock_skew_tolerance(clock_skew_tolerance_seconds);
 
-    let result = core_decode(qr_text, options).map_err(to_py_err)?;
+    if skip_biometrics {
+        decoder = decoder.skip_biometrics();
+    }
+
+    if !validate_timestamps {
+        decoder = decoder.without_timestamp_validation();
+    }
+
+    let result = decoder.decode().map_err(to_py_err)?;
 
     Ok(DecodeResult {
         claim169: Claim169::from(&result.claim169),
@@ -546,11 +564,11 @@ fn decode(
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
 fn decode_with_ed25519(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeResult> {
-    let verifier = Ed25519Verifier::from_bytes(public_key)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?;
-
-    let options = DecodeOptions::default();
-    let result = decode_with_verifier(qr_text, &verifier, options).map_err(to_py_err)?;
+    let result = Decoder::new(qr_text)
+        .verify_with_ed25519(public_key)
+        .map_err(|e| SignatureError::new_err(e.to_string()))?
+        .decode()
+        .map_err(to_py_err)?;
 
     Ok(DecodeResult {
         claim169: Claim169::from(&result.claim169),
@@ -569,11 +587,11 @@ fn decode_with_ed25519(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeResul
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
 fn decode_with_ecdsa_p256(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeResult> {
-    let verifier = EcdsaP256Verifier::from_sec1_bytes(public_key)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?;
-
-    let options = DecodeOptions::default();
-    let result = decode_with_verifier(qr_text, &verifier, options).map_err(to_py_err)?;
+    let result = Decoder::new(qr_text)
+        .verify_with_ecdsa_p256(public_key)
+        .map_err(|e| SignatureError::new_err(e.to_string()))?
+        .decode()
+        .map_err(to_py_err)?;
 
     Ok(DecodeResult {
         claim169: Claim169::from(&result.claim169),
@@ -601,8 +619,10 @@ fn decode_with_ecdsa_p256(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeRe
 #[pyo3(name = "decode_with_verifier")]
 fn py_decode_with_verifier(qr_text: &str, verifier: PyObject) -> PyResult<DecodeResult> {
     let py_verifier = PySignatureVerifier::new(verifier);
-    let options = DecodeOptions::default();
-    let result = decode_with_verifier(qr_text, &py_verifier, options).map_err(to_py_err)?;
+    let result = Decoder::new(qr_text)
+        .verify_with(py_verifier)
+        .decode()
+        .map_err(to_py_err)?;
 
     Ok(DecodeResult {
         claim169: Claim169::from(&result.claim169),
@@ -630,14 +650,13 @@ fn decode_encrypted_aes(
     let decryptor =
         AesGcmDecryptor::from_bytes(key).map_err(|e| PyValueError::new_err(e.to_string()))?;
 
-    let options = DecodeOptions::default();
+    let decoder = Decoder::new(qr_text).decrypt_with(decryptor);
 
     let result = if let Some(v) = verifier {
         let py_verifier = PySignatureVerifier::new(v);
-        decode_encrypted(qr_text, &decryptor, Some(&py_verifier), options).map_err(to_py_err)?
+        decoder.verify_with(py_verifier).decode().map_err(to_py_err)?
     } else {
-        decode_encrypted(qr_text, &decryptor, None::<&Ed25519Verifier>, options)
-            .map_err(to_py_err)?
+        decoder.allow_unverified().decode().map_err(to_py_err)?
     };
 
     Ok(DecodeResult {
@@ -668,14 +687,14 @@ fn decode_with_decryptor(
     verifier: Option<PyObject>,
 ) -> PyResult<DecodeResult> {
     let py_decryptor = PyDecryptor::new(decryptor);
-    let options = DecodeOptions::default();
+
+    let decoder = Decoder::new(qr_text).decrypt_with(py_decryptor);
 
     let result = if let Some(v) = verifier {
         let py_verifier = PySignatureVerifier::new(v);
-        decode_encrypted(qr_text, &py_decryptor, Some(&py_verifier), options).map_err(to_py_err)?
+        decoder.verify_with(py_verifier).decode().map_err(to_py_err)?
     } else {
-        decode_encrypted(qr_text, &py_decryptor, None::<&Ed25519Verifier>, options)
-            .map_err(to_py_err)?
+        decoder.allow_unverified().decode().map_err(to_py_err)?
     };
 
     Ok(DecodeResult {
@@ -689,6 +708,296 @@ fn decode_with_decryptor(
 #[pyfunction]
 fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
+}
+
+// ============================================================================
+// Encoder Classes and Functions
+// ============================================================================
+
+/// Input Claim 169 for encoding
+#[pyclass]
+#[derive(Clone)]
+pub struct Claim169Input {
+    #[pyo3(get, set)]
+    pub id: Option<String>,
+    #[pyo3(get, set)]
+    pub version: Option<String>,
+    #[pyo3(get, set)]
+    pub language: Option<String>,
+    #[pyo3(get, set)]
+    pub full_name: Option<String>,
+    #[pyo3(get, set)]
+    pub first_name: Option<String>,
+    #[pyo3(get, set)]
+    pub middle_name: Option<String>,
+    #[pyo3(get, set)]
+    pub last_name: Option<String>,
+    #[pyo3(get, set)]
+    pub date_of_birth: Option<String>,
+    #[pyo3(get, set)]
+    pub gender: Option<i64>,
+    #[pyo3(get, set)]
+    pub address: Option<String>,
+    #[pyo3(get, set)]
+    pub email: Option<String>,
+    #[pyo3(get, set)]
+    pub phone: Option<String>,
+    #[pyo3(get, set)]
+    pub nationality: Option<String>,
+    #[pyo3(get, set)]
+    pub marital_status: Option<i64>,
+    #[pyo3(get, set)]
+    pub guardian: Option<String>,
+    #[pyo3(get, set)]
+    pub photo: Option<Vec<u8>>,
+    #[pyo3(get, set)]
+    pub photo_format: Option<i64>,
+    #[pyo3(get, set)]
+    pub secondary_full_name: Option<String>,
+    #[pyo3(get, set)]
+    pub secondary_language: Option<String>,
+    #[pyo3(get, set)]
+    pub location_code: Option<String>,
+    #[pyo3(get, set)]
+    pub legal_status: Option<String>,
+    #[pyo3(get, set)]
+    pub country_of_issuance: Option<String>,
+}
+
+#[pymethods]
+impl Claim169Input {
+    #[new]
+    #[pyo3(signature = (id=None, full_name=None))]
+    fn new(id: Option<String>, full_name: Option<String>) -> Self {
+        Claim169Input {
+            id,
+            full_name,
+            version: None,
+            language: None,
+            first_name: None,
+            middle_name: None,
+            last_name: None,
+            date_of_birth: None,
+            gender: None,
+            address: None,
+            email: None,
+            phone: None,
+            nationality: None,
+            marital_status: None,
+            guardian: None,
+            photo: None,
+            photo_format: None,
+            secondary_full_name: None,
+            secondary_language: None,
+            location_code: None,
+            legal_status: None,
+            country_of_issuance: None,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Claim169Input(id={:?}, full_name={:?})", self.id, self.full_name)
+    }
+}
+
+impl From<&Claim169Input> for CoreClaim169 {
+    fn from(py: &Claim169Input) -> Self {
+        CoreClaim169 {
+            id: py.id.clone(),
+            version: py.version.clone(),
+            language: py.language.clone(),
+            full_name: py.full_name.clone(),
+            first_name: py.first_name.clone(),
+            middle_name: py.middle_name.clone(),
+            last_name: py.last_name.clone(),
+            date_of_birth: py.date_of_birth.clone(),
+            gender: py.gender.and_then(|g| match g {
+                1 => Some(Gender::Male),
+                2 => Some(Gender::Female),
+                3 => Some(Gender::Other),
+                _ => None,
+            }),
+            address: py.address.clone(),
+            email: py.email.clone(),
+            phone: py.phone.clone(),
+            nationality: py.nationality.clone(),
+            marital_status: py.marital_status.and_then(|m| match m {
+                1 => Some(MaritalStatus::Unmarried),
+                2 => Some(MaritalStatus::Married),
+                3 => Some(MaritalStatus::Divorced),
+                _ => None,
+            }),
+            guardian: py.guardian.clone(),
+            photo: py.photo.clone(),
+            photo_format: py.photo_format.and_then(|f| match f {
+                1 => Some(PhotoFormat::Jpeg),
+                2 => Some(PhotoFormat::Jpeg2000),
+                3 => Some(PhotoFormat::Avif),
+                4 => Some(PhotoFormat::Webp),
+                _ => None,
+            }),
+            secondary_full_name: py.secondary_full_name.clone(),
+            secondary_language: py.secondary_language.clone(),
+            location_code: py.location_code.clone(),
+            legal_status: py.legal_status.clone(),
+            country_of_issuance: py.country_of_issuance.clone(),
+            ..Default::default()
+        }
+    }
+}
+
+/// Input CWT metadata for encoding
+#[pyclass]
+#[derive(Clone)]
+pub struct CwtMetaInput {
+    #[pyo3(get, set)]
+    pub issuer: Option<String>,
+    #[pyo3(get, set)]
+    pub subject: Option<String>,
+    #[pyo3(get, set)]
+    pub expires_at: Option<i64>,
+    #[pyo3(get, set)]
+    pub not_before: Option<i64>,
+    #[pyo3(get, set)]
+    pub issued_at: Option<i64>,
+}
+
+#[pymethods]
+impl CwtMetaInput {
+    #[new]
+    #[pyo3(signature = (issuer=None, expires_at=None))]
+    fn new(issuer: Option<String>, expires_at: Option<i64>) -> Self {
+        CwtMetaInput {
+            issuer,
+            expires_at,
+            subject: None,
+            not_before: None,
+            issued_at: None,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!("CwtMetaInput(issuer={:?}, expires_at={:?})", self.issuer, self.expires_at)
+    }
+}
+
+impl From<&CwtMetaInput> for CoreCwtMeta {
+    fn from(py: &CwtMetaInput) -> Self {
+        CoreCwtMeta {
+            issuer: py.issuer.clone(),
+            subject: py.subject.clone(),
+            expires_at: py.expires_at,
+            not_before: py.not_before,
+            issued_at: py.issued_at,
+        }
+    }
+}
+
+/// Encode a Claim 169 credential with Ed25519 signature
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///     private_key: Ed25519 private key bytes (32 bytes)
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+#[pyfunction]
+fn encode_with_ed25519(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    private_key: &[u8],
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    CoreEncoder::new(core_claim, core_meta)
+        .sign_with_ed25519(private_key)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?
+        .encode()
+        .map_err(to_py_err)
+}
+
+/// Encode a Claim 169 credential with ECDSA P-256 signature
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///     private_key: ECDSA P-256 private key bytes (32 bytes)
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+#[pyfunction]
+fn encode_with_ecdsa_p256(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    private_key: &[u8],
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    CoreEncoder::new(core_claim, core_meta)
+        .sign_with_ecdsa_p256(private_key)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?
+        .encode()
+        .map_err(to_py_err)
+}
+
+/// Encode a Claim 169 credential with Ed25519 signature and AES-256-GCM encryption
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///     sign_key: Ed25519 private key bytes (32 bytes)
+///     encrypt_key: AES-256 key bytes (32 bytes)
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+#[pyfunction]
+fn encode_signed_encrypted(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    sign_key: &[u8],
+    encrypt_key: &[u8],
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    CoreEncoder::new(core_claim, core_meta)
+        .sign_with_ed25519(sign_key)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?
+        .encrypt_with_aes256(encrypt_key)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?
+        .encode()
+        .map_err(to_py_err)
+}
+
+/// Encode a Claim 169 credential without signature (INSECURE - testing only)
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+#[pyfunction]
+fn encode_unsigned(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    CoreEncoder::new(core_claim, core_meta)
+        .allow_unsigned()
+        .encode()
+        .map_err(to_py_err)
+}
+
+/// Generate a random 12-byte nonce for AES-GCM encryption
+#[pyfunction]
+fn generate_nonce() -> Vec<u8> {
+    claim169_core::generate_random_nonce().to_vec()
 }
 
 // ============================================================================
@@ -724,14 +1033,25 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<DecodeResult>()?;
     m.add_class::<PySignatureVerifier>()?;
     m.add_class::<PyDecryptor>()?;
+    m.add_class::<Claim169Input>()?;
+    m.add_class::<CwtMetaInput>()?;
 
-    // Add functions
+    // Add decode functions
     m.add_function(wrap_pyfunction!(decode, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_ed25519, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_ecdsa_p256, m)?)?;
     m.add_function(wrap_pyfunction!(py_decode_with_verifier, m)?)?;
     m.add_function(wrap_pyfunction!(decode_encrypted_aes, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_decryptor, m)?)?;
+
+    // Add encode functions
+    m.add_function(wrap_pyfunction!(encode_with_ed25519, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_with_ecdsa_p256, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_signed_encrypted, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_unsigned, m)?)?;
+    m.add_function(wrap_pyfunction!(generate_nonce, m)?)?;
+
+    // Utilities
     m.add_function(wrap_pyfunction!(version, m)?)?;
 
     Ok(())
