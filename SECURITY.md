@@ -141,3 +141,37 @@ All cryptographic dependencies are from the RustCrypto project or well-establish
 | `coset` | COSE structure parsing |
 | `ciborium` | CBOR parsing |
 | `zeroize` | Secure memory clearing |
+
+## Release Signing
+
+All releases are cryptographically signed and verifiable:
+
+### Git Tags
+
+Release tags are GPG-signed. To verify a release:
+
+```bash
+git verify-tag v0.1.0
+```
+
+### Package Provenance
+
+- **npm**: Published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements), providing cryptographic proof that packages were built by our GitHub Actions workflows. Look for the provenance badge on the npm package page.
+
+- **PyPI**: Published using [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OpenID Connect), which provides cryptographic attestation that packages came from our GitHub repository.
+
+- **crates.io**: Published from verified GitHub Actions workflows with authentication tokens.
+
+### Verifying Releases
+
+1. **Verify git tag signature**:
+   ```bash
+   git fetch --tags
+   git verify-tag v0.1.0
+   ```
+
+2. **Check npm provenance**:
+   - Visit https://www.npmjs.com/package/claim169
+   - Look for the "Provenance" badge linking to the build
+
+3. **Verify checksums**: Each GitHub Release includes SHA256 checksums for all artifacts
