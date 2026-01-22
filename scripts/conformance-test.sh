@@ -156,7 +156,7 @@ echo "$python_results" > "$TEMP_DIR/python_results.json"
 echo "Running TypeScript conformance tests..."
 cd "$PROJECT_ROOT/sdks/typescript"
 VECTORS_PATH="$TEMP_DIR/vectors.json" OUTPUT_PATH="$TEMP_DIR/ts_results.json" \
-    npm exec -- vitest run tests/conformance.test.ts --reporter=basic 2>&1 | grep -v "^$" || true
+    npm exec -- vitest run tests/conformance.test.ts --reporter=dot 2>&1 | grep -v "^$" || true
 
 # Cleanup TS test file
 cleanup_ts
