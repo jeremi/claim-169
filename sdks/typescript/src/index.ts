@@ -1,8 +1,9 @@
 /**
- * MOSIP Claim 169 QR Code decoder library for TypeScript/JavaScript.
+ * MOSIP Claim 169 QR Code library for TypeScript/JavaScript.
  *
- * This library provides functions to decode MOSIP Claim 169 identity credentials
- * from QR codes. It uses WebAssembly for high-performance binary parsing.
+ * This library provides classes to encode and decode MOSIP Claim 169 identity
+ * credentials from QR codes. It uses WebAssembly for high-performance binary
+ * parsing and cryptographic operations.
  *
  * ## Installation
  *
@@ -10,13 +11,15 @@
  * npm install claim169
  * ```
  *
- * ## Quick Start
+ * ## Decoding with Verification (Recommended)
  *
  * ```typescript
- * import { decode } from 'claim169';
+ * import { Decoder } from 'claim169';
  *
- * // Decode a QR code
- * const result = decode(qrText);
+ * // Decode with Ed25519 signature verification
+ * const result = new Decoder(qrText)
+ *   .verifyWithEd25519(publicKey)
+ *   .decode();
  *
  * // Access identity data
  * console.log(result.claim169.fullName);
@@ -27,45 +30,45 @@
  * console.log(result.cwtMeta.expiresAt);
  *
  * // Check verification status
- * console.log(result.verificationStatus); // "skipped" | "verified" | "failed"
+ * console.log(result.verificationStatus); // "verified"
  * ```
  *
- * ## Builder Pattern API
- *
- * For a more fluent API, use the `Decoder` class:
+ * ## Decoding without Verification (Testing Only)
  *
  * ```typescript
- * import { Decoder } from 'claim169';
- *
  * const result = new Decoder(qrText)
- *   .skipBiometrics()
- *   .withTimestampValidation()
- *   .clockSkewTolerance(60)
- *   .maxDecompressedBytes(32768)
+ *   .allowUnverified()  // Explicit opt-out required
  *   .decode();
  * ```
  *
- * ## With Options (Function API)
+ * ## Decoding Encrypted Credentials
  *
  * ```typescript
- * import { decode, DecodeOptions } from 'claim169';
+ * const result = new Decoder(qrText)
+ *   .decryptWithAes256(aesKey)
+ *   .verifyWithEd25519(publicKey)
+ *   .decode();
+ * ```
  *
- * const options: DecodeOptions = {
- *   maxDecompressedBytes: 32768,  // 32KB limit
- *   skipBiometrics: true,          // Skip biometric parsing
- *   validateTimestamps: false,     // Disabled by default in WASM
- * };
+ * ## Encoding Credentials
  *
- * const result = decode(qrText, options);
+ * ```typescript
+ * import { Encoder } from 'claim169';
+ *
+ * const qrData = new Encoder(claim169, cwtMeta)
+ *   .signWithEd25519(privateKey)
+ *   .encode();
  * ```
  *
  * ## Error Handling
  *
  * ```typescript
- * import { decode, Claim169Error } from 'claim169';
+ * import { Decoder, Claim169Error } from 'claim169';
  *
  * try {
- *   const result = decode(qrText);
+ *   const result = new Decoder(qrText)
+ *     .verifyWithEd25519(publicKey)
+ *     .decode();
  * } catch (error) {
  *   if (error instanceof Claim169Error) {
  *     console.error('Decoding failed:', error.message);
@@ -73,12 +76,10 @@
  * }
  * ```
  *
- * ## Limitations
+ * ## Notes
  *
- * - **No signature verification**: The WASM module does not support signature
- *   verification. Use the Rust or Python bindings for verified decoding.
  * - **Timestamp validation**: Disabled by default because WASM doesn't have
- *   reliable access to system time.
+ *   reliable access to system time. Enable with `.withTimestampValidation()`.
  *
  * @module claim169
  */
@@ -89,7 +90,6 @@ export type {
   Claim169Input,
   CwtMeta,
   CwtMetaInput,
-  DecodeOptions,
   DecodeResult,
   IDecoder,
   IEncoder,
@@ -101,7 +101,6 @@ export { Claim169Error } from "./types.js";
 import type {
   Claim169Input,
   CwtMetaInput,
-  DecodeOptions,
   DecodeResult,
   IDecoder,
   IEncoder,
@@ -123,54 +122,6 @@ export function version(): string {
  */
 export function isLoaded(): boolean {
   return wasm.isLoaded();
-}
-
-/**
- * Decode a Claim 169 QR code without signature verification.
- *
- * @param qrText - The QR code text content (Base45 encoded)
- * @param options - Optional decode options
- * @returns The decoded result
- * @throws {Claim169Error} If decoding fails
- *
- * @example
- * ```typescript
- * const result = decode(qrText);
- * console.log(result.claim169.fullName);
- * console.log(result.cwtMeta.issuer);
- * ```
- */
-export function decode(qrText: string, options?: DecodeOptions): DecodeResult {
-  try {
-    if (options) {
-      // Use the WasmDecoder builder pattern
-      let decoder = new wasm.WasmDecoder(qrText);
-
-      if (options.maxDecompressedBytes !== undefined) {
-        decoder = decoder.maxDecompressedBytes(options.maxDecompressedBytes);
-      }
-      if (options.skipBiometrics) {
-        decoder = decoder.skipBiometrics();
-      }
-      if (options.validateTimestamps) {
-        decoder = decoder.withTimestampValidation();
-      }
-      if (options.clockSkewToleranceSeconds !== undefined) {
-        decoder = decoder.clockSkewTolerance(options.clockSkewToleranceSeconds);
-      }
-
-      const result = decoder.decode();
-      return transformResult(result);
-    } else {
-      const result = wasm.decode(qrText);
-      return transformResult(result);
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Claim169Error(error.message);
-    }
-    throw new Claim169Error(String(error));
-  }
 }
 
 /**
@@ -270,34 +221,120 @@ function transformBiometrics(
  * Builder-pattern decoder for Claim 169 QR codes.
  *
  * Provides a fluent API for configuring decoding options and executing the decode.
+ * Supports signature verification with Ed25519 and ECDSA P-256, as well as
+ * AES-GCM decryption for encrypted credentials.
  *
  * @example
  * ```typescript
- * // Basic usage
- * const result = new Decoder(qrText).decode();
- *
- * // With options
+ * // With verification (recommended for production)
  * const result = new Decoder(qrText)
+ *   .verifyWithEd25519(publicKey)
+ *   .decode();
+ *
+ * // Without verification (testing only)
+ * const result = new Decoder(qrText)
+ *   .allowUnverified()
  *   .skipBiometrics()
- *   .withTimestampValidation()
- *   .clockSkewTolerance(60)
- *   .maxDecompressedBytes(32768)
+ *   .decode();
+ *
+ * // With decryption and verification
+ * const result = new Decoder(qrText)
+ *   .decryptWithAes256(aesKey)
+ *   .verifyWithEd25519(publicKey)
  *   .decode();
  * ```
  */
 export class Decoder implements IDecoder {
-  private qrText: string;
-  private _skipBiometrics: boolean = false;
-  private _validateTimestamps: boolean = false;
-  private _clockSkewTolerance: number = 0;
-  private _maxDecompressedBytes: number = 65536;
+  private wasmDecoder: wasm.WasmDecoder;
 
   /**
    * Create a new Decoder instance.
    * @param qrText - The QR code text content (Base45 encoded)
    */
   constructor(qrText: string) {
-    this.qrText = qrText;
+    this.wasmDecoder = new wasm.WasmDecoder(qrText);
+  }
+
+  /**
+   * Verify signature with Ed25519 public key.
+   * @param publicKey - 32-byte Ed25519 public key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the public key is invalid
+   */
+  verifyWithEd25519(publicKey: Uint8Array): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.verifyWithEd25519(publicKey);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Verify signature with ECDSA P-256 public key.
+   * @param publicKey - SEC1-encoded P-256 public key (33 or 65 bytes)
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the public key is invalid
+   */
+  verifyWithEcdsaP256(publicKey: Uint8Array): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.verifyWithEcdsaP256(publicKey);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Allow decoding without signature verification.
+   * WARNING: Unverified credentials cannot be trusted. Use for testing only.
+   * @returns The decoder instance for chaining
+   */
+  allowUnverified(): Decoder {
+    this.wasmDecoder = this.wasmDecoder.allowUnverified();
+    return this;
+  }
+
+  /**
+   * Decrypt with AES-256-GCM.
+   * @param key - 32-byte AES-256 key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the key is invalid
+   */
+  decryptWithAes256(key: Uint8Array): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.decryptWithAes256(key);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Decrypt with AES-128-GCM.
+   * @param key - 16-byte AES-128 key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the key is invalid
+   */
+  decryptWithAes128(key: Uint8Array): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.decryptWithAes128(key);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
   }
 
   /**
@@ -306,7 +343,7 @@ export class Decoder implements IDecoder {
    * @returns The decoder instance for chaining
    */
   skipBiometrics(): Decoder {
-    this._skipBiometrics = true;
+    this.wasmDecoder = this.wasmDecoder.skipBiometrics();
     return this;
   }
 
@@ -317,7 +354,7 @@ export class Decoder implements IDecoder {
    * @returns The decoder instance for chaining
    */
   withTimestampValidation(): Decoder {
-    this._validateTimestamps = true;
+    this.wasmDecoder = this.wasmDecoder.withTimestampValidation();
     return this;
   }
 
@@ -329,7 +366,7 @@ export class Decoder implements IDecoder {
    * @returns The decoder instance for chaining
    */
   clockSkewTolerance(seconds: number): Decoder {
-    this._clockSkewTolerance = seconds;
+    this.wasmDecoder = this.wasmDecoder.clockSkewTolerance(seconds);
     return this;
   }
 
@@ -340,25 +377,27 @@ export class Decoder implements IDecoder {
    * @returns The decoder instance for chaining
    */
   maxDecompressedBytes(bytes: number): Decoder {
-    this._maxDecompressedBytes = bytes;
+    this.wasmDecoder = this.wasmDecoder.maxDecompressedBytes(bytes);
     return this;
   }
 
   /**
    * Decode the QR code with the configured options.
+   * Requires either a verifier (verifyWithEd25519/verifyWithEcdsaP256) or
+   * explicit allowUnverified() to be called first.
    * @returns The decoded result
-   * @throws {Claim169Error} If decoding fails
+   * @throws {Claim169Error} If decoding fails or no verification method specified
    */
   decode(): DecodeResult {
-    const options: DecodeOptions = {
-      skipBiometrics: this._skipBiometrics,
-      validateTimestamps: this._validateTimestamps,
-      clockSkewToleranceSeconds: this._clockSkewTolerance,
-      maxDecompressedBytes: this._maxDecompressedBytes,
-    };
-
-    // Use the existing decode function with our built options
-    return decode(this.qrText, options);
+    try {
+      const result = this.wasmDecoder.decode();
+      return transformResult(result);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
   }
 }
 

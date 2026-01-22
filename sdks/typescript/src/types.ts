@@ -185,9 +185,9 @@ export interface Claim169 {
 /**
  * Signature verification status of the decoded credential.
  *
- * - `"verified"`: Signature was verified successfully
- * - `"skipped"`: No verifier provided (WASM always returns this)
- * - `"failed"`: Signature verification failed
+ * - `"verified"`: Signature was verified successfully with the provided public key
+ * - `"skipped"`: Verification was explicitly skipped using `allowUnverified()`
+ * - `"failed"`: Signature verification failed (invalid signature or wrong key)
  */
 export type VerificationStatus = "verified" | "skipped" | "failed";
 
@@ -198,7 +198,10 @@ export type VerificationStatus = "verified" | "skipped" | "failed";
  *
  * @example
  * ```typescript
- * const result = decode(qrText);
+ * // Decode with verification
+ * const result = new Decoder(qrText)
+ *   .verifyWithEd25519(publicKey)
+ *   .decode();
  *
  * // Access identity data
  * console.log(result.claim169.fullName);
@@ -206,8 +209,8 @@ export type VerificationStatus = "verified" | "skipped" | "failed";
  * // Access metadata
  * console.log(result.cwtMeta.issuer);
  *
- * // Note: WASM always returns "skipped" for verification
- * console.log(result.verificationStatus); // "skipped"
+ * // Check verification status
+ * console.log(result.verificationStatus); // "verified", "skipped", or "failed"
  * ```
  */
 export interface DecodeResult {
@@ -217,50 +220,11 @@ export interface DecodeResult {
   cwtMeta: CwtMeta;
   /**
    * Signature verification status.
-   * Note: WASM bindings always return "skipped" since verification
-   * is not supported in the browser.
+   * - "verified": Signature verified successfully with provided public key
+   * - "skipped": Verification skipped (allowUnverified() or legacy decode() function)
+   * - "failed": Signature verification failed
    */
   verificationStatus: VerificationStatus;
-}
-
-/**
- * Configuration options for decoding Claim 169 QR codes.
- *
- * @example
- * ```typescript
- * const options: DecodeOptions = {
- *   maxDecompressedBytes: 32768,  // 32KB limit
- *   skipBiometrics: true,          // Skip large biometric data
- *   validateTimestamps: false,     // Disabled by default
- *   clockSkewToleranceSeconds: 60, // 1 minute tolerance
- * };
- *
- * const result = decode(qrText, options);
- * ```
- */
-export interface DecodeOptions {
-  /**
-   * Maximum decompressed size in bytes (default: 65536).
-   * Protects against decompression bomb attacks.
-   */
-  maxDecompressedBytes?: number;
-  /**
-   * Skip biometric data parsing (default: false).
-   * Set to `true` for faster parsing when only demographics are needed.
-   */
-  skipBiometrics?: boolean;
-  /**
-   * Validate CWT timestamps (default: false in WASM).
-   * When enabled, expired or not-yet-valid credentials throw an error.
-   * Disabled by default in WASM because browsers don't have reliable system time.
-   */
-  validateTimestamps?: boolean;
-  /**
-   * Clock skew tolerance in seconds (default: 0).
-   * Allows credentials to be accepted when clocks are slightly out of sync.
-   * Only applies when timestamp validation is enabled.
-   */
-  clockSkewToleranceSeconds?: number;
 }
 
 /**
@@ -448,14 +412,64 @@ export interface IEncoder {
  *
  * @example
  * ```typescript
+ * // With verification (recommended)
  * const result = new Decoder(qrText)
+ *   .verifyWithEd25519(publicKey)
+ *   .decode();
+ *
+ * // Without verification (testing only)
+ * const result = new Decoder(qrText)
+ *   .allowUnverified()
  *   .skipBiometrics()
- *   .withTimestampValidation()
- *   .clockSkewTolerance(60)
+ *   .decode();
+ *
+ * // With decryption and verification
+ * const result = new Decoder(qrText)
+ *   .decryptWithAes256(aesKey)
+ *   .verifyWithEd25519(publicKey)
  *   .decode();
  * ```
  */
 export interface IDecoder {
+  /**
+   * Verify signature with Ed25519 public key.
+   * @param publicKey - 32-byte Ed25519 public key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the public key is invalid
+   */
+  verifyWithEd25519(publicKey: Uint8Array): IDecoder;
+
+  /**
+   * Verify signature with ECDSA P-256 public key.
+   * @param publicKey - SEC1-encoded P-256 public key (33 or 65 bytes)
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the public key is invalid
+   */
+  verifyWithEcdsaP256(publicKey: Uint8Array): IDecoder;
+
+  /**
+   * Allow decoding without signature verification.
+   * WARNING: Unverified credentials cannot be trusted. Use for testing only.
+   * @returns The decoder instance for chaining
+   */
+  allowUnverified(): IDecoder;
+
+  /**
+   * Decrypt with AES-256-GCM.
+   * @param key - 32-byte AES-256 key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the key is invalid
+   */
+  decryptWithAes256(key: Uint8Array): IDecoder;
+
+  /**
+   * Decrypt with AES-128-GCM.
+   * @param key - 16-byte AES-128 key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the key is invalid
+   */
+  decryptWithAes128(key: Uint8Array): IDecoder;
+
   /**
    * Skip biometric data during decoding.
    * Useful when only demographic data is needed.
@@ -489,8 +503,10 @@ export interface IDecoder {
 
   /**
    * Decode the QR code with the configured options.
+   * Requires either a verifier (verifyWithEd25519/verifyWithEcdsaP256) or
+   * explicit allowUnverified() to be called first.
    * @returns The decoded result
-   * @throws {Claim169Error} If decoding fails
+   * @throws {Claim169Error} If decoding fails or no verification method specified
    */
   decode(): DecodeResult;
 }

@@ -233,6 +233,26 @@ pub struct JsDecodeResult {
 // WASM Decoder Builder
 // ============================================================================
 
+/// Internal state for decoder verification configuration
+enum VerifyConfig {
+    None,
+    Ed25519(Vec<u8>),
+    EcdsaP256(Vec<u8>),
+    Unverified,
+}
+
+/// Internal state for decoder decryption configuration
+struct DecryptConfig {
+    key: Vec<u8>,
+    algorithm: DecryptAlgorithm,
+}
+
+#[derive(Clone, Copy)]
+enum DecryptAlgorithm {
+    Aes128Gcm,
+    Aes256Gcm,
+}
+
 /// Decoder builder for Claim 169 credentials
 #[wasm_bindgen]
 pub struct WasmDecoder {
@@ -241,6 +261,8 @@ pub struct WasmDecoder {
     validate_timestamps: bool,
     clock_skew_tolerance_seconds: i64,
     max_decompressed_bytes: usize,
+    verify_config: VerifyConfig,
+    decrypt_config: Option<DecryptConfig>,
 }
 
 #[wasm_bindgen]
@@ -253,7 +275,64 @@ impl WasmDecoder {
             validate_timestamps: false, // WASM doesn't have reliable system time
             clock_skew_tolerance_seconds: 0,
             max_decompressed_bytes: 65536,
+            verify_config: VerifyConfig::None,
+            decrypt_config: None,
         }
+    }
+
+    /// Verify with Ed25519 public key (32 bytes)
+    #[wasm_bindgen(js_name = "verifyWithEd25519")]
+    pub fn verify_with_ed25519(mut self, public_key: &[u8]) -> Result<WasmDecoder, JsError> {
+        if public_key.len() != 32 {
+            return Err(JsError::new("Ed25519 public key must be 32 bytes"));
+        }
+        self.verify_config = VerifyConfig::Ed25519(public_key.to_vec());
+        Ok(self)
+    }
+
+    /// Verify with ECDSA P-256 public key (33 or 65 bytes, SEC1 encoded)
+    #[wasm_bindgen(js_name = "verifyWithEcdsaP256")]
+    pub fn verify_with_ecdsa_p256(mut self, public_key: &[u8]) -> Result<WasmDecoder, JsError> {
+        if public_key.len() != 33 && public_key.len() != 65 {
+            return Err(JsError::new(
+                "ECDSA P-256 public key must be 33 bytes (compressed) or 65 bytes (uncompressed)",
+            ));
+        }
+        self.verify_config = VerifyConfig::EcdsaP256(public_key.to_vec());
+        Ok(self)
+    }
+
+    /// Allow decoding without signature verification (INSECURE - testing only)
+    #[wasm_bindgen(js_name = "allowUnverified")]
+    pub fn allow_unverified(mut self) -> WasmDecoder {
+        self.verify_config = VerifyConfig::Unverified;
+        self
+    }
+
+    /// Decrypt with AES-256-GCM (32-byte key)
+    #[wasm_bindgen(js_name = "decryptWithAes256")]
+    pub fn decrypt_with_aes256(mut self, key: &[u8]) -> Result<WasmDecoder, JsError> {
+        if key.len() != 32 {
+            return Err(JsError::new("AES-256 key must be 32 bytes"));
+        }
+        self.decrypt_config = Some(DecryptConfig {
+            key: key.to_vec(),
+            algorithm: DecryptAlgorithm::Aes256Gcm,
+        });
+        Ok(self)
+    }
+
+    /// Decrypt with AES-128-GCM (16-byte key)
+    #[wasm_bindgen(js_name = "decryptWithAes128")]
+    pub fn decrypt_with_aes128(mut self, key: &[u8]) -> Result<WasmDecoder, JsError> {
+        if key.len() != 16 {
+            return Err(JsError::new("AES-128 key must be 16 bytes"));
+        }
+        self.decrypt_config = Some(DecryptConfig {
+            key: key.to_vec(),
+            algorithm: DecryptAlgorithm::Aes128Gcm,
+        });
+        Ok(self)
     }
 
     #[wasm_bindgen(js_name = "skipBiometrics")]
@@ -280,11 +359,38 @@ impl WasmDecoder {
         self
     }
 
-    /// Decode the QR code (without verification)
+    /// Decode the QR code with configured verification and decryption
     pub fn decode(self) -> Result<JsValue, JsError> {
-        let mut decoder = Decoder::new(&self.qr_text)
-            .allow_unverified()
-            .max_decompressed_bytes(self.max_decompressed_bytes);
+        let mut decoder =
+            Decoder::new(&self.qr_text).max_decompressed_bytes(self.max_decompressed_bytes);
+
+        // Apply decryption configuration
+        if let Some(decrypt_config) = self.decrypt_config {
+            decoder = match decrypt_config.algorithm {
+                DecryptAlgorithm::Aes256Gcm => decoder
+                    .decrypt_with_aes256(&decrypt_config.key)
+                    .map_err(|e| JsError::new(&e.to_string()))?,
+                DecryptAlgorithm::Aes128Gcm => decoder
+                    .decrypt_with_aes128(&decrypt_config.key)
+                    .map_err(|e| JsError::new(&e.to_string()))?,
+            };
+        }
+
+        // Apply verification configuration
+        decoder = match self.verify_config {
+            VerifyConfig::None => {
+                return Err(JsError::new(
+                    "Must call verifyWithEd25519(), verifyWithEcdsaP256(), or allowUnverified() before decode()",
+                ));
+            }
+            VerifyConfig::Ed25519(key) => decoder
+                .verify_with_ed25519(&key)
+                .map_err(|e| JsError::new(&e.to_string()))?,
+            VerifyConfig::EcdsaP256(key) => decoder
+                .verify_with_ecdsa_p256(&key)
+                .map_err(|e| JsError::new(&e.to_string()))?,
+            VerifyConfig::Unverified => decoder.allow_unverified(),
+        };
 
         if self.skip_biometrics {
             decoder = decoder.skip_biometrics();
@@ -569,44 +675,8 @@ impl WasmEncoder {
 }
 
 // ============================================================================
-// Public API (Backwards Compatible)
+// Utility Functions
 // ============================================================================
-
-/// Decode a Claim 169 QR code without signature verification.
-///
-/// @param qrText - The QR code text content (Base45 encoded)
-/// @returns The decoded result as a JavaScript object
-/// @throws Error if decoding fails
-#[wasm_bindgen(js_name = "decode")]
-pub fn decode(qr_text: &str) -> Result<JsValue, JsError> {
-    WasmDecoder::new(qr_text).decode()
-}
-
-/// Decode a Claim 169 QR code with options.
-///
-/// @param qrText - The QR code text content (Base45 encoded)
-/// @param skipBiometrics - Whether to skip biometric data parsing
-/// @param maxDecompressedBytes - Maximum decompressed size in bytes
-/// @returns The decoded result as a JavaScript object
-/// @throws Error if decoding fails
-#[wasm_bindgen(js_name = "decodeWithOptions")]
-pub fn decode_with_options(
-    qr_text: &str,
-    skip_biometrics: Option<bool>,
-    max_decompressed_bytes: Option<usize>,
-) -> Result<JsValue, JsError> {
-    let mut decoder = WasmDecoder::new(qr_text);
-
-    if skip_biometrics.unwrap_or(false) {
-        decoder = decoder.skip_biometrics();
-    }
-
-    if let Some(bytes) = max_decompressed_bytes {
-        decoder = decoder.max_decompressed_bytes(bytes);
-    }
-
-    decoder.decode()
-}
 
 /// Get the library version
 #[wasm_bindgen]

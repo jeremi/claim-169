@@ -3,7 +3,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  decode,
   Encoder,
   Decoder,
   generateNonce,
@@ -113,7 +112,7 @@ describe("Encoder", () => {
       };
 
       const qrData = new Encoder(claim, meta).allowUnsigned().encode();
-      const result = decode(qrData);
+      const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.id).toBe(originalId);
       expect(result.claim169.fullName).toBe(originalName);
@@ -153,7 +152,7 @@ describe("Encoder", () => {
       };
 
       const qrData = new Encoder(claim, meta).allowUnsigned().encode();
-      const result = decode(qrData);
+      const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.id).toBe("FULL-DEMO-001");
       expect(result.claim169.version).toBe("1.0.0");
@@ -181,7 +180,7 @@ describe("Encoder", () => {
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
       const qrData = new Encoder(claim, meta).allowUnsigned().encode();
-      const result = decode(qrData);
+      const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.id).toBeUndefined();
       expect(result.claim169.fullName).toBeUndefined();
@@ -200,7 +199,7 @@ describe("Encoder", () => {
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
       const qrData = new Encoder(claim, meta).allowUnsigned().encode();
-      const result = decode(qrData);
+      const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.fullName).toBe(unicodeName);
       expect(result.claim169.address).toBe(unicodeAddress);
@@ -218,7 +217,7 @@ describe("Encoder", () => {
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
       const qrData = new Encoder(claim, meta).allowUnsigned().encode();
-      const result = decode(qrData);
+      const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.fullName).toBe(longName);
       expect(result.claim169.address).toBe(longAddress);
@@ -237,7 +236,7 @@ describe("Encoder", () => {
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
       const qrData = new Encoder(claim, meta).allowUnsigned().encode();
-      const result = decode(qrData);
+      const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.fullName).toBe("O'Brien-Smith");
       expect(result.claim169.email).toBe(specialEmail);
@@ -268,8 +267,8 @@ describe("Encoder", () => {
         .signWithEd25519(privateKey)
         .encode();
 
-      // Verify it can be decoded (signature verification not available in WASM)
-      const result = decode(qrData);
+      // Verify it can be decoded
+      const result = new Decoder(qrData).allowUnverified().decode();
       expect(result.claim169.id).toBe("ED25519-TEST-001");
       expect(result.claim169.fullName).toBe("Ed25519 Signed Person");
     });
@@ -309,7 +308,7 @@ describe("Encoder", () => {
         .encode();
 
       // Verify it can be decoded
-      const result = decode(qrData);
+      const result = new Decoder(qrData).allowUnverified().decode();
       expect(result.claim169.id).toBe("ECDSA-TEST-001");
       expect(result.claim169.fullName).toBe("ECDSA Signed Person");
     });
@@ -474,7 +473,7 @@ describe("Encoder", () => {
 describe("Decoder builder", () => {
   it("should work with builder pattern", () => {
     const vector = loadTestVector("valid", "minimal");
-    const result = new Decoder(vector.qr_data).decode();
+    const result = new Decoder(vector.qr_data).allowUnverified().decode();
 
     expect(result.claim169.id).toBe(vector.expected_claim169?.id);
     expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
@@ -482,7 +481,7 @@ describe("Decoder builder", () => {
 
   it("should support skipBiometrics", () => {
     const vector = loadTestVector("valid", "with-face");
-    const result = new Decoder(vector.qr_data).skipBiometrics().decode();
+    const result = new Decoder(vector.qr_data).allowUnverified().skipBiometrics().decode();
 
     expect(result.claim169.id).toBe(vector.expected_claim169?.id);
     expect(result.claim169.face).toBeUndefined();
@@ -491,6 +490,7 @@ describe("Decoder builder", () => {
   it("should support method chaining", () => {
     const vector = loadTestVector("valid", "minimal");
     const result = new Decoder(vector.qr_data)
+      .allowUnverified()
       .skipBiometrics()
       .maxDecompressedBytes(65536)
       .decode();

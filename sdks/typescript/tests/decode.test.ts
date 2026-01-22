@@ -2,13 +2,24 @@ import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { decode, version, isLoaded, Claim169Error } from "../src/index";
+import { Decoder, version, isLoaded, Claim169Error } from "../src/index";
 
 // Get directory path for ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Test vectors path
 const TEST_VECTORS_PATH = path.join(__dirname, "../../../test-vectors");
+
+interface SigningKey {
+  algorithm: string;
+  public_key_hex: string;
+  private_key_hex?: string;
+}
+
+interface EncryptionKey {
+  algorithm: string;
+  symmetric_key_hex: string;
+}
 
 interface TestVector {
   name: string;
@@ -18,6 +29,17 @@ interface TestVector {
   expected_claim169?: Record<string, unknown>;
   expected_cwt_meta?: Record<string, unknown>;
   expected_error?: string;
+  signing_key?: SigningKey;
+  encryption_key?: EncryptionKey;
+}
+
+// Convert hex string to Uint8Array
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes;
 }
 
 // Load test vector file
@@ -42,7 +64,7 @@ describe("claim169", () => {
   describe("decode valid vectors", () => {
     it("should decode minimal vector", () => {
       const vector = loadTestVector("valid", "minimal");
-      const result = decode(vector.qr_data);
+      const result = new Decoder(vector.qr_data).allowUnverified().decode();
 
       expect(result.claim169.id).toBe(vector.expected_claim169?.id);
       expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
@@ -51,7 +73,7 @@ describe("claim169", () => {
 
     it("should decode demographics-full vector", () => {
       const vector = loadTestVector("valid", "demographics-full");
-      const result = decode(vector.qr_data);
+      const result = new Decoder(vector.qr_data).allowUnverified().decode();
 
       expect(result.claim169.id).toBe(vector.expected_claim169?.id);
       expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
@@ -67,7 +89,7 @@ describe("claim169", () => {
 
     it("should decode with-face vector", () => {
       const vector = loadTestVector("valid", "with-face");
-      const result = decode(vector.qr_data);
+      const result = new Decoder(vector.qr_data).allowUnverified().decode();
 
       expect(result.claim169.id).toBe(vector.expected_claim169?.id);
       expect(result.claim169.face).toBeDefined();
@@ -76,7 +98,7 @@ describe("claim169", () => {
 
     it("should decode with-fingerprints vector", () => {
       const vector = loadTestVector("valid", "with-fingerprints");
-      const result = decode(vector.qr_data);
+      const result = new Decoder(vector.qr_data).allowUnverified().decode();
 
       expect(result.claim169.id).toBe(vector.expected_claim169?.id);
       // Check at least one fingerprint field is present
@@ -89,7 +111,7 @@ describe("claim169", () => {
 
     it("should decode claim169-example vector (from claim_169.md)", () => {
       const vector = loadTestVector("valid", "claim169-example");
-      const result = decode(vector.qr_data);
+      const result = new Decoder(vector.qr_data).allowUnverified().decode();
 
       const expected = vector.expected_claim169!;
       expect(result.claim169.id).toBe(expected.id);
@@ -137,42 +159,199 @@ describe("claim169", () => {
   describe("decode invalid vectors", () => {
     it("should reject bad-base45", () => {
       const vector = loadTestVector("invalid", "bad-base45");
-      expect(() => decode(vector.qr_data)).toThrow(Claim169Error);
+      expect(() =>
+        new Decoder(vector.qr_data).allowUnverified().decode()
+      ).toThrow(Claim169Error);
     });
 
     it("should reject bad-zlib", () => {
       const vector = loadTestVector("invalid", "bad-zlib");
-      expect(() => decode(vector.qr_data)).toThrow(Claim169Error);
+      expect(() =>
+        new Decoder(vector.qr_data).allowUnverified().decode()
+      ).toThrow(Claim169Error);
     });
 
     it("should reject not-cose", () => {
       const vector = loadTestVector("invalid", "not-cose");
-      expect(() => decode(vector.qr_data)).toThrow(Claim169Error);
+      expect(() =>
+        new Decoder(vector.qr_data).allowUnverified().decode()
+      ).toThrow(Claim169Error);
     });
 
     it("should reject missing-169", () => {
       const vector = loadTestVector("invalid", "missing-169");
-      expect(() => decode(vector.qr_data)).toThrow(Claim169Error);
+      expect(() =>
+        new Decoder(vector.qr_data).allowUnverified().decode()
+      ).toThrow(Claim169Error);
     });
   });
 
   describe("decode edge cases", () => {
     it("should handle unknown-fields vector", () => {
       const vector = loadTestVector("edge", "unknown-fields");
-      const result = decode(vector.qr_data);
+      const result = new Decoder(vector.qr_data).allowUnverified().decode();
 
       expect(result.claim169.id).toBe(vector.expected_claim169?.id);
       expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
     });
   });
 
-  describe("decode options", () => {
+  describe("signature verification", () => {
+    it("should verify Ed25519 signature successfully", () => {
+      const vector = loadTestVector("valid", "ed25519-signed");
+      const publicKey = hexToBytes(vector.signing_key!.public_key_hex);
+
+      const result = new Decoder(vector.qr_data)
+        .verifyWithEd25519(publicKey)
+        .decode();
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
+      expect(result.verificationStatus).toBe("verified");
+    });
+
+    it("should verify ECDSA P-256 signature successfully", () => {
+      const vector = loadTestVector("valid", "ecdsa-p256-signed");
+      const publicKey = hexToBytes(vector.signing_key!.public_key_hex);
+
+      const result = new Decoder(vector.qr_data)
+        .verifyWithEcdsaP256(publicKey)
+        .decode();
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
+      expect(result.verificationStatus).toBe("verified");
+    });
+
+    it("should fail verification with wrong Ed25519 key", () => {
+      const vector = loadTestVector("valid", "ed25519-signed");
+      // Use a different public key (all zeros)
+      const wrongKey = new Uint8Array(32);
+
+      expect(() => {
+        new Decoder(vector.qr_data).verifyWithEd25519(wrongKey).decode();
+      }).toThrow(Claim169Error);
+    });
+
+    it("should fail verification with wrong ECDSA P-256 key", () => {
+      const vector = loadTestVector("valid", "ecdsa-p256-signed");
+      // Create an invalid P-256 key (65 bytes of zeros - invalid curve point)
+      const wrongKey = new Uint8Array(65);
+      wrongKey[0] = 0x04; // Uncompressed point prefix
+
+      expect(() => {
+        new Decoder(vector.qr_data).verifyWithEcdsaP256(wrongKey).decode();
+      }).toThrow(Claim169Error);
+    });
+
+    it("should require verification method when using Decoder class", () => {
+      const vector = loadTestVector("valid", "minimal");
+
+      expect(() => {
+        new Decoder(vector.qr_data).decode();
+      }).toThrow(Claim169Error);
+    });
+
+    it("should allow unverified decoding with explicit opt-in", () => {
+      const vector = loadTestVector("valid", "minimal");
+
+      const result = new Decoder(vector.qr_data).allowUnverified().decode();
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.verificationStatus).toBe("skipped");
+    });
+
+    it("should reject invalid Ed25519 public key size", () => {
+      const vector = loadTestVector("valid", "ed25519-signed");
+      const wrongSizeKey = new Uint8Array(31); // Should be 32 bytes
+
+      expect(() => {
+        new Decoder(vector.qr_data).verifyWithEd25519(wrongSizeKey);
+      }).toThrow(Claim169Error);
+    });
+
+    it("should reject invalid ECDSA P-256 public key size", () => {
+      const vector = loadTestVector("valid", "ecdsa-p256-signed");
+      const wrongSizeKey = new Uint8Array(32); // Should be 33 or 65 bytes
+
+      expect(() => {
+        new Decoder(vector.qr_data).verifyWithEcdsaP256(wrongSizeKey);
+      }).toThrow(Claim169Error);
+    });
+  });
+
+  describe("decryption", () => {
+    it("should decrypt and verify encrypted-signed credential", () => {
+      const vector = loadTestVector("valid", "encrypted-signed");
+      const aesKey = hexToBytes(vector.encryption_key!.symmetric_key_hex);
+      const publicKey = hexToBytes(vector.signing_key!.public_key_hex);
+
+      const result = new Decoder(vector.qr_data)
+        .decryptWithAes256(aesKey)
+        .verifyWithEd25519(publicKey)
+        .decode();
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
+      expect(result.verificationStatus).toBe("verified");
+    });
+
+    it("should fail decryption with wrong AES key", () => {
+      const vector = loadTestVector("valid", "encrypted-signed");
+      const wrongKey = new Uint8Array(32); // Wrong key (all zeros)
+      const publicKey = hexToBytes(vector.signing_key!.public_key_hex);
+
+      expect(() => {
+        new Decoder(vector.qr_data)
+          .decryptWithAes256(wrongKey)
+          .verifyWithEd25519(publicKey)
+          .decode();
+      }).toThrow(Claim169Error);
+    });
+
+    it("should reject invalid AES-256 key size", () => {
+      const vector = loadTestVector("valid", "encrypted-signed");
+      const wrongSizeKey = new Uint8Array(16); // Should be 32 bytes for AES-256
+
+      expect(() => {
+        new Decoder(vector.qr_data).decryptWithAes256(wrongSizeKey);
+      }).toThrow(Claim169Error);
+    });
+
+    it("should reject invalid AES-128 key size", () => {
+      const vector = loadTestVector("valid", "minimal");
+      const wrongSizeKey = new Uint8Array(32); // Should be 16 bytes for AES-128
+
+      expect(() => {
+        new Decoder(vector.qr_data).decryptWithAes128(wrongSizeKey);
+      }).toThrow(Claim169Error);
+    });
+  });
+
+  describe("Decoder builder options", () => {
     it("should skip biometrics when option set", () => {
       const vector = loadTestVector("valid", "with-face");
-      const result = decode(vector.qr_data, { skipBiometrics: true });
+      const result = new Decoder(vector.qr_data)
+        .allowUnverified()
+        .skipBiometrics()
+        .decode();
 
       expect(result.claim169.id).toBe(vector.expected_claim169?.id);
       expect(result.claim169.face).toBeUndefined();
+    });
+
+    it("should support full builder chain with all options", () => {
+      const vector = loadTestVector("valid", "ed25519-signed");
+      const publicKey = hexToBytes(vector.signing_key!.public_key_hex);
+
+      const result = new Decoder(vector.qr_data)
+        .verifyWithEd25519(publicKey)
+        .skipBiometrics()
+        .maxDecompressedBytes(32768)
+        .decode();
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.verificationStatus).toBe("verified");
     });
   });
 });
