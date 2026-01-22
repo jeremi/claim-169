@@ -22,7 +22,7 @@ mod tests {
 
     #[test]
     fn test_decode_valid() {
-        // "Hello!!" in Base45 is "QE2%E%5"
+        // "Hello!!" in Base45 is "%69 VD92EX0"
         let decoded = decode("%69 VD92EX0").unwrap();
         assert_eq!(decoded, b"Hello!!");
     }

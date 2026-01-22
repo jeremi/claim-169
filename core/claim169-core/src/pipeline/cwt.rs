@@ -88,7 +88,18 @@ pub fn parse(payload: &[u8]) -> Result<CwtParseResult> {
     for (key, val) in map {
         // Keys should be integers
         let key_int: i64 = match &key {
-            Value::Integer(i) => i64::try_from(i128::from(*i)).unwrap_or(-1),
+            Value::Integer(i) => {
+                let i128_val = i128::from(*i);
+                match i64::try_from(i128_val) {
+                    Ok(v) => v,
+                    Err(_) => {
+                        return Err(Claim169Error::CwtParse(format!(
+                            "CWT key {} is out of valid range",
+                            i128_val
+                        )));
+                    }
+                }
+            }
             _ => continue, // Skip non-integer keys
         };
 

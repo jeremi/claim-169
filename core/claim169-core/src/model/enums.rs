@@ -118,6 +118,7 @@ impl TryFrom<i64> for BiometricFormat {
 
 /// Image sub-formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(into = "i64", try_from = "i64")]
 pub enum ImageSubFormat {
     Png,
     Jpeg,
@@ -164,6 +165,7 @@ impl TryFrom<i64> for ImageSubFormat {
 
 /// Template sub-formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(into = "i64", try_from = "i64")]
 pub enum TemplateSubFormat {
     Ansi378,
     Iso19794_2,

@@ -23,7 +23,15 @@ pub fn transform(value: Value, skip_biometrics: bool) -> Result<Claim169> {
 
     for (key, val) in map {
         let key_int = match &key {
-            Value::Integer(i) => i64::try_from(i128::from(*i)).unwrap_or(-1),
+            Value::Integer(i) => {
+                let i128_val = i128::from(*i);
+                i64::try_from(i128_val).map_err(|_| {
+                    Claim169Error::Claim169Invalid(format!(
+                        "claim 169 key {} is out of valid range",
+                        i128_val
+                    ))
+                })?
+            }
             _ => {
                 // Non-integer keys are invalid per spec
                 return Err(Claim169Error::Claim169Invalid(

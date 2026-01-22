@@ -229,7 +229,7 @@
     },
     "Biometric": {
       "type": "object",
-      "required": ["data", "format"],
+      "required": ["data"],
       "description": "Biometric data structure",
       "properties": {
         "data": {
