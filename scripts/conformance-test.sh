@@ -9,168 +9,215 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 TEST_VECTORS="$PROJECT_ROOT/test-vectors"
 TEMP_DIR=$(mktemp -d)
 
-trap "rm -rf $TEMP_DIR" EXIT
+cleanup() {
+    rm -rf "$TEMP_DIR"
+}
+trap cleanup EXIT
 
 echo "=== Claim 169 Cross-Language Conformance Tests ==="
 echo ""
 
-# Python decode script
-cat > "$TEMP_DIR/python_decode.py" << 'PYTHON_SCRIPT'
-import sys
+# Collect all test vectors
+VECTORS_JSON=$(cat << 'EOF'
+[]
+EOF
+)
+
+# Build vectors JSON array
+for category in valid invalid edge; do
+    for vector_file in "$TEST_VECTORS/$category"/*.json; do
+        if [ -f "$vector_file" ]; then
+            name=$(basename "$vector_file" .json)
+            qr_data=$(python3 -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
+            VECTORS_JSON=$(echo "$VECTORS_JSON" | python3 -c "
+import sys, json
+vectors = json.load(sys.stdin)
+vectors.append({'name': '$name', 'category': '$category', 'qr_data': '''$qr_data'''})
+print(json.dumps(vectors))
+")
+        fi
+    done
+done
+
+# Save vectors to temp file
+echo "$VECTORS_JSON" > "$TEMP_DIR/vectors.json"
+
+# Python conformance script
+cat > "$TEMP_DIR/python_conformance.py" << 'PYTHON_SCRIPT'
 import json
+import sys
 import claim169
 
-def decode_vector(qr_data):
-    try:
-        result = claim169.decode(qr_data)
-        return {
-            "success": True,
-            "claim169": result.claim169.to_dict(),
-            "cwtMeta": {
-                "issuer": result.cwt_meta.issuer,
-                "subject": result.cwt_meta.subject,
-                "expiresAt": result.cwt_meta.expires_at,
-                "notBefore": result.cwt_meta.not_before,
-                "issuedAt": result.cwt_meta.issued_at,
-            },
-            "verificationStatus": result.verification_status,
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
+with open(sys.argv[1]) as f:
+    vectors = json.load(f)
 
-if __name__ == "__main__":
-    qr_data = sys.argv[1]
-    result = decode_vector(qr_data)
-    print(json.dumps(result, sort_keys=True))
+results = []
+for v in vectors:
+    try:
+        result = claim169.decode(v['qr_data'])
+        results.append({
+            'name': v['name'],
+            'category': v['category'],
+            'success': True,
+            'id': result.claim169.id,
+            'fullName': result.claim169.full_name,
+            'dateOfBirth': result.claim169.date_of_birth,
+            'gender': result.claim169.gender,
+            'issuer': result.cwt_meta.issuer,
+            'expiresAt': result.cwt_meta.expires_at,
+            'verificationStatus': result.verification_status,
+        })
+    except Exception as e:
+        results.append({
+            'name': v['name'],
+            'category': v['category'],
+            'success': False,
+            'error': str(e),
+        })
+
+print(json.dumps(results, sort_keys=True))
 PYTHON_SCRIPT
 
-# TypeScript decode script
-cat > "$TEMP_DIR/ts_decode.mjs" << 'TS_SCRIPT'
-import { decode } from '../sdks/typescript/dist/index.js';
+# TypeScript conformance script (uses vitest for WASM support)
+cat > "$PROJECT_ROOT/sdks/typescript/tests/conformance.test.ts" << 'TS_SCRIPT'
+import { describe, it, expect } from "vitest";
+import { decode } from "../src/index.js";
+import * as fs from "fs";
 
-const qrData = process.argv[2];
-
-function decodeVector(qrData) {
-    try {
-        const result = decode(qrData);
-        return {
-            success: true,
-            claim169: result.claim169,
-            cwtMeta: result.cwtMeta,
-            verificationStatus: result.verificationStatus,
-        };
-    } catch (e) {
-        return {
-            success: false,
-            error: e.message,
-        };
-    }
+interface Vector {
+  name: string;
+  category: string;
+  qr_data: string;
 }
 
-const result = decodeVector(qrData);
-console.log(JSON.stringify(result, Object.keys(result).sort()));
+interface Result {
+  name: string;
+  category: string;
+  success: boolean;
+  id?: string;
+  fullName?: string;
+  dateOfBirth?: string;
+  gender?: number;
+  issuer?: string;
+  expiresAt?: number;
+  verificationStatus?: string;
+  error?: string;
+}
+
+const vectorsPath = process.env.VECTORS_PATH || "";
+const outputPath = process.env.OUTPUT_PATH || "";
+
+describe("conformance", () => {
+  it("processes all vectors", () => {
+    const vectors: Vector[] = JSON.parse(fs.readFileSync(vectorsPath, "utf-8"));
+    const results: Result[] = [];
+
+    for (const v of vectors) {
+      try {
+        const result = decode(v.qr_data);
+        results.push({
+          name: v.name,
+          category: v.category,
+          success: true,
+          id: result.claim169.id,
+          fullName: result.claim169.fullName,
+          dateOfBirth: result.claim169.dateOfBirth,
+          gender: result.claim169.gender,
+          issuer: result.cwtMeta.issuer,
+          expiresAt: result.cwtMeta.expiresAt,
+          verificationStatus: result.verificationStatus,
+        });
+      } catch (e) {
+        results.push({
+          name: v.name,
+          category: v.category,
+          success: false,
+          error: (e as Error).message,
+        });
+      }
+    }
+
+    fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
+    expect(results.length).toBe(vectors.length);
+  });
+});
 TS_SCRIPT
 
-PASS_COUNT=0
-FAIL_COUNT=0
-
-compare_outputs() {
-    local name="$1"
-    local qr_data="$2"
-
-    echo -n "Testing $name... "
-
-    # Run Python
-    python_output=$(python3 "$TEMP_DIR/python_decode.py" "$qr_data" 2>&1) || true
-
-    # Run TypeScript
-    ts_output=$(node "$TEMP_DIR/ts_decode.mjs" "$qr_data" 2>&1) || true
-
-    # Check if both succeeded or both failed
-    python_success=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('success', False))" 2>/dev/null || echo "False")
-    ts_success=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.success||false)" 2>/dev/null || echo "false")
-
-    if [[ "$python_success" == "True" && "$ts_success" == "true" ]]; then
-        # Both succeeded - compare claim169 fields and CWT metadata
-        python_id=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('id',''))" 2>/dev/null || echo "")
-        ts_id=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.id||'')" 2>/dev/null || echo "")
-
-        python_name=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('fullName',''))" 2>/dev/null || echo "")
-        ts_name=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.fullName||'')" 2>/dev/null || echo "")
-
-        python_dob=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('dateOfBirth',''))" 2>/dev/null || echo "")
-        ts_dob=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.dateOfBirth||'')" 2>/dev/null || echo "")
-
-        python_gender=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('claim169',{}).get('gender',''))" 2>/dev/null || echo "")
-        ts_gender=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.claim169?.gender||'')" 2>/dev/null || echo "")
-
-        python_issuer=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('cwtMeta',{}).get('issuer',''))" 2>/dev/null || echo "")
-        ts_issuer=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.cwtMeta?.issuer||'')" 2>/dev/null || echo "")
-
-        python_expires=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('cwtMeta',{}).get('expiresAt',''))" 2>/dev/null || echo "")
-        ts_expires=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.cwtMeta?.expiresAt||'')" 2>/dev/null || echo "")
-
-        python_vstatus=$(echo "$python_output" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('verificationStatus',''))" 2>/dev/null || echo "")
-        ts_vstatus=$(echo "$ts_output" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf-8'));console.log(d.verificationStatus||'')" 2>/dev/null || echo "")
-
-        if [[ "$python_id" == "$ts_id" && "$python_name" == "$ts_name" && "$python_dob" == "$ts_dob" && "$python_gender" == "$ts_gender" && "$python_issuer" == "$ts_issuer" && "$python_expires" == "$ts_expires" && "$python_vstatus" == "$ts_vstatus" ]]; then
-            echo "PASS (id=$python_id)"
-            ((PASS_COUNT++))
-        else
-            echo "FAIL (mismatch)"
-            echo "  id: py=$python_id ts=$ts_id"
-            echo "  fullName: py=$python_name ts=$ts_name"
-            echo "  dateOfBirth: py=$python_dob ts=$ts_dob"
-            echo "  gender: py=$python_gender ts=$ts_gender"
-            echo "  cwtMeta.issuer: py=$python_issuer ts=$ts_issuer"
-            echo "  cwtMeta.expiresAt: py=$python_expires ts=$ts_expires"
-            echo "  verificationStatus: py=$python_vstatus ts=$ts_vstatus"
-            ((FAIL_COUNT++))
-        fi
-    elif [[ "$python_success" == "False" && "$ts_success" == "false" ]]; then
-        # Both failed - this is expected for invalid vectors
-        echo "PASS (both rejected)"
-        ((PASS_COUNT++))
-    else
-        echo "FAIL (py_success=$python_success ts_success=$ts_success)"
-        ((FAIL_COUNT++))
-    fi
+# Cleanup function for TS test file
+cleanup_ts() {
+    rm -f "$PROJECT_ROOT/sdks/typescript/tests/conformance.test.ts"
 }
 
-echo "--- Valid Vectors ---"
-for vector_file in "$TEST_VECTORS/valid"/*.json; do
-    name=$(basename "$vector_file" .json)
-    qr_data=$(python3 -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
-    compare_outputs "$name" "$qr_data"
-done
+echo "Running Python conformance tests..."
+python_results=$(python3 "$TEMP_DIR/python_conformance.py" "$TEMP_DIR/vectors.json")
+echo "$python_results" > "$TEMP_DIR/python_results.json"
 
+echo "Running TypeScript conformance tests..."
+cd "$PROJECT_ROOT/sdks/typescript"
+VECTORS_PATH="$TEMP_DIR/vectors.json" OUTPUT_PATH="$TEMP_DIR/ts_results.json" \
+    npm exec -- vitest run tests/conformance.test.ts --reporter=basic 2>&1 | grep -v "^$" || true
+
+# Cleanup TS test file
+cleanup_ts
+
+# Compare results
 echo ""
-echo "--- Invalid Vectors ---"
-for vector_file in "$TEST_VECTORS/invalid"/*.json; do
-    name=$(basename "$vector_file" .json)
-    qr_data=$(python3 -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
-    compare_outputs "$name" "$qr_data"
-done
+echo "Comparing results..."
 
-echo ""
-echo "--- Edge Case Vectors ---"
-for vector_file in "$TEST_VECTORS/edge"/*.json; do
-    name=$(basename "$vector_file" .json)
-    qr_data=$(python3 -c "import json; print(json.load(open('$vector_file'))['qr_data'])")
-    compare_outputs "$name" "$qr_data"
-done
+python3 << COMPARE_SCRIPT
+import json
 
-echo ""
-echo "=== Results ==="
-echo "Passed: $PASS_COUNT"
-echo "Failed: $FAIL_COUNT"
+with open("$TEMP_DIR/python_results.json") as f:
+    py_results = {r['name']: r for r in json.load(f)}
 
-if [[ $FAIL_COUNT -gt 0 ]]; then
-    exit 1
-fi
+with open("$TEMP_DIR/ts_results.json") as f:
+    ts_results = {r['name']: r for r in json.load(f)}
 
-echo ""
-echo "All conformance tests passed!"
+pass_count = 0
+fail_count = 0
+
+for name in sorted(set(py_results.keys()) | set(ts_results.keys())):
+    py = py_results.get(name, {'success': None})
+    ts = ts_results.get(name, {'success': None})
+
+    # Both should have same success/failure
+    if py.get('success') != ts.get('success'):
+        print(f"FAIL {name}: py_success={py.get('success')} ts_success={ts.get('success')}")
+        if py.get('error'):
+            print(f"  Python error: {py.get('error')}")
+        if ts.get('error'):
+            print(f"  TypeScript error: {ts.get('error')}")
+        fail_count += 1
+        continue
+
+    # If both succeeded, compare key fields
+    if py.get('success') and ts.get('success'):
+        mismatches = []
+        for field in ['id', 'fullName', 'dateOfBirth', 'gender', 'issuer', 'expiresAt', 'verificationStatus']:
+            if py.get(field) != ts.get(field):
+                mismatches.append(f"{field}: py={py.get(field)} ts={ts.get(field)}")
+
+        if mismatches:
+            print(f"FAIL {name}: field mismatches")
+            for m in mismatches:
+                print(f"  {m}")
+            fail_count += 1
+        else:
+            print(f"PASS {name}")
+            pass_count += 1
+    else:
+        # Both failed - this is expected for invalid vectors
+        print(f"PASS {name} (both rejected)")
+        pass_count += 1
+
+print("")
+print(f"=== Results ===")
+print(f"Passed: {pass_count}")
+print(f"Failed: {fail_count}")
+
+if fail_count > 0:
+    exit(1)
+
+print("")
+print("All conformance tests passed!")
+COMPARE_SCRIPT

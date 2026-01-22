@@ -140,7 +140,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack@0.13.1 --locked
+        run: |
+          if ! command -v wasm-pack &> /dev/null || [ "$(wasm-pack --version)" != "wasm-pack 0.13.1" ]; then
+            cargo install wasm-pack@0.13.1 --locked
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -167,7 +170,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: sdks/typescript
-        run: npm install
+        run: npm ci
 
       - name: Build TypeScript
         working-directory: sdks/typescript
@@ -189,7 +192,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack@0.13.1 --locked
+        run: |
+          if ! command -v wasm-pack &> /dev/null || [ "$(wasm-pack --version)" != "wasm-pack 0.13.1" ]; then
+            cargo install wasm-pack@0.13.1 --locked
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -235,7 +241,7 @@ jobs:
         working-directory: sdks/typescript
         run: |
           npm run build:wasm
-          npm install
+          npm ci
           npm run build:ts
 
       - name: Run conformance tests
