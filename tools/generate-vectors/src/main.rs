@@ -3,7 +3,7 @@
 //! Generates synthetic test vectors for testing the Claim 169 decoder library.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use ciborium::Value;
 use claim169_core::crypto::software::{AesGcmEncryptor, EcdsaP256Signer, Ed25519Signer};
@@ -87,7 +87,7 @@ fn main() {
     }
 }
 
-fn generate_all(output_dir: &PathBuf) {
+fn generate_all(output_dir: &Path) {
     // Create directory structure
     let valid_dir = output_dir.join("valid");
     let invalid_dir = output_dir.join("invalid");
@@ -524,8 +524,8 @@ fn generate_ed25519_signed() -> TestVector {
         qr_data,
         signing_key: Some(KeyMaterial {
             algorithm: "EdDSA".to_string(),
-            public_key_hex: Some(hex::encode(&public_key)),
-            private_key_hex: Some(hex::encode(&seed)),
+            public_key_hex: Some(hex::encode(public_key)),
+            private_key_hex: Some(hex::encode(seed)),
             symmetric_key_hex: None,
         }),
         encryption_key: None,
@@ -572,7 +572,7 @@ fn generate_encrypted_aes256() -> TestVector {
             algorithm: "A256GCM".to_string(),
             public_key_hex: None,
             private_key_hex: None,
-            symmetric_key_hex: Some(hex::encode(&key)),
+            symmetric_key_hex: Some(hex::encode(key)),
         }),
         expected_claim169: Some(serde_json::json!({
             "id": "ID-ENCRYPTED-001",
@@ -664,7 +664,7 @@ fn generate_ecdsa_p256_signed() -> TestVector {
         qr_data,
         signing_key: Some(KeyMaterial {
             algorithm: "ES256".to_string(),
-            public_key_hex: Some(hex::encode(&public_key)),
+            public_key_hex: Some(hex::encode(public_key)),
             private_key_hex: None, // Don't expose private key
             symmetric_key_hex: None,
         }),
@@ -717,15 +717,15 @@ fn generate_encrypted_signed() -> TestVector {
         qr_data,
         signing_key: Some(KeyMaterial {
             algorithm: "EdDSA".to_string(),
-            public_key_hex: Some(hex::encode(&public_key)),
-            private_key_hex: Some(hex::encode(&sign_seed)),
+            public_key_hex: Some(hex::encode(public_key)),
+            private_key_hex: Some(hex::encode(sign_seed)),
             symmetric_key_hex: None,
         }),
         encryption_key: Some(KeyMaterial {
             algorithm: "A256GCM".to_string(),
             public_key_hex: None,
             private_key_hex: None,
-            symmetric_key_hex: Some(hex::encode(&enc_key)),
+            symmetric_key_hex: Some(hex::encode(enc_key)),
         }),
         expected_claim169: Some(serde_json::json!({
             "id": "ID-ENC-SIGN-001",
