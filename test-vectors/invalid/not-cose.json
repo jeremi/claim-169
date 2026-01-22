@@ -1,0 +1,7 @@
+{
+  "name": "not-cose",
+  "description": "Valid CBOR but not a COSE structure",
+  "category": "invalid",
+  "expected_error": "CoseParse",
+  "qr_data": "6BFGPD$.PV0Q$LPFDQI00LTDH1"
+}

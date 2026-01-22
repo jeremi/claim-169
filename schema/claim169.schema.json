@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/openspp/claim-169/schema/claim169.schema.json",
+  "title": "Claim 169 Decode Result",
+  "description": "Schema for the canonical output of MOSIP Claim 169 QR code decoding",
+  "type": "object",
+  "required": ["claim169", "cwtMeta", "verificationStatus"],
+  "properties": {
+    "claim169": {
+      "$ref": "#/$defs/Claim169"
+    },
+    "cwtMeta": {
+      "$ref": "#/$defs/CwtMeta"
+    },
+    "verificationStatus": {
+      "$ref": "#/$defs/VerificationStatus"
+    }
+  },
+  "$defs": {
+    "VerificationStatus": {
+      "type": "string",
+      "enum": ["verified", "skipped", "failed"],
+      "description": "Signature verification status"
+    },
+    "CwtMeta": {
+      "type": "object",
+      "description": "CWT (CBOR Web Token) metadata claims",
+      "properties": {
+        "issuer": {
+          "type": "string",
+          "description": "Identifier of the entity issuing the credential (CWT claim 1)"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Identifier of the subject of the credential (CWT claim 2)"
+        },
+        "expiresAt": {
+          "type": "integer",
+          "description": "Expiration timestamp in Unix seconds (CWT claim 4)"
+        },
+        "notBefore": {
+          "type": "integer",
+          "description": "Not-before timestamp in Unix seconds (CWT claim 5)"
+        },
+        "issuedAt": {
+          "type": "integer",
+          "description": "Issued-at timestamp in Unix seconds (CWT claim 6)"
+        }
+      }
+    },
+    "Claim169": {
+      "type": "object",
+      "description": "MOSIP Claim 169 identity data",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ID to indicate the PII data (key 1)"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the ID data (key 2)"
+        },
+        "language": {
+          "type": "string",
+          "description": "Language used in other attributes, ISO 639-3 (key 3)"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the person (key 4)"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the person (key 5)"
+        },
+        "middleName": {
+          "type": "string",
+          "description": "Middle name of the person (key 6)"
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the person (key 7)"
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "pattern": "^\\d{4}\\d{2}\\d{2}$",
+          "description": "Date of birth in YYYYMMDD format (key 8)"
+        },
+        "gender": {
+          "type": "integer",
+          "enum": [1, 2, 3],
+          "description": "Gender: 1=Male, 2=Female, 3=Other (key 9)"
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the person, newline separated (key 10)"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address of the person (key 11)"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number in E.123 format (key 12)"
+        },
+        "nationality": {
+          "type": "string",
+          "description": "Nationality code, ISO 3166-1/3166-2 (key 13)"
+        },
+        "maritalStatus": {
+          "type": "integer",
+          "enum": [1, 2, 3],
+          "description": "Marital status: 1=Unmarried, 2=Married, 3=Divorced (key 14)"
+        },
+        "guardian": {
+          "type": "string",
+          "description": "Name or ID of guardian (key 15)"
+        },
+        "photo": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Base64-encoded photograph (key 16)"
+        },
+        "photoFormat": {
+          "type": "integer",
+          "enum": [1, 2, 3, 4],
+          "description": "Photo format: 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WEBP (key 17)"
+        },
+        "bestQualityFingers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "description": "Hand position encoding for best quality fingers (key 18)"
+        },
+        "secondaryFullName": {
+          "type": "string",
+          "description": "Full name in secondary language (key 19)"
+        },
+        "secondaryLanguage": {
+          "type": "string",
+          "description": "Secondary language code, ISO 639-3 (key 20)"
+        },
+        "locationCode": {
+          "type": "string",
+          "description": "Geo location/code (key 21)"
+        },
+        "legalStatus": {
+          "type": "string",
+          "description": "Legal status of the identity (key 22)"
+        },
+        "countryOfIssuance": {
+          "type": "string",
+          "description": "Country of issuance (key 23)"
+        },
+        "rightThumb": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Right thumb biometrics (key 50)"
+        },
+        "rightPointerFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Right pointer finger biometrics (key 51)"
+        },
+        "rightMiddleFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Right middle finger biometrics (key 52)"
+        },
+        "rightRingFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Right ring finger biometrics (key 53)"
+        },
+        "rightLittleFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Right little finger biometrics (key 54)"
+        },
+        "leftThumb": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Left thumb biometrics (key 55)"
+        },
+        "leftPointerFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Left pointer finger biometrics (key 56)"
+        },
+        "leftMiddleFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Left middle finger biometrics (key 57)"
+        },
+        "leftRingFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Left ring finger biometrics (key 58)"
+        },
+        "leftLittleFinger": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Left little finger biometrics (key 59)"
+        },
+        "rightIris": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Right iris biometrics (key 60)"
+        },
+        "leftIris": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Left iris biometrics (key 61)"
+        },
+        "face": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Face biometrics (key 62)"
+        },
+        "rightPalm": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Right palm biometrics (key 63)"
+        },
+        "leftPalm": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Left palm biometrics (key 64)"
+        },
+        "voice": {
+          "$ref": "#/$defs/BiometricArray",
+          "description": "Voice biometrics (key 65)"
+        }
+      }
+    },
+    "BiometricArray": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Biometric"
+      }
+    },
+    "Biometric": {
+      "type": "object",
+      "required": ["data", "format"],
+      "description": "Biometric data structure",
+      "properties": {
+        "data": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Base64-encoded biometric binary data (key 0)"
+        },
+        "format": {
+          "type": "integer",
+          "enum": [0, 1, 2, 3],
+          "description": "Biometric format: 0=Image, 1=Template, 2=Sound, 3=BioHash (key 1)"
+        },
+        "subFormat": {
+          "type": "integer",
+          "description": "Biometric sub-format, depends on format (key 2)"
+        },
+        "issuer": {
+          "type": "string",
+          "description": "Biometric data issuer (key 3)"
+        }
+      }
+    }
+  }
+}

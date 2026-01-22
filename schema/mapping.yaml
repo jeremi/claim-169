@@ -1,0 +1,345 @@
+# MOSIP Claim 169 Field Mapping
+# Maps numeric CBOR keys to canonical field names
+# Based on https://docs.mosip.io/1.2.0/readme/standards-and-specifications/mosip-standards/169-qr-code-specification
+
+version: "1.2.0"
+
+# CWT standard claims (outside claim 169)
+cwt_claims:
+  1:
+    name: issuer
+    rust_name: issuer
+    type: tstr
+    description: "Identifier of the entity issuing the credential"
+  2:
+    name: subject
+    rust_name: subject
+    type: tstr
+    description: "Identifier of the subject of the credential"
+  4:
+    name: expiration_time
+    rust_name: expires_at
+    type: int
+    description: "Timestamp when the credential expires"
+  5:
+    name: not_before
+    rust_name: not_before
+    type: int
+    description: "Timestamp before which the credential must not be accepted"
+  6:
+    name: issued_at
+    rust_name: issued_at
+    type: int
+    description: "Timestamp when the credential was issued"
+
+# Claim 169 identity data fields
+claim_169:
+  # Demographics (keys 1-23)
+  1:
+    name: ID
+    rust_name: id
+    type: tstr
+    description: "Unique ID to indicate the PII data"
+
+  2:
+    name: Version
+    rust_name: version
+    type: tstr
+    description: "Version of the ID data"
+
+  3:
+    name: Language
+    rust_name: language
+    type: tstr
+    description: "Language used in other attributes (ISO 639-3)"
+
+  4:
+    name: Full Name
+    rust_name: full_name
+    type: tstr
+    description: "Full name of the person"
+
+  5:
+    name: First Name
+    rust_name: first_name
+    type: tstr
+    description: "First name of the person"
+
+  6:
+    name: Middle Name
+    rust_name: middle_name
+    type: tstr
+    description: "Middle name of the person"
+
+  7:
+    name: Last Name
+    rust_name: last_name
+    type: tstr
+    description: "Last name of the person"
+
+  8:
+    name: Date of Birth
+    rust_name: date_of_birth
+    type: tstr
+    format: "YYYYMMDD"
+    description: "Date of birth in YYYYMMDD format"
+
+  9:
+    name: Gender
+    rust_name: gender
+    type: int
+    enum:
+      1: Male
+      2: Female
+      3: Others
+    description: "Gender of the person"
+
+  10:
+    name: Address
+    rust_name: address
+    type: tstr
+    description: "Address of the person, separator character \\n"
+
+  11:
+    name: Email ID
+    rust_name: email
+    type: tstr
+    description: "Email id of the person"
+
+  12:
+    name: Phone Number
+    rust_name: phone
+    type: tstr
+    format: "E.123"
+    description: "Contact number (E.123 international notation)"
+
+  13:
+    name: Nationality
+    rust_name: nationality
+    type: tstr
+    format: "ISO 3166-1/3166-2"
+    description: "Nationality (ISO 3166-2 or ISO 3166-1 alpha-3)"
+
+  14:
+    name: Marital Status
+    rust_name: marital_status
+    type: int
+    enum:
+      1: Unmarried
+      2: Married
+      3: Divorced
+    description: "Marital status of the person"
+
+  15:
+    name: Guardian
+    rust_name: guardian
+    type: tstr
+    description: "Name/id of guardian (mother, father, spouse, etc.)"
+
+  16:
+    name: Binary Image
+    rust_name: photo
+    type: bstr
+    description: "Binary image of the person's photograph"
+
+  17:
+    name: Binary Image Format
+    rust_name: photo_format
+    type: int
+    enum:
+      1: JPEG
+      2: JPEG2
+      3: AVIF
+      4: WEBP
+    description: "Format of the binary image"
+
+  18:
+    name: Best Quality Fingers
+    rust_name: best_quality_fingers
+    type: "[int]"
+    description: "Hand position encoding (0-10)"
+
+  19:
+    name: Secondary Full Name
+    rust_name: secondary_full_name
+    type: tstr
+    description: "Full name in secondary language"
+
+  20:
+    name: Secondary Language
+    rust_name: secondary_language
+    type: tstr
+    description: "Secondary language code (ISO 639-3)"
+
+  21:
+    name: Location Code
+    rust_name: location_code
+    type: tstr
+    description: "Geo Location/Code"
+
+  22:
+    name: Legal Status
+    rust_name: legal_status
+    type: tstr
+    description: "Legal status of the identity"
+
+  23:
+    name: Country of Issuance
+    rust_name: country_of_issuance
+    type: tstr
+    description: "Country of issuance"
+
+  # Keys 24-49: Reserved for future demographic data
+
+  # Biometrics (keys 50-65)
+  50:
+    name: Right Thumb
+    rust_name: right_thumb
+    type: "[Biometric]"
+    description: "Person's Right Thumb biometrics"
+
+  51:
+    name: Right Pointer Finger
+    rust_name: right_pointer_finger
+    type: "[Biometric]"
+    description: "Person's Right Pointer Finger biometrics"
+
+  52:
+    name: Right Middle Finger
+    rust_name: right_middle_finger
+    type: "[Biometric]"
+    description: "Person's Right Middle Finger biometrics"
+
+  53:
+    name: Right Ring Finger
+    rust_name: right_ring_finger
+    type: "[Biometric]"
+    description: "Person's Right Ring Finger biometrics"
+
+  54:
+    name: Right Little Finger
+    rust_name: right_little_finger
+    type: "[Biometric]"
+    description: "Person's Right Little Finger biometrics"
+
+  55:
+    name: Left Thumb
+    rust_name: left_thumb
+    type: "[Biometric]"
+    description: "Person's Left Thumb biometrics"
+
+  56:
+    name: Left Pointer Finger
+    rust_name: left_pointer_finger
+    type: "[Biometric]"
+    description: "Person's Left Pointer Finger biometrics"
+
+  57:
+    name: Left Middle Finger
+    rust_name: left_middle_finger
+    type: "[Biometric]"
+    description: "Person's Left Middle Finger biometrics"
+
+  58:
+    name: Left Ring Finger
+    rust_name: left_ring_finger
+    type: "[Biometric]"
+    description: "Person's Left Ring Finger biometrics"
+
+  59:
+    name: Left Little Finger
+    rust_name: left_little_finger
+    type: "[Biometric]"
+    description: "Person's Left Little Finger biometrics"
+
+  60:
+    name: Right Iris
+    rust_name: right_iris
+    type: "[Biometric]"
+    description: "Person's Right Iris biometrics"
+
+  61:
+    name: Left Iris
+    rust_name: left_iris
+    type: "[Biometric]"
+    description: "Person's Left Iris biometrics"
+
+  62:
+    name: Face
+    rust_name: face
+    type: "[Biometric]"
+    description: "Person's Face biometrics"
+
+  63:
+    name: Right Palm Print
+    rust_name: right_palm
+    type: "[Biometric]"
+    description: "Person's Right Palm Print biometrics"
+
+  64:
+    name: Left Palm Print
+    rust_name: left_palm
+    type: "[Biometric]"
+    description: "Person's Left Palm Print biometrics"
+
+  65:
+    name: Voice
+    rust_name: voice
+    type: "[Biometric]"
+    description: "Person's Voice biometrics"
+
+  # Keys 66-74: Reserved for future biometric data
+  # Keys 75-99: Reserved for future other data
+
+# Biometric structure (nested within biometric fields)
+biometric:
+  0:
+    name: Data
+    rust_name: data
+    type: bstr
+    description: "Biometrics binary data"
+
+  1:
+    name: Data Format
+    rust_name: format
+    type: int
+    enum:
+      0: Image
+      1: Template
+      2: Sound
+      3: BioHash
+    description: "Biometrics data format"
+
+  2:
+    name: Data Sub Format
+    rust_name: sub_format
+    type: int
+    description: "Biometrics data sub format (depends on format)"
+
+  3:
+    name: Data Issuer
+    rust_name: issuer
+    type: tstr
+    description: "Biometric data issuer"
+
+# Data sub-format mappings
+data_sub_formats:
+  image:
+    0: PNG
+    1: JPEG
+    2: JPEG2000
+    3: AVIF
+    4: WEBP
+    5: TIFF
+    6: WSQ
+    # 100-200: Vendor specific
+
+  template:
+    0: ANSI378
+    1: ISO19794_2
+    2: NIST
+    # 100-200: Vendor specific
+
+  sound:
+    0: WAV
+    1: MP3

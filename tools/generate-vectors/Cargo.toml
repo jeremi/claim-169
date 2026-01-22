@@ -1,0 +1,16 @@
+[package]
+name = "generate-vectors"
+description = "Test vector generator for MOSIP Claim 169"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+claim169-core = { path = "../../core/claim169-core" }
+serde.workspace = true
+serde_json.workspace = true
+rand.workspace = true
+hex.workspace = true
+clap = { version = "4", features = ["derive"] }
+coset.workspace = true
+ciborium.workspace = true

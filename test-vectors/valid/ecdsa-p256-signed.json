@@ -1,0 +1,19 @@
+{
+  "name": "ecdsa-p256-signed",
+  "description": "COSE_Sign1 with ECDSA P-256 signature",
+  "category": "valid",
+  "qr_data": "6BF390D20FFWJWG.FKX*4F7B0XKA8FA9DIWENPEJ/5P$DPQE88EB$CBECP9ERZC04E21DDF3/E96007F3ORAO001KL480 B9OW5UM8SNA3W5746CP01Y8VS8MA85UA QE$345$CVQEX.D15839CZG0.SN7CP::K1QOD2S*GG4/0UR7X.E5-U-X2-GUPF7I:5SBQGZIY8NTXHRSE.YBIW6CZEAQTX%R08HJWP MPFBNN/KK.9$1C.3",
+  "signing_key": {
+    "algorithm": "ES256",
+    "public_key_hex": "0478e9de939034c9d7fb3c4b988cc897d8bd2bb9397dc6129762d6df431568ea268aa11a62b63867b720f8ca6695a3e94eaf5e909aa9b13d86dbbec8b8e287ad78"
+  },
+  "expected_claim169": {
+    "fullName": "ECDSA Test Person",
+    "id": "ID-ECDSA-001"
+  },
+  "expected_cwt_meta": {
+    "issuer": "https://mosip.example.org",
+    "expiresAt": 1800000000,
+    "issuedAt": 1700000000
+  }
+}

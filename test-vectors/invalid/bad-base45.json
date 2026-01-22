@@ -1,0 +1,7 @@
+{
+  "name": "bad-base45",
+  "description": "Invalid Base45 encoding",
+  "category": "invalid",
+  "expected_error": "Base45Decode",
+  "qr_data": "THIS!IS@NOT#VALID$BASE45%DATA"
+}

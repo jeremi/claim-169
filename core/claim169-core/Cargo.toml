@@ -1,0 +1,41 @@
+[package]
+name = "claim169-core"
+description = "MOSIP Claim 169 QR Code decoder library"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# CBOR/COSE
+coset.workspace = true
+ciborium.workspace = true
+
+# Compression/encoding
+base45.workspace = true
+flate2.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+hex.workspace = true
+
+# Error handling
+thiserror.workspace = true
+
+# Software crypto (optional)
+ed25519-dalek = { workspace = true, optional = true }
+p256 = { workspace = true, optional = true }
+aes-gcm = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+zeroize = { workspace = true, optional = true }
+
+[dev-dependencies]
+hex.workspace = true
+rand.workspace = true
+
+[features]
+default = ["software-crypto"]
+software-crypto = ["dep:ed25519-dalek", "dep:p256", "dep:aes-gcm", "dep:rand", "dep:zeroize"]

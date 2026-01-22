@@ -1,0 +1,47 @@
+{
+  "name": "claim169",
+  "version": "0.1.0",
+  "description": "MOSIP Claim 169 QR Code decoder library",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "scripts": {
+    "build:wasm": "cd ../../core/claim169-wasm && PATH=~/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH wasm-pack build --target web --release --out-dir ../../sdks/typescript/wasm",
+    "build:ts": "tsc",
+    "build": "npm run build:wasm && npm run build:ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist wasm"
+  },
+  "keywords": [
+    "mosip",
+    "claim169",
+    "qr-code",
+    "identity",
+    "cbor",
+    "cose",
+    "wasm"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openspp/claim-169"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0",
+    "vitest": "^2.0.0"
+  }
+}

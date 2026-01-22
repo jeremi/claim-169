@@ -1,0 +1,36 @@
+# Rust
+target/
+Cargo.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+*.so
+
+# Node.js
+node_modules/
+
+# WASM build output
+pkg/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+.tmp.*
+*.tmp

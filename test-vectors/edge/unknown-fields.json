@@ -1,0 +1,15 @@
+{
+  "name": "unknown-fields",
+  "description": "Contains unknown CBOR keys (preserved for forward compatibility)",
+  "category": "edge",
+  "qr_data": "6BFN80%20FFWJWG.FKJ05A8B0XKA8FA9DIWENPEJ/5P$DPQE88EB$CBECP9ERZC04E21DDF3/E96007F3ORAO005KL680 B9+W5I+9M+9U1B3W5746GP00 A7QD54EM-DP+8: CKVC$345$CVQEE-D8%3ZKELQE7LE  CE44QEDSVD834R36PV5F464338L8KB0X3390VZZ1EC5",
+  "expected_claim169": {
+    "fullName": "Unknown Fields Person",
+    "id": "ID-UNKNOWN-001"
+  },
+  "expected_cwt_meta": {
+    "issuer": "https://mosip.example.org",
+    "expiresAt": 1800000000,
+    "issuedAt": 1700000000
+  }
+}

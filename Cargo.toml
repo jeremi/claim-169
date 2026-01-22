@@ -1,0 +1,50 @@
+[workspace]
+resolver = "2"
+members = [
+    "core/claim169-core",
+    "core/claim169-python",
+    "core/claim169-wasm",
+    "tools/generate-vectors",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/openspp/claim-169"
+rust-version = "1.75"
+
+[workspace.dependencies]
+# CBOR/COSE
+coset = "0.3"
+ciborium = "0.2"
+
+# Compression/encoding
+base45 = "3.2"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "1"
+
+# Software crypto
+ed25519-dalek = { version = "2", features = ["rand_core", "pkcs8", "pem", "zeroize"] }
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
+aes-gcm = { version = "0.10", features = ["zeroize"] }
+rand = "0.8"
+zeroize = { version = "1.7", features = ["derive"] }
+
+# Python bindings
+pyo3 = { version = "0.22", features = ["extension-module"] }
+
+# WASM bindings
+wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+js-sys = "0.3"
+
+# Testing
+hex = "0.4"
+base64 = "0.22"

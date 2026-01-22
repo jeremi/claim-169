@@ -1,0 +1,36 @@
+{
+  "name": "demographics-full",
+  "description": "All demographic fields (1-23)",
+  "category": "valid",
+  "qr_data": "6BFA$BMVPYUOM43QVJH.AB27/RBNIDSMGU*4WKQYPDP-MBVDN66$EQM0JBF6YRC/S9N%8T2M.52+11A9G+PQELUPWJ0$RK2GW0PTZJ$6EC/7Z$Q718XV1WGD$DE0%CBBS0I7YEPUMD1F4OPQ3LD:T50KNJ6DKSVG%63EUHK2LJB4BQH 8UMQI5S7-L24WFDVB2N*OQRRMLF15U7X9L1AGVFU0WCJC0.CCW/DB*C*YKTZM9ULPW5U0ND94X9F/07UK2K*EC%2$I0BH3YUA*4MRQQIHS9WDB813.3B11%RRAFFM23N263SG91CDMIWFEI40$43AAII9UNAN6 P01E$M7A*VSTCUL1LILRV2 4BSL5HWPWGSEQOGHPZBV2-P6902HFVZTBJ37-8YF9Y/8JCA9O3XA0:VES4",
+  "expected_claim169": {
+    "address": "123 Main St\nApt 4\nNew York, NY 10001",
+    "countryOfIssuance": "USA",
+    "dateOfBirth": "19900515",
+    "email": "jane.smith@example.com",
+    "firstName": "Jane",
+    "fullName": "Jane Marie Smith",
+    "gender": 2,
+    "guardian": "Guardian-ID-001",
+    "id": "ID-67890-FGHIJ",
+    "language": "eng",
+    "lastName": "Smith",
+    "legalStatus": "citizen",
+    "locationCode": "US-NY-NYC",
+    "maritalStatus": 2,
+    "middleName": "Marie",
+    "nationality": "USA",
+    "phone": "+1 555 123 4567",
+    "photoFormat": 1,
+    "secondaryFullName": "Jane Marie Smith (Hindi)",
+    "secondaryLanguage": "hin",
+    "version": "1.0"
+  },
+  "expected_cwt_meta": {
+    "issuer": "https://mosip.example.org",
+    "subject": "ID-67890-FGHIJ",
+    "expiresAt": 1800000000,
+    "notBefore": 1700000000,
+    "issuedAt": 1700000000
+  }
+}

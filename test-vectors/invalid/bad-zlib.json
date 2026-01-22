@@ -1,0 +1,7 @@
+{
+  "name": "bad-zlib",
+  "description": "Invalid zlib data after Base45 decode",
+  "category": "invalid",
+  "expected_error": "Decompress",
+  "qr_data": "Z6S96O TPGRN"
+}

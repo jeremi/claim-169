@@ -1,0 +1,17 @@
+[package]
+name = "claim169-wasm"
+description = "WASM/TypeScript bindings for MOSIP Claim 169 QR decoder"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+claim169-core = { path = "../claim169-core", default-features = false }
+wasm-bindgen.workspace = true
+serde-wasm-bindgen.workspace = true
+js-sys.workspace = true
+serde.workspace = true
+console_error_panic_hook = "0.1"
