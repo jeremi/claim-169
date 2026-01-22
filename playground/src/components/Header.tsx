@@ -25,9 +25,7 @@ export function Header() {
             <span className="hidden sm:inline">GitHub</span>
           </a>
           <a
-            href="https://github.com/jeremi/claim-169#readme"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="./docs/"
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "flex items-center gap-2")}
           >
             <BookOpen className="h-4 w-4" />
