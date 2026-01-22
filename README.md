@@ -14,6 +14,7 @@ MOSIP Claim 169 defines a compact, secure format for encoding identity data in Q
 - **Rust core library** with full encoding, decoding, signature verification, and encryption support
 - **Python bindings** for server-side integration with HSM support
 - **TypeScript/JavaScript SDK** via WebAssembly for browser and Node.js
+- **Interactive playground** for experimenting with QR codes ([try it online](https://jeremi.github.io/claim-169/))
 - **Comprehensive security** including weak key rejection, decompression limits, and timestamp validation
 
 ### Encoding Pipeline
@@ -41,6 +42,7 @@ claim-169/
 │   └── claim169-python/   # Python bindings (PyO3)
 ├── sdks/
 │   └── typescript/        # TypeScript/JavaScript SDK
+├── playground/            # Interactive web playground
 ├── examples/              # Runnable examples (Python, TypeScript)
 ├── fuzz/                  # Fuzz testing targets
 ├── test-vectors/          # Test vectors for compliance
