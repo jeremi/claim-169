@@ -20,7 +20,7 @@ class TestDecodeValidVectors:
 
     def test_decode_minimal(self, minimal_vector):
         """Test decoding the minimal vector."""
-        result = claim169.decode(minimal_vector["qr_data"])
+        result = claim169.decode_unverified(minimal_vector["qr_data"])
 
         expected = minimal_vector["expected_claim169"]
         assert result.claim169.id == expected.get("id")
@@ -29,7 +29,7 @@ class TestDecodeValidVectors:
 
     def test_decode_demographics_full(self, demographics_full_vector):
         """Test decoding the demographics-full vector."""
-        result = claim169.decode(demographics_full_vector["qr_data"])
+        result = claim169.decode_unverified(demographics_full_vector["qr_data"])
 
         expected = demographics_full_vector["expected_claim169"]
         assert result.claim169.id == expected.get("id")
@@ -43,7 +43,7 @@ class TestDecodeValidVectors:
 
     def test_decode_with_face(self, with_face_vector):
         """Test decoding the with-face vector."""
-        result = claim169.decode(with_face_vector["qr_data"])
+        result = claim169.decode_unverified(with_face_vector["qr_data"])
 
         expected = with_face_vector["expected_claim169"]
         assert result.claim169.id == expected.get("id")
@@ -52,7 +52,7 @@ class TestDecodeValidVectors:
 
     def test_decode_with_fingerprints(self, with_fingerprints_vector):
         """Test decoding the with-fingerprints vector."""
-        result = claim169.decode(with_fingerprints_vector["qr_data"])
+        result = claim169.decode_unverified(with_fingerprints_vector["qr_data"])
 
         expected = with_fingerprints_vector["expected_claim169"]
         assert result.claim169.id == expected.get("id")
@@ -67,7 +67,7 @@ class TestDecodeValidVectors:
 
     def test_decode_claim169_example(self, claim169_example_vector):
         """Test decoding the example from claim_169.md specification."""
-        result = claim169.decode(claim169_example_vector["qr_data"])
+        result = claim169.decode_unverified(claim169_example_vector["qr_data"])
 
         expected = claim169_example_vector["expected_claim169"]
         assert result.claim169.id == expected.get("id")
@@ -107,22 +107,22 @@ class TestDecodeInvalidVectors:
     def test_reject_bad_base45(self, bad_base45_vector):
         """Test that bad-base45 vector is rejected."""
         with pytest.raises(claim169.Base45DecodeError):
-            claim169.decode(bad_base45_vector["qr_data"])
+            claim169.decode_unverified(bad_base45_vector["qr_data"])
 
     def test_reject_bad_zlib(self, bad_zlib_vector):
         """Test that bad-zlib vector is rejected."""
         with pytest.raises(claim169.DecompressError):
-            claim169.decode(bad_zlib_vector["qr_data"])
+            claim169.decode_unverified(bad_zlib_vector["qr_data"])
 
     def test_reject_not_cose(self, not_cose_vector):
         """Test that not-cose vector is rejected."""
         with pytest.raises(claim169.CoseParseError):
-            claim169.decode(not_cose_vector["qr_data"])
+            claim169.decode_unverified(not_cose_vector["qr_data"])
 
     def test_reject_missing_169(self, missing_169_vector):
         """Test that missing-169 vector is rejected."""
         with pytest.raises(claim169.Claim169NotFoundError):
-            claim169.decode(missing_169_vector["qr_data"])
+            claim169.decode_unverified(missing_169_vector["qr_data"])
 
 
 class TestDecodeEdgeCases:
@@ -130,7 +130,7 @@ class TestDecodeEdgeCases:
 
     def test_handle_unknown_fields(self, unknown_fields_vector):
         """Test that unknown fields are handled gracefully."""
-        result = claim169.decode(unknown_fields_vector["qr_data"])
+        result = claim169.decode_unverified(unknown_fields_vector["qr_data"])
 
         expected = unknown_fields_vector["expected_claim169"]
         assert result.claim169.id == expected.get("id")
@@ -140,7 +140,7 @@ class TestDecodeEdgeCases:
         """Test that expired tokens are rejected when timestamp validation is enabled."""
         # The library enforces timestamp validation and rejects expired tokens
         with pytest.raises(claim169.Claim169Exception) as exc_info:
-            claim169.decode(expired_vector["qr_data"])
+            claim169.decode_unverified(expired_vector["qr_data"])
 
         # Verify the error message indicates expiration
         expected_meta = expired_vector["expected_cwt_meta"]
@@ -151,7 +151,7 @@ class TestDecodeEdgeCases:
         """Test that not-yet-valid tokens are rejected when timestamp validation is enabled."""
         # The library enforces timestamp validation and rejects tokens with nbf in the future
         with pytest.raises(claim169.Claim169Exception) as exc_info:
-            claim169.decode(not_yet_valid_vector["qr_data"])
+            claim169.decode_unverified(not_yet_valid_vector["qr_data"])
 
         # Verify the error message indicates the token is not yet valid
         expected_meta = not_yet_valid_vector["expected_cwt_meta"]
@@ -164,7 +164,7 @@ class TestDecodeOptions:
 
     def test_skip_biometrics(self, with_face_vector):
         """Test that skip_biometrics option works."""
-        result = claim169.decode(with_face_vector["qr_data"], skip_biometrics=True)
+        result = claim169.decode_unverified(with_face_vector["qr_data"], skip_biometrics=True)
 
         expected = with_face_vector["expected_claim169"]
         assert result.claim169.id == expected.get("id")
@@ -173,7 +173,7 @@ class TestDecodeOptions:
     def test_max_decompressed_bytes_too_small(self, minimal_vector):
         """Test that max_decompressed_bytes limit is enforced."""
         with pytest.raises(claim169.DecompressError):
-            claim169.decode(minimal_vector["qr_data"], max_decompressed_bytes=10)
+            claim169.decode_unverified(minimal_vector["qr_data"], max_decompressed_bytes=10)
 
 
 class TestDecodeWithEd25519:
@@ -332,7 +332,7 @@ class TestCwtMeta:
 
     def test_cwt_meta_repr(self, minimal_vector):
         """Test CwtMeta string representation."""
-        result = claim169.decode(minimal_vector["qr_data"])
+        result = claim169.decode_unverified(minimal_vector["qr_data"])
         repr_str = repr(result.cwt_meta)
         assert "CwtMeta" in repr_str
 
@@ -342,23 +342,23 @@ class TestClaim169:
 
     def test_claim169_repr(self, minimal_vector):
         """Test Claim169 string representation."""
-        result = claim169.decode(minimal_vector["qr_data"])
+        result = claim169.decode_unverified(minimal_vector["qr_data"])
         repr_str = repr(result.claim169)
         assert "Claim169" in repr_str
 
     def test_has_biometrics_true(self, with_face_vector):
         """Test has_biometrics returns True when biometrics present."""
-        result = claim169.decode(with_face_vector["qr_data"])
+        result = claim169.decode_unverified(with_face_vector["qr_data"])
         assert result.claim169.has_biometrics() is True
 
     def test_has_biometrics_false(self, minimal_vector):
         """Test has_biometrics returns False when no biometrics."""
-        result = claim169.decode(minimal_vector["qr_data"])
+        result = claim169.decode_unverified(minimal_vector["qr_data"])
         assert result.claim169.has_biometrics() is False
 
     def test_to_dict(self, demographics_full_vector):
         """Test converting claim to dictionary."""
-        result = claim169.decode(demographics_full_vector["qr_data"])
+        result = claim169.decode_unverified(demographics_full_vector["qr_data"])
         claim_dict = result.claim169.to_dict()
         assert isinstance(claim_dict, dict)
         if result.claim169.id:
@@ -370,13 +370,13 @@ class TestDecodeResult:
 
     def test_decode_result_repr(self, minimal_vector):
         """Test DecodeResult string representation."""
-        result = claim169.decode(minimal_vector["qr_data"])
+        result = claim169.decode_unverified(minimal_vector["qr_data"])
         repr_str = repr(result)
         assert "DecodeResult" in repr_str
 
     def test_is_verified_false_when_skipped(self, minimal_vector):
         """Test is_verified returns False when verification skipped."""
-        result = claim169.decode(minimal_vector["qr_data"])
+        result = claim169.decode_unverified(minimal_vector["qr_data"])
         assert result.is_verified() is False
 
     def test_is_verified_true_when_verified(self, ed25519_signed_vector):

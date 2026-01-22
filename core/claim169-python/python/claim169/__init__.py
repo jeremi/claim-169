@@ -19,7 +19,7 @@ from .claim169 import (
     Claim169Input,
     CwtMetaInput,
     # Decode functions
-    decode,
+    decode_unverified,
     decode_with_ed25519,
     decode_with_ecdsa_p256,
     decode_with_verifier,
@@ -54,7 +54,7 @@ __all__ = [
     "Claim169Input",
     "CwtMetaInput",
     # Decode functions
-    "decode",
+    "decode_unverified",
     "decode_with_ed25519",
     "decode_with_ecdsa_p256",
     "decode_with_verifier",

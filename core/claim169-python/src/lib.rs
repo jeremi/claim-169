@@ -425,8 +425,7 @@ impl CoreSignatureVerifier for PySignatureVerifier {
     ) -> CryptoResult<()> {
         Python::attach(|py| {
             let alg_name = format!("{:?}", algorithm);
-            let key_id_bytes: Option<Bound<'_, PyBytes>> =
-                key_id.map(|k| PyBytes::new(py, k));
+            let key_id_bytes: Option<Bound<'_, PyBytes>> = key_id.map(|k| PyBytes::new(py, k));
             let data_bytes = PyBytes::new(py, data);
             let sig_bytes = PyBytes::new(py, signature);
 
@@ -471,8 +470,7 @@ impl CoreDecryptor for PyDecryptor {
     ) -> CryptoResult<Vec<u8>> {
         Python::attach(|py| {
             let alg_name = format!("{:?}", algorithm);
-            let key_id_bytes: Option<Bound<'_, PyBytes>> =
-                key_id.map(|k| PyBytes::new(py, k));
+            let key_id_bytes: Option<Bound<'_, PyBytes>> = key_id.map(|k| PyBytes::new(py, k));
             let nonce_bytes = PyBytes::new(py, nonce);
             let aad_bytes = PyBytes::new(py, aad);
             let ct_bytes = PyBytes::new(py, ciphertext);
@@ -505,7 +503,11 @@ unsafe impl Sync for PyDecryptor {}
 // Public API Functions
 // ============================================================================
 
-/// Decode a Claim 169 QR code without signature verification
+/// Decode a Claim 169 QR code without signature verification (INSECURE)
+///
+/// WARNING: This function skips signature verification. Unverified credentials
+/// cannot be trusted. Use decode_with_ed25519() or decode_with_ecdsa_p256()
+/// for production use.
 ///
 /// Args:
 ///     qr_text: The QR code text content (Base45 encoded)
@@ -525,7 +527,7 @@ unsafe impl Sync for PyDecryptor {}
 ///     Claim169NotFoundError: If claim 169 is not present
 #[pyfunction]
 #[pyo3(signature = (qr_text, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
-fn decode(
+fn decode_unverified(
     qr_text: &str,
     skip_biometrics: bool,
     max_decompressed_bytes: usize,
@@ -1017,14 +1019,8 @@ fn generate_nonce() -> Vec<u8> {
 #[pymodule]
 fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add exception types
-    m.add(
-        "Claim169Exception",
-        py.get_type::<Claim169Exception>(),
-    )?;
-    m.add(
-        "Base45DecodeError",
-        py.get_type::<Base45DecodeError>(),
-    )?;
+    m.add("Claim169Exception", py.get_type::<Claim169Exception>())?;
+    m.add("Base45DecodeError", py.get_type::<Base45DecodeError>())?;
     m.add("DecompressError", py.get_type::<DecompressError>())?;
     m.add("CoseParseError", py.get_type::<CoseParseError>())?;
     m.add("CwtParseError", py.get_type::<CwtParseError>())?;
@@ -1046,7 +1042,7 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CwtMetaInput>()?;
 
     // Add decode functions
-    m.add_function(wrap_pyfunction!(decode, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_unverified, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_ed25519, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_ecdsa_p256, m)?)?;
     m.add_function(wrap_pyfunction!(py_decode_with_verifier, m)?)?;

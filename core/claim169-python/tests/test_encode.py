@@ -472,7 +472,7 @@ class TestEncodeUnsigned:
         )
 
         qr_data = claim169.encode_unsigned(claim, meta)
-        result = claim169.decode(qr_data)
+        result = claim169.decode_unverified(qr_data)
 
         assert result.claim169.id == original_id
         assert result.claim169.full_name == original_name
