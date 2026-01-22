@@ -1,0 +1,23 @@
+{
+  "name": "claim169-examples",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Examples for claim169 library",
+  "type": "module",
+  "scripts": {
+    "basic": "vitest run basic-decode.test.ts",
+    "verified": "vitest run verified-decode.test.ts",
+    "encode": "vitest run encode-credential.test.ts",
+    "encrypted": "vitest run encrypted-credential.test.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "claim169": "file:../../sdks/typescript"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0",
+    "vitest": "^4.0.0"
+  }
+}

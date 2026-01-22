@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/openspp/claim-169/schema/claim169.schema.json",
+  "$id": "https://github.com/jeremi/claim-169/schema/claim169.schema.json",
   "title": "Claim 169 Decode Result",
   "description": "Schema for the canonical output of MOSIP Claim 169 QR code decoding",
   "type": "object",

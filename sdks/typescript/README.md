@@ -29,17 +29,20 @@ MOSIP Claim 169 defines a standard for encoding identity data in QR codes using:
 ```typescript
 import { Decoder } from 'claim169';
 
-// Simple decode
-const result = new Decoder(qrText).decode();
+// Decode with Ed25519 signature verification (recommended)
+const publicKey = new Uint8Array(32);  // Your 32-byte public key
+const result = new Decoder(qrText)
+  .verifyWithEd25519(publicKey)
+  .decode();
 
 console.log(`ID: ${result.claim169.id}`);
 console.log(`Name: ${result.claim169.fullName}`);
 console.log(`Issuer: ${result.cwtMeta.issuer}`);
+console.log(`Verified: ${result.verificationStatus}`);  // "verified"
 
-// With options
+// Decode without verification (testing only)
 const result = new Decoder(qrText)
-  .skipBiometrics()           // Skip biometric parsing
-  .maxDecompressedBytes(32768) // 32KB limit
+  .allowUnverified()
   .decode();
 ```
 
@@ -68,7 +71,25 @@ The `Decoder` class provides a fluent builder API:
 ```typescript
 import { Decoder } from 'claim169';
 
+// Decode with Ed25519 verification
 const result = new Decoder(qrText)
+  .verifyWithEd25519(publicKey)
+  .decode();
+
+// Decode with ECDSA P-256 verification
+const result = new Decoder(qrText)
+  .verifyWithEcdsaP256(publicKey)  // 33 or 65 bytes SEC1 encoded
+  .decode();
+
+// Decrypt then verify (for encrypted credentials)
+const result = new Decoder(qrText)
+  .decryptWithAes256(aesKey)
+  .verifyWithEd25519(publicKey)
+  .decode();
+
+// With additional options
+const result = new Decoder(qrText)
+  .verifyWithEd25519(publicKey)
   .skipBiometrics()              // Skip biometric data
   .withTimestampValidation()     // Enable timestamp validation
   .clockSkewTolerance(60)        // 60 seconds tolerance
@@ -76,10 +97,15 @@ const result = new Decoder(qrText)
   .decode();
 ```
 
-### Methods
+### Decoder Methods
 
 | Method | Description |
 |--------|-------------|
+| `verifyWithEd25519(publicKey)` | Verify with Ed25519 (32 bytes) |
+| `verifyWithEcdsaP256(publicKey)` | Verify with ECDSA P-256 (33 or 65 bytes) |
+| `decryptWithAes256(key)` | Decrypt with AES-256-GCM (32 bytes) |
+| `decryptWithAes128(key)` | Decrypt with AES-128-GCM (16 bytes) |
+| `allowUnverified()` | Skip verification (testing only) |
 | `skipBiometrics()` | Skip biometric data parsing |
 | `withTimestampValidation()` | Enable exp/nbf validation |
 | `clockSkewTolerance(seconds)` | Set clock skew tolerance |
@@ -247,25 +273,28 @@ Error messages indicate the specific failure:
 - `SignatureError`: Signature verification failed
 - `DecryptionError`: Decryption failed
 
-## Limitations
-
-### No Signature Verification
-
-The current TypeScript SDK does not include built-in signature verification or decryption capabilities due to WASM/JavaScript callback complexity. For use cases requiring verification:
-
-1. **Use the Python SDK** for server-side verification
-2. **Use the Rust library** for full encoding/decoding with verification
-3. **Use WebCrypto API** for custom verification after decoding
+## Notes
 
 ### Timestamp Validation
 
-Timestamp validation is disabled by default in the WASM build because WebAssembly does not have reliable access to system time. Enable it explicitly if your environment supports it:
+Timestamp validation is disabled by default because WebAssembly does not have reliable access to system time. Enable it explicitly if your environment provides accurate time:
 
 ```typescript
 const result = new Decoder(qrText)
+  .verifyWithEd25519(publicKey)
   .withTimestampValidation()
+  .clockSkewTolerance(60)  // Allow 60 seconds clock drift
   .decode();
 ```
+
+### Secure by Default
+
+The decoder requires explicit verification configuration. You must call one of:
+- `verifyWithEd25519(publicKey)` - Verify with Ed25519
+- `verifyWithEcdsaP256(publicKey)` - Verify with ECDSA P-256
+- `allowUnverified()` - Explicitly skip verification (testing only)
+
+This prevents accidentally processing unverified credentials.
 
 ## Browser Usage
 
@@ -273,9 +302,17 @@ const result = new Decoder(qrText)
 <script type="module">
   import { Decoder } from './node_modules/claim169/dist/index.js';
 
+  // Your issuer's public key (32 bytes for Ed25519)
+  const publicKey = new Uint8Array([/* ... */]);
+
   const qrText = "6BF5YZB2...";
-  const result = new Decoder(qrText).decode();
-  console.log(result.claim169.fullName);
+  const result = new Decoder(qrText)
+    .verifyWithEd25519(publicKey)
+    .decode();
+
+  if (result.verificationStatus === "verified") {
+    console.log("Verified:", result.claim169.fullName);
+  }
 </script>
 ```
 

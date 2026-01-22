@@ -25,7 +25,7 @@ classifiers = [
 keywords = ["mosip", "claim169", "qr-code", "identity", "cbor", "cose"]
 
 [project.urls]
-Repository = "https://github.com/openspp/claim-169"
+Repository = "https://github.com/jeremi/claim-169"
 
 [dependency-groups]
 dev = [

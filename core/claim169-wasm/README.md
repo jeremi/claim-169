@@ -27,33 +27,24 @@ import init, { Decoder } from 'claim169';
 // Initialize WASM module
 await init();
 
-// Simple decode
-const result = new Decoder(qrText).decode();
-console.log(result.claim169.fullName);
-
-// With options
+// Decode with Ed25519 signature verification (recommended)
+const publicKey = new Uint8Array(32);  // Your 32-byte public key
 const result = new Decoder(qrText)
-    .skipBiometrics()
-    .maxDecompressedBytes(32768)
+    .verifyWithEd25519(publicKey)
     .decode();
-```
 
-### Direct WASM Usage
-
-```javascript
-import init, { Decoder, decode } from 'claim169';
-
-// Initialize WASM module
-await init();
-
-// Simple decode
-const result = decode(qrText);
 console.log(result.claim169.fullName);
+console.log(result.verificationStatus);  // "verified"
 
-// Builder pattern
+// Decode encrypted credential with verification
 const result = new Decoder(qrText)
-    .skipBiometrics()
-    .maxDecompressedBytes(32768)
+    .decryptWithAes256(aesKey)
+    .verifyWithEd25519(publicKey)
+    .decode();
+
+// Decode without verification (testing only)
+const result = new Decoder(qrText)
+    .allowUnverified()
     .decode();
 ```
 
@@ -102,15 +93,37 @@ Builder-pattern class for decoding Claim 169 QR codes.
 ```javascript
 const decoder = new Decoder(qrText);
 
+// Verification methods (one required)
+decoder.verifyWithEd25519(publicKey);   // Verify with Ed25519 (32 bytes)
+decoder.verifyWithEcdsaP256(publicKey); // Verify with ECDSA P-256 (33 or 65 bytes)
+decoder.allowUnverified();              // Skip verification (testing only)
+
+// Decryption methods (optional)
+decoder.decryptWithAes256(key);         // Decrypt with AES-256-GCM (32 bytes)
+decoder.decryptWithAes128(key);         // Decrypt with AES-128-GCM (16 bytes)
+
 // Configuration methods (chainable)
-decoder.skipBiometrics();              // Skip biometric data parsing
-decoder.withTimestampValidation();     // Enable timestamp validation
-decoder.clockSkewTolerance(60);        // Set clock skew tolerance (seconds)
-decoder.maxDecompressedBytes(32768);   // Set max decompressed size
+decoder.skipBiometrics();               // Skip biometric data parsing
+decoder.withTimestampValidation();      // Enable timestamp validation
+decoder.clockSkewTolerance(60);         // Set clock skew tolerance (seconds)
+decoder.maxDecompressedBytes(32768);    // Set max decompressed size
 
 // Execute decode
 const result = decoder.decode();
 ```
+
+| Method | Description |
+|--------|-------------|
+| `verifyWithEd25519(publicKey)` | Verify with Ed25519 (32 bytes) |
+| `verifyWithEcdsaP256(publicKey)` | Verify with ECDSA P-256 (33 or 65 bytes SEC1) |
+| `allowUnverified()` | Skip verification (testing only) |
+| `decryptWithAes256(key)` | Decrypt with AES-256-GCM (32 bytes) |
+| `decryptWithAes128(key)` | Decrypt with AES-128-GCM (16 bytes) |
+| `skipBiometrics()` | Skip biometric data parsing |
+| `withTimestampValidation()` | Enable exp/nbf validation |
+| `clockSkewTolerance(seconds)` | Set clock skew tolerance |
+| `maxDecompressedBytes(bytes)` | Set max decompressed size |
+| `decode()` | Execute the decode operation |
 
 ### Encoder
 
@@ -126,35 +139,36 @@ Builder-pattern class for encoding Claim 169 credentials.
 | `skipBiometrics()` | Skip biometric fields |
 | `encode()` | Produce the QR string |
 
-### Functions
+### Utility Functions
 
 | Function | Description |
 |----------|-------------|
-| `decode(qrText)` | Decode a QR code without verification |
-| `decodeWithOptions(qrText, skipBiometrics, maxDecompressedBytes)` | Decode with options |
-| `generateNonce()` | Generate a cryptographically secure random nonce |
+| `generateNonce()` | Generate a cryptographically secure 12-byte nonce |
 | `version()` | Get library version |
 | `isLoaded()` | Check if WASM module is ready |
 
-## Limitations
+## Notes
 
-### No Signature Verification
+### Timestamp Validation
 
-The WASM bindings do not currently support signature verification. For verified decoding:
-
-1. Use the [Python bindings](../claim169-python) for server-side verification
-2. Use the [Rust core library](../claim169-core) directly
-3. Implement client-side verification using WebCrypto after decoding
-
-### No System Time Access
-
-Timestamp validation is disabled by default because WebAssembly doesn't have reliable access to system time. Enable it explicitly if your environment supports it:
+Timestamp validation is disabled by default because WebAssembly doesn't have reliable access to system time. Enable it explicitly if your environment provides accurate time:
 
 ```javascript
 const result = new Decoder(qrText)
+    .verifyWithEd25519(publicKey)
     .withTimestampValidation()
+    .clockSkewTolerance(60)
     .decode();
 ```
+
+### Secure by Default
+
+The decoder requires explicit verification configuration. You must call one of:
+- `verifyWithEd25519(publicKey)` - Verify with Ed25519
+- `verifyWithEcdsaP256(publicKey)` - Verify with ECDSA P-256
+- `allowUnverified()` - Explicitly skip verification (testing only)
+
+This prevents accidentally processing unverified credentials.
 
 ## Building from Source
 
@@ -222,17 +236,17 @@ export default {
 
 ## Security Considerations
 
-Since signature verification is not available in WASM, decoded credentials should be treated as **untrusted** unless:
+The WASM bindings include full signature verification and decryption support:
 
-1. Verification is performed server-side before sending to the client
-2. External verification is implemented using WebCrypto
-3. The use case doesn't require cryptographic authenticity
+- **Ed25519** and **ECDSA P-256** signature verification
+- **AES-128-GCM** and **AES-256-GCM** decryption
+- Secure-by-default: verification is required unless explicitly disabled
 
-For security-sensitive applications, consider:
-
-- Server-side decoding and verification using Python or Rust
-- Passing only verified, serialized data to the browser
-- Implementing verification using the WebCrypto API
+Best practices:
+- Always verify credentials using `verifyWithEd25519()` or `verifyWithEcdsaP256()`
+- Only use `allowUnverified()` for testing or when verification is handled elsewhere
+- Enable timestamp validation in production to reject expired credentials
+- Set appropriate `maxDecompressedBytes` limits to prevent denial-of-service
 
 ## Testing
 

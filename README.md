@@ -41,6 +41,7 @@ claim-169/
 │   └── claim169-python/   # Python bindings (PyO3)
 ├── sdks/
 │   └── typescript/        # TypeScript/JavaScript SDK
+├── examples/              # Runnable examples (Python, TypeScript)
 ├── fuzz/                  # Fuzz testing targets
 ├── test-vectors/          # Test vectors for compliance
 └── tools/                 # CLI and utilities
@@ -136,7 +137,7 @@ console.log(`Issuer: ${result.cwtMeta.issuer}`);
 
 ```bash
 # Clone the repository
-git clone https://github.com/OpenSPP/claim-169.git
+git clone https://github.com/jeremi/claim-169.git
 cd claim-169
 
 # Build Rust libraries
@@ -191,7 +192,10 @@ Please report security vulnerabilities to security@openspp.org. Do not use publi
 
 - [Rust API Documentation](https://docs.rs/claim169-core)
 - [MOSIP Claim 169 Specification](https://github.com/mosip/id-claim-169/tree/main)
+- [Examples](examples/) - Runnable Python and TypeScript examples
+- [Contributing Guide](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ## Testing
 
@@ -209,18 +213,15 @@ cargo +nightly fuzz run fuzz_decode
 
 ## Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Quick overview:
+1. Fork the repository and create a feature branch
+2. Make your changes following the project's code style
+3. Ensure all tests pass (`cargo test --all-features`)
+4. Submit a Pull Request
 
-Please ensure:
-- All tests pass (`cargo test --all-features`)
-- Code is formatted (`cargo fmt`)
-- No clippy warnings (`cargo clippy --all-features`)
+Please ensure code is formatted (`cargo fmt`) and has no clippy warnings (`cargo clippy --all-features`).
 
 ## License
 

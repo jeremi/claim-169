@@ -1,0 +1,6 @@
+# Python example dependencies
+# Install the claim169 package from parent directory
+-e ../../core/claim169-python
+
+# For the encrypted credential example
+cryptography>=41.0.0
