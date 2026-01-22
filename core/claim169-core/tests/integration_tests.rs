@@ -239,8 +239,10 @@ fn test_expired_credential_rejected() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // Use default options (validates timestamps) but allow unverified
-    let mut opts = DecodeOptions::default();
-    opts.allow_unverified = true;
+    let opts = DecodeOptions {
+        allow_unverified: true,
+        ..Default::default()
+    };
     let result = decode(&qr_data, opts);
 
     assert!(result.is_err());
@@ -269,8 +271,10 @@ fn test_not_yet_valid_credential_rejected() {
     let qr_data = encode_unsigned_qr(&meta, &claim_169);
 
     // Use default options (validates timestamps) but allow unverified
-    let mut opts = DecodeOptions::default();
-    opts.allow_unverified = true;
+    let opts = DecodeOptions {
+        allow_unverified: true,
+        ..Default::default()
+    };
     let result = decode(&qr_data, opts);
 
     assert!(result.is_err());

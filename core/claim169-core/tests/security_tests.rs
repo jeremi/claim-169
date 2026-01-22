@@ -610,9 +610,8 @@ fn test_all_zeros_key_rejected() {
     // The ed25519-dalek library accepts the all-zeros key technically,
     // but verification will fail. This test documents the behavior.
     // In production, key distribution should validate keys.
-    if result.is_ok() {
+    if let Ok(verifier) = result {
         // If the library accepts it, verify that verification fails
-        let verifier = result.unwrap();
 
         let claim_169 = create_claim169_map(vec![
             (1, Value::Text("ID-ZERO-KEY".to_string())),
