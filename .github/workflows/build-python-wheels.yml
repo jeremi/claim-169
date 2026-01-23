@@ -17,6 +17,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   build-wheels:
     name: Build ${{ matrix.os }} ${{ matrix.target }}
