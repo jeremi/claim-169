@@ -1,0 +1,26 @@
+# htmltest configuration
+# Docs: https://github.com/wjdp/htmltest?tab=readme-ov-file#configuration
+
+DirectoryPath: "site"
+CheckExternal: false
+CheckInternal: true
+CheckInternalHash: true
+
+# The deployed site lives under /claim-169/docs/*, but local builds output to ./site/*.
+# Ignore those absolute-path links (mostly from hreflang alternates and 404 page UI).
+IgnoreURLs:
+  - "^/claim-169/docs(/|$)"
+
+# Only focus on internal links + anchors (avoid flake-prone checks).
+CheckLinks: false
+CheckImages: false
+CheckScripts: false
+CheckMeta: false
+CheckGeneric: false
+CheckDoctype: false
+
+# mkdocs-material uses empty hashes for some UI elements.
+IgnoreInternalEmptyHash: true
+
+# mkdocs uses directory-style URLs; don't require trailing slashes in hrefs like "..".
+IgnoreDirectoryMissingTrailingSlash: true
