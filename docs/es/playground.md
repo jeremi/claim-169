@@ -3,8 +3,7 @@
 Prueba la codificación y decodificación de credenciales Claim 169 directamente en tu navegador.
 
 <div class="playground-link" markdown>
-[Abrir Playground](https://jeremi.github.io/
-claim-169/){ .md-button .md-button--primary }
+[Abrir Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
 ## Funcionalidades

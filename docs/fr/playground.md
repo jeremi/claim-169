@@ -3,8 +3,7 @@
 Essayez l'encodage et le décodage des identifiants Claim 169 directement dans votre navigateur.
 
 <div class="playground-link" markdown>
-[Ouvrir le Playground](https://jeremi.github.io/
-claim-169/){ .md-button .md-button--primary }
+[Ouvrir le Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
 ## Fonctionnalités

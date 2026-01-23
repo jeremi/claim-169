@@ -3,8 +3,7 @@
 Try encoding and decoding Claim 169 credentials directly in your browser.
 
 <div class="playground-link" markdown>
-[Open Playground](https://jeremi.github.io/
-claim-169/){ .md-button .md-button--primary }
+[Open Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
 ## Features
