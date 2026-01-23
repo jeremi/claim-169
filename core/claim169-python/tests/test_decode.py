@@ -14,6 +14,20 @@ class TestModule:
         assert isinstance(version, str)
         assert version.count(".") >= 2  # Should be semver format
 
+    def test_dunder_version_matches_version(self):
+        """Test that __version__ matches version()."""
+        assert claim169.__version__ == claim169.version()
+
+    def test_decode_alias_matches_decode_unverified(self, minimal_vector):
+        """Test that decode() is a convenience alias for decode_unverified()."""
+        result = claim169.decode(minimal_vector["qr_data"])
+        result_unverified = claim169.decode_unverified(minimal_vector["qr_data"])
+
+        assert result.claim169.id == result_unverified.claim169.id
+        assert result.claim169.full_name == result_unverified.claim169.full_name
+        assert result.verification_status == "skipped"
+        assert result_unverified.verification_status == "skipped"
+
 
 class TestDecodeValidVectors:
     """Tests for decoding valid test vectors."""

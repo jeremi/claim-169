@@ -2,7 +2,15 @@ import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Decoder, version, isLoaded, Claim169Error } from "../src/index";
+import {
+  Decoder,
+  version,
+  isLoaded,
+  Claim169Error,
+  decode,
+  hexToBytes,
+  bytesToHex,
+} from "../src/index";
 
 // Get directory path for ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,15 +41,6 @@ interface TestVector {
   encryption_key?: EncryptionKey;
 }
 
-// Convert hex string to Uint8Array
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-  }
-  return bytes;
-}
-
 // Load test vector file
 function loadTestVector(category: string, name: string): TestVector {
   const filePath = path.join(TEST_VECTORS_PATH, category, `${name}.json`);
@@ -58,6 +57,58 @@ describe("claim169", () => {
     it("should return version", () => {
       const v = version();
       expect(v).toMatch(/^\d+\.\d+\.\d+/);
+    });
+  });
+
+  describe("convenience exports", () => {
+    it("hexToBytes() and bytesToHex() should roundtrip", () => {
+      const bytes = hexToBytes(" 0x0a 0B 0c ");
+      expect(bytes).toEqual(new Uint8Array([0x0a, 0x0b, 0x0c]));
+      expect(bytesToHex(bytes)).toBe("0a0b0c");
+    });
+
+    it("decode() should default to allowUnverified", () => {
+      const vector = loadTestVector("valid", "minimal");
+      const result = decode(vector.qr_data);
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);
+      expect(result.verificationStatus).toBe("skipped");
+    });
+
+    it("decode() should require a key when allowUnverified is false", () => {
+      const vector = loadTestVector("valid", "minimal");
+      expect(() => decode(vector.qr_data, { allowUnverified: false })).toThrow(
+        Claim169Error
+      );
+    });
+
+    it("decode() should verify with Ed25519 key option", () => {
+      const vector = loadTestVector("valid", "ed25519-signed");
+      const publicKey = hexToBytes(vector.signing_key!.public_key_hex);
+
+      const result = decode(vector.qr_data, {
+        verifyWithEd25519: publicKey,
+        allowUnverified: false,
+      });
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.verificationStatus).toBe("verified");
+    });
+
+    it("decode() should decrypt + verify when given keys", () => {
+      const vector = loadTestVector("valid", "encrypted-signed");
+      const aesKey = hexToBytes(vector.encryption_key!.symmetric_key_hex);
+      const publicKey = hexToBytes(vector.signing_key!.public_key_hex);
+
+      const result = decode(vector.qr_data, {
+        decryptWithAes256: aesKey,
+        verifyWithEd25519: publicKey,
+        allowUnverified: false,
+      });
+
+      expect(result.claim169.id).toBe(vector.expected_claim169?.id);
+      expect(result.verificationStatus).toBe("verified");
     });
   });
 
