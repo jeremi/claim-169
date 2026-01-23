@@ -8,44 +8,58 @@ Try encoding and decoding Claim 169 credentials directly in your browser.
 
 ## Features
 
-### Encode Tab
+The playground uses a unified two-panel layout inspired by [jwt.io](https://jwt.io), with live bidirectional sync between the panels.
 
-Create new credentials with:
+### Left Panel - Identity & Settings
 
-- **Identity form** - Fill in demographic fields (name, DOB, email, etc.)
-- **CWT metadata** - Set issuer, subject, and timestamps
-- **Signing** - Sign with Ed25519 or ECDSA P-256
-- **Encryption** - Optionally encrypt with AES-128 or AES-256
-- **QR generation** - Generate scannable QR codes
-- **Sample data** - Load pre-filled test data with demo keys
+- **Identity fields** - Fill in demographic data (name, DOB, email, address, etc.)
+- **Credential Settings** - Grouped configuration for:
+    - **Token Settings** - Issuer, subject, and timestamps (collapsible)
+    - **Cryptography** - Signing and encryption options
+- **Auto-generated keys** - Fresh cryptographic keys generated when switching methods
+- **Load examples** - Pre-filled test data and sample QR codes
 
-### Decode Tab
+### Right Panel - QR Code & Verification
 
-Verify existing credentials:
+- **QR Code display** - Live-updating QR code as you edit fields
+- **Verification badge** - Shows signature status (verified, unverified, invalid)
+- **Base45 data** - Raw encoded data with copy button
+- **QR Scanner** - Use your camera to scan existing QR codes
+- **Pipeline details** - Expandable view of encoding stages
 
-- **Paste QR data** - Input Base45-encoded QR data
-- **Scan QR code** - Use your camera to scan QR codes
-- **Verification** - Verify Ed25519 or ECDSA P-256 signatures
-- **Decryption** - Decrypt AES-encrypted credentials
-- **Example data** - Load pre-made examples from test vectors
+## Live Sync
+
+Changes flow automatically in both directions:
+
+- **Edit identity fields** → QR code regenerates instantly
+- **Paste/scan QR data** → Identity fields populate automatically
+
+No "Generate" or "Decode" buttons needed.
 
 ## Quick Start
 
-### Encoding a Credential
+### Creating a Credential
 
 1. Open the [Playground](../)
-2. Click **Load Sample** to populate test data
+2. Select **Load example → Demo Identity** to populate test data
 3. Modify the identity fields as needed
-4. Click **Generate QR Code**
-5. Scan the QR code or copy the Base45 data
+4. The QR code updates automatically
+5. Download PNG or copy the Base45 data
 
 ### Verifying a Credential
 
-1. Switch to the **Decode** tab
-2. Select an example from the dropdown, or paste your own QR data
-3. Enter the public key (shown when encoding)
-4. Click **Decode**
-5. View the verified identity data
+1. Click **Scan** to scan a QR code, or paste Base45 data
+2. The identity fields populate automatically
+3. To verify the signature:
+    - Paste the issuer's public key in the **Public Key** field
+    - Select the correct algorithm (Ed25519 or ECDSA P-256)
+4. The verification badge shows the result
+
+### Key Management
+
+- **Generate button** - Creates fresh keys for the selected algorithm
+- **Public key** - Auto-derived when encoding, editable for verification
+- Keys are generated per-session for security (never reuse playground keys)
 
 ## Technology
 
@@ -53,63 +67,35 @@ The playground runs entirely in your browser using:
 
 - **WebAssembly** - claim169 SDK compiled to WASM
 - **React** - Modern UI framework
+- **Web Crypto API** - Key generation (Ed25519, ECDSA P-256, AES)
 - **html5-qrcode** - Camera-based QR scanning
 
 No data is sent to any server.
 
-## Screenshots
-
-### Encode View
-
-Generate credentials with sample data and test keys:
+## Layout
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  🔐 Claim 169 Playground                                        │
-├─────────────────────────────────────────────────────────────────┤
-│  [Decode]  [Encode]                                             │
-├────────────────────────────┬────────────────────────────────────┤
-│  Identity Data             │  Generated QR Code                 │
-│  ─────────────             │  ─────────────────                 │
-│  ID: ID-12345-DEMO         │                                    │
-│  Full Name: Jane Smith     │       ▄▄▄▄▄▄▄▄▄▄▄▄▄              │
-│  DOB: 1990-05-15           │       ██▀▀▀▀▀▀▀▀██              │
-│  Gender: Female            │       ██ ▄▄▄▄▄ ██              │
-│  Email: jane@example.com   │       ██ █   █ ██              │
-│                            │       ██▄▄▄▄▄▄▄██              │
-│  [Load Sample]             │                                    │
-├────────────────────────────┤  Base45 Data                       │
-│  Signing: Ed25519          │  6BF590B20FFWJWG...               │
-│  Key: 9d61b19d...          │                                    │
-│                            │  [Copy] [Download PNG]             │
-│  [Generate QR Code]        │                                    │
-└────────────────────────────┴────────────────────────────────────┘
-```
-
-### Decode View
-
-Verify credentials with signature verification:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  🔐 Claim 169 Playground                                        │
-├─────────────────────────────────────────────────────────────────┤
-│  [Decode]  [Encode]                                             │
-├────────────────────────────┬────────────────────────────────────┤
-│  QR Data Input             │  DECODED DATA                      │
-│  ─────────────             │  ────────────────                  │
-│  [Example: Ed25519 Signed] │  Identity:                         │
-│                            │    ID: ID-SIGNED-001               │
-│  6BF590B20FFWJWG...        │    Name: Signed Test Person        │
-│                            │                                    │
-│  [📷 Scan QR Code]         │  CWT Metadata:                     │
-│                            │    Issuer: https://mosip.example   │
-│  Verification: Ed25519     │    Expires: 2027-01-13             │
-│  Public Key:               │                                    │
-│  d75a980182b10ab7...       │  Status: ✅ Signature Verified     │
-│                            │                                    │
-│  [Decode]                  │                                    │
-└────────────────────────────┴────────────────────────────────────┘
+┌─────────────────────────────────┬─────────────────────────────────┐
+│  IDENTITY                       │  QR CODE                        │
+│  ───────────────────────────    │  ─────────────────────────────  │
+│  ID: [________________]         │         ▄▄▄▄▄▄▄▄▄▄▄▄▄          │
+│  Full Name: [___________]       │         ██▀▀▀▀▀▀▀▀██          │
+│  DOB: [____]  Gender: [___]     │         ██ ▄▄▄▄▄ ██          │
+│                                 │         ██ █   █ ██          │
+│  ┌─ CREDENTIAL SETTINGS ─────┐  │         ██▄▄▄▄▄▄▄██          │
+│  │                           │  │                                 │
+│  │  ▸ Token Settings         │  │  [PNG]  [Scan]                  │
+│  │                           │  │                                 │
+│  │  Cryptography             │  │  ┌─────────────────────────┐    │
+│  │  ○ Ed25519  ○ ECDSA       │  │  │ ✓ Signature Verified    │    │
+│  │                           │  │  │   Algorithm: EdDSA      │    │
+│  │  Private Key: [________]  │  │  └─────────────────────────┘    │
+│  │  Public Key:  [________]  │  │                                 │
+│  │                           │  │  Base45 Data                    │
+│  │  Encryption: ○ None       │  │  6BF590B20FFWJWG...             │
+│  │              ○ AES-256    │  │                                 │
+│  └───────────────────────────┘  │  ▸ Pipeline Details             │
+└─────────────────────────────────┴─────────────────────────────────┘
 ```
 
 ## Source Code

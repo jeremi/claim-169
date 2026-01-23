@@ -69,9 +69,11 @@ function StageRow({ stage, isLast }: { stage: PipelineStage; isLast: boolean }) 
           )}
         </div>
 
-        <div className="text-xs text-muted-foreground tabular-nums shrink-0">
-          {formatBytes(stage.outputSize)}
-        </div>
+        {stage.outputSize > 0 && (
+          <div className="text-xs text-muted-foreground tabular-nums shrink-0">
+            {formatBytes(stage.outputSize)}
+          </div>
+        )}
 
         {!isLast && (
           <span className="text-muted-foreground shrink-0">→</span>
@@ -111,11 +113,15 @@ export function PipelineDetails({ stages, className }: PipelineDetailsProps) {
 
   if (stages.length === 0) return null
 
-  const totalInputSize = stages[0]?.inputSize ?? 0
-  const totalOutputSize = stages[stages.length - 1]?.outputSize ?? 0
-  const compressionRatio = totalInputSize > 0
-    ? Math.round((1 - totalOutputSize / totalInputSize) * 100)
-    : 0
+  // Calculate compression ratio from the zlib stage (where actual compression happens)
+  // Only show when we have actual sizes (not estimates)
+  const zlibStage = stages.find(s => s.name === "zlib")
+  let compressionRatio = 0
+  if (zlibStage && zlibStage.inputSize > 0 && zlibStage.outputSize > 0) {
+    const compressed = Math.min(zlibStage.inputSize, zlibStage.outputSize)
+    const uncompressed = Math.max(zlibStage.inputSize, zlibStage.outputSize)
+    compressionRatio = Math.round((1 - compressed / uncompressed) * 100)
+  }
 
   return (
     <div className={cn("rounded-lg border bg-card", className)}>

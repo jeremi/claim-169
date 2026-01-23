@@ -3,13 +3,9 @@ import { Encoder, Decoder, type Claim169Input, type CwtMetaInput, type DecodeRes
 import { IdentityPanel } from "@/components/IdentityPanel"
 import { ResultPanel } from "@/components/ResultPanel"
 import { QrScanner } from "@/components/QrScanner"
-import { hexToBytes } from "@/lib/utils"
+import { hexToBytes, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey } from "@/lib/utils"
 import type { PipelineStage } from "@/components/PipelineDetails"
 import type { VerificationStatus } from "@/components/VerificationBadge"
-
-// Sample test keys (from test vectors - for testing only!)
-const SAMPLE_ED25519_PRIVATE_KEY = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
-const SAMPLE_ED25519_PUBLIC_KEY = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
 
 export type SigningMethod = "ed25519" | "ecdsa" | "unsigned"
 export type EncryptionMethod = "none" | "aes256" | "aes128"
@@ -62,38 +58,43 @@ export function UnifiedPlayground() {
   const lastChangeSource = useRef<"encode" | "decode" | null>(null)
   const isInitialMount = useRef(true)
 
-  // Derive public key from private key
-  useEffect(() => {
-    if (!privateKey.trim() || signingMethod === "unsigned") {
+  // Generate fresh keys when signing method changes (if no key is set)
+  const generateFreshKeys = useCallback(async (method: SigningMethod) => {
+    if (method === "unsigned") {
+      setPrivateKey("")
       setPublicKey("")
       return
     }
 
-    try {
-      const keyBytes = hexToBytes(privateKey.trim())
-      if (keyBytes.length !== 32) {
-        setPublicKey("")
-        return
-      }
-
-      // Derive public key based on signing method
-      if (signingMethod === "ed25519") {
-        // For Ed25519, we use the sample public key if it matches the sample private key
-        // In a real implementation, we'd call a WASM function to derive it
-        if (privateKey.trim() === SAMPLE_ED25519_PRIVATE_KEY) {
-          setPublicKey(SAMPLE_ED25519_PUBLIC_KEY)
-        } else {
-          // For other keys, we'd need WASM support to derive
-          // For now, clear and let the user provide/copy from generated output
-          setPublicKey("")
-        }
-      } else {
-        setPublicKey("")
-      }
-    } catch {
-      setPublicKey("")
+    if (method === "ed25519") {
+      const keyPair = await generateEd25519KeyPair()
+      setPrivateKey(keyPair.privateKey)
+      setPublicKey(keyPair.publicKey)
+    } else if (method === "ecdsa") {
+      const keyPair = await generateEcdsaP256KeyPair()
+      setPrivateKey(keyPair.privateKey)
+      setPublicKey(keyPair.publicKey)
     }
-  }, [privateKey, signingMethod])
+  }, [])
+
+  // Handle signing method change - generate new keys
+  const handleSigningMethodChange = useCallback((method: SigningMethod) => {
+    setSigningMethod(method)
+    // Generate fresh keys when switching methods (for security)
+    generateFreshKeys(method)
+  }, [generateFreshKeys])
+
+  // Handle encryption method change - generate new key
+  const handleEncryptionMethodChange = useCallback((method: EncryptionMethod) => {
+    setEncryptionMethod(method)
+    if (method === "none") {
+      setEncryptionKey("")
+    } else {
+      // Generate fresh encryption key
+      const bits = method === "aes256" ? 256 : 128
+      setEncryptionKey(generateAesKey(bits))
+    }
+  }, [])
 
   // Encode: When decoded fields change, regenerate Base45
   const regenerateEncoded = useCallback(() => {
@@ -190,65 +191,48 @@ export function UnifiedPlayground() {
 
       const encoded = encoder.encode()
 
-      // Build pipeline stages (approximate sizes)
-      const jsonSize = JSON.stringify(claimInput).length + JSON.stringify(metaInput).length
+      // Build pipeline stages - only show actual values, not estimates
       stages.push({
         name: "Claim 169",
-        inputSize: jsonSize,
-        outputSize: jsonSize,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
         details: {
           fields: Object.keys(claimInput).length,
         },
       })
 
-      // Estimate CBOR size (roughly 80% of JSON)
-      const cborSize = Math.round(jsonSize * 0.8)
       stages.push({
         name: "CWT/CBOR",
-        inputSize: jsonSize,
-        outputSize: cborSize,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
-        details: {
-          hasClaims: Boolean(cwtMeta.issuer || cwtMeta.subject),
-        },
       })
 
-      // COSE adds signature
-      const signatureSize = signingMethod !== "unsigned" ? 64 : 0
-      const coseSize = cborSize + signatureSize + 20 // header overhead
       stages.push({
         name: "COSE_Sign1",
-        inputSize: cborSize,
-        outputSize: coseSize,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
         details: {
           algorithm: algName,
-          signatureBytes: signatureSize,
         },
       })
 
-      // Compression (typically 60-70% ratio)
-      const compressedSize = Math.round(coseSize * 0.65)
       stages.push({
         name: "zlib",
-        inputSize: coseSize,
-        outputSize: compressedSize,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
-        details: {
-          ratio: `${Math.round((1 - compressedSize / coseSize) * 100)}%`,
-        },
       })
 
-      // Base45 expands by ~35%
-      const base45Size = encoded.length
       stages.push({
         name: "Base45",
-        inputSize: compressedSize,
-        outputSize: base45Size,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
         details: {
-          characters: base45Size,
+          characters: encoded.length,
         },
       })
 
@@ -313,29 +297,42 @@ export function UnifiedPlayground() {
 
       const result: DecodeResult = decoder.decode()
 
-      // Build pipeline stages for decode
+      // Build pipeline stages for decode - only show what we actually know
       const stages: PipelineStage[] = []
 
       stages.push({
         name: "Base45",
-        inputSize: base45Data.length,
-        outputSize: Math.round(base45Data.length * 0.74),
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
         details: { characters: base45Data.length },
       })
 
-      const decompressedSize = Math.round(base45Data.length * 0.74 / 0.65)
       stages.push({
         name: "zlib",
-        inputSize: Math.round(base45Data.length * 0.74),
-        outputSize: decompressedSize,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
       })
 
+      // Add encryption stage if encryption is configured
+      if (encryptionMethod !== "none") {
+        const hasDecryptionKey = encryptionKey.trim().length > 0
+        stages.push({
+          name: "COSE_Encrypt0",
+          inputSize: 0,
+          outputSize: 0,
+          status: hasDecryptionKey ? "success" : "skipped",
+          details: {
+            algorithm: encryptionMethod === "aes256" ? "AES-256-GCM" : "AES-128-GCM",
+          },
+        })
+      }
+
       stages.push({
         name: "COSE_Sign1",
-        inputSize: decompressedSize,
-        outputSize: decompressedSize - 84,
+        inputSize: 0,
+        outputSize: 0,
         status: result.verificationStatus === "verified" ? "success" : "skipped",
         details: {
           verified: result.verificationStatus === "verified",
@@ -344,8 +341,8 @@ export function UnifiedPlayground() {
 
       stages.push({
         name: "CWT/CBOR",
-        inputSize: decompressedSize - 84,
-        outputSize: decompressedSize - 100,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
       })
 
@@ -354,8 +351,8 @@ export function UnifiedPlayground() {
       ).length
       stages.push({
         name: "Claim 169",
-        inputSize: decompressedSize - 100,
-        outputSize: fieldCount,
+        inputSize: 0,
+        outputSize: 0,
         status: "success",
         details: { fields: fieldCount },
       })
@@ -377,7 +374,19 @@ export function UnifiedPlayground() {
         setAlgorithm(undefined)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      const errorMessage = err instanceof Error ? err.message : String(err)
+
+      // Improve error messages for algorithm mismatches
+      let friendlyError = errorMessage
+      if (errorMessage.includes("unsupported algorithm: EdDSA") && signingMethod === "ecdsa") {
+        friendlyError = "This QR code was signed with EdDSA (Ed25519). Switch to Ed25519 to verify."
+      } else if (errorMessage.includes("unsupported algorithm: ES256") && signingMethod === "ed25519") {
+        friendlyError = "This QR code was signed with ECDSA P-256. Switch to ECDSA P-256 to verify."
+      } else if (errorMessage.includes("signature verification failed")) {
+        friendlyError = "Signature verification failed. Make sure you're using the correct public key."
+      }
+
+      setError(friendlyError)
       setVerificationStatus("invalid")
       setPipelineStages([])
     } finally {
@@ -402,9 +411,13 @@ export function UnifiedPlayground() {
     return () => clearTimeout(timer)
   }, [decodeAndPopulate])
 
-  // Load sample data
-  const loadSampleData = () => {
+  // Load sample data with fresh keys
+  const loadSampleData = async () => {
     const now = Math.floor(Date.now() / 1000)
+
+    // Generate fresh keys for each session
+    const keyPair = await generateEd25519KeyPair()
+
     setClaim169({
       id: "ID-12345-DEMO",
       fullName: "Siriwan Chaiyaporn",
@@ -428,8 +441,8 @@ export function UnifiedPlayground() {
       expiresAt: now + 365 * 24 * 60 * 60,
     })
     setSigningMethod("ed25519")
-    setPrivateKey(SAMPLE_ED25519_PRIVATE_KEY)
-    setPublicKey(SAMPLE_ED25519_PUBLIC_KEY)
+    setPrivateKey(keyPair.privateKey)
+    setPublicKey(keyPair.publicKey)
     setEncryptionMethod("none")
     setEncryptionKey("")
     setError(null)
@@ -477,12 +490,13 @@ export function UnifiedPlayground() {
           setCwtMeta(value)
         }}
         signingMethod={signingMethod}
-        onSigningMethodChange={setSigningMethod}
+        onSigningMethodChange={handleSigningMethodChange}
         privateKey={privateKey}
         onPrivateKeyChange={setPrivateKey}
         publicKey={publicKey}
+        onPublicKeyChange={setPublicKey}
         encryptionMethod={encryptionMethod}
-        onEncryptionMethodChange={setEncryptionMethod}
+        onEncryptionMethodChange={handleEncryptionMethodChange}
         encryptionKey={encryptionKey}
         onEncryptionKeyChange={setEncryptionKey}
         onLoadSample={loadSampleData}

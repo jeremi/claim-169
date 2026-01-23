@@ -1,22 +1,36 @@
 # Claim 169 Playground
 
-An interactive web application for working with MOSIP Claim 169 QR codes, similar to [jwt.io](https://jwt.io).
+An interactive web application for working with MOSIP Claim 169 QR codes, inspired by [jwt.io](https://jwt.io).
 
 ## Features
 
-### Decode Tab
-- **Paste QR Data**: Input Base45-encoded QR code data
-- **Scan QR Code**: Use your camera to scan QR codes directly
-- **Signature Verification**: Verify with Ed25519 or ECDSA P-256 public keys
-- **Decryption**: Decrypt AES-128 or AES-256 encrypted credentials
-- **Result Display**: View decoded identity data and CWT metadata
+### Unified Two-Panel Layout
 
-### Encode Tab
-- **Identity Form**: Fill in demographic fields (name, DOB, email, etc.)
-- **CWT Metadata**: Set issuer, subject, and timestamps
-- **Signing**: Sign with Ed25519 or ECDSA P-256 private keys
-- **Encryption**: Optionally encrypt with AES-128 or AES-256
-- **QR Generation**: Generate scannable QR codes
+**Left Panel - Identity & Settings:**
+- Identity form with demographic fields (name, DOB, email, address, etc.)
+- Credential Settings grouping Token and Cryptography together
+- Auto-generated fresh keys when switching signing/encryption methods
+- Load examples dropdown with demo data and test vectors
+
+**Right Panel - QR Code & Verification:**
+- Live-updating QR code as you edit fields
+- Verification badge showing signature status
+- Base45 data display with copy button
+- Camera-based QR scanning
+- Expandable pipeline details
+
+### Live Bidirectional Sync
+
+- Edit identity fields → QR code regenerates automatically
+- Paste/scan QR data → Identity fields populate automatically
+- No manual "Generate" or "Decode" buttons needed
+
+### Key Management
+
+- **Signing**: Ed25519 or ECDSA P-256 with auto-generated keys
+- **Encryption**: AES-128 or AES-256 with auto-generated keys
+- **Verification**: Paste public key to verify scanned QR codes
+- Fresh keys generated per-session for security
 
 ## Development
 
@@ -40,12 +54,14 @@ npm run preview
 - **Vite** for fast development and building
 - **Tailwind CSS** with shadcn/ui components
 - **claim169** SDK via WebAssembly
+- **Web Crypto API** for key generation (Ed25519, ECDSA P-256, AES)
 - **html5-qrcode** for camera scanning
 - **qrcode.react** for QR code generation
+- **i18next** for internationalization (EN, FR, ES)
 
 ## Deployment
 
-The playground is automatically deployed to GitHub Pages when changes are pushed to the `main` branch. The deployment workflow builds the WASM module, TypeScript SDK, and the playground app.
+The playground is automatically deployed to GitHub Pages when changes are pushed to the `main` branch.
 
 Live at: https://jeremi.github.io/claim-169/
 

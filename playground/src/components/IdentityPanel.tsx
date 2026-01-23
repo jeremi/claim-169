@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ChevronDown, ChevronRight, Copy, Check, Eye, EyeOff, AlertTriangle } from "lucide-react"
-import { copyToClipboard } from "@/lib/utils"
+import { ChevronDown, ChevronRight, Copy, Check, Eye, EyeOff, AlertTriangle, RefreshCw } from "lucide-react"
+import { copyToClipboard, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey } from "@/lib/utils"
 import type { SigningMethod, EncryptionMethod } from "@/components/UnifiedPlayground"
 
 interface IdentityPanelProps {
@@ -20,6 +20,7 @@ interface IdentityPanelProps {
   privateKey: string
   onPrivateKeyChange: (key: string) => void
   publicKey: string
+  onPublicKeyChange: (key: string) => void
   encryptionMethod: EncryptionMethod
   onEncryptionMethodChange: (method: EncryptionMethod) => void
   encryptionKey: string
@@ -39,6 +40,7 @@ export function IdentityPanel({
   privateKey,
   onPrivateKeyChange,
   publicKey,
+  onPublicKeyChange,
   encryptionMethod,
   onEncryptionMethodChange,
   encryptionKey,
@@ -52,6 +54,7 @@ export function IdentityPanel({
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showPrivateKey, setShowPrivateKey] = useState(false)
   const [publicKeyCopied, setPublicKeyCopied] = useState(false)
+  const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
 
   const handleExampleChange = (value: string) => {
     if (value === "demo") {
@@ -83,6 +86,29 @@ export function IdentityPanel({
       setPublicKeyCopied(true)
       setTimeout(() => setPublicKeyCopied(false), 2000)
     }
+  }
+
+  const handleGenerateKeys = async () => {
+    setIsGeneratingKeys(true)
+    try {
+      if (signingMethod === "ed25519") {
+        const keyPair = await generateEd25519KeyPair()
+        onPrivateKeyChange(keyPair.privateKey)
+        onPublicKeyChange(keyPair.publicKey)
+      } else if (signingMethod === "ecdsa") {
+        const keyPair = await generateEcdsaP256KeyPair()
+        onPrivateKeyChange(keyPair.privateKey)
+        onPublicKeyChange(keyPair.publicKey)
+      }
+    } finally {
+      setIsGeneratingKeys(false)
+    }
+  }
+
+  const handleGenerateEncryptionKey = () => {
+    const bits = encryptionMethod === "aes256" ? 256 : 128
+    const key = generateAesKey(bits)
+    onEncryptionKeyChange(key)
   }
 
   return (
@@ -272,8 +298,12 @@ export function IdentityPanel({
         )}
       </div>
 
-      {/* CWT Metadata Section - Collapsed by default */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
+      {/* Credential Settings - groups Token and Crypto */}
+      <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-3 space-y-3">
+        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("credential.title")}</h3>
+
+        {/* CWT Metadata Section - Collapsed by default */}
+        <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
         <Button
           variant="ghost"
           className="w-full justify-between px-4 py-3 h-auto"
@@ -395,7 +425,19 @@ export function IdentityPanel({
         {/* Private Key */}
         {signingMethod !== "unsigned" && (
           <div className="space-y-2">
-            <Label htmlFor="privateKey" className="text-xs">{t("crypto.privateKey")}</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="privateKey" className="text-xs">{t("crypto.privateKey")}</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateKeys}
+                disabled={isGeneratingKeys}
+                className="h-6 px-2"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${isGeneratingKeys ? "animate-spin" : ""}`} />
+                <span className="text-xs">{t("crypto.generateKeys")}</span>
+              </Button>
+            </div>
             <div className="relative">
               <Input
                 id="privateKey"
@@ -417,20 +459,26 @@ export function IdentityPanel({
           </div>
         )}
 
-        {/* Public Key (for verification) */}
-        {publicKey && (
+        {/* Public Key (for signing or verification) */}
+        {signingMethod !== "unsigned" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">{t("crypto.publicKey")}</Label>
-              <Button variant="ghost" size="sm" onClick={handleCopyPublicKey} className="h-6 px-2">
-                {publicKeyCopied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                <span className="text-xs">{t("common.copy")}</span>
-              </Button>
+              <Label htmlFor="publicKey" className="text-xs">{t("crypto.publicKey")}</Label>
+              {publicKey && (
+                <Button variant="ghost" size="sm" onClick={handleCopyPublicKey} className="h-6 px-2">
+                  {publicKeyCopied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                  <span className="text-xs">{t("common.copy")}</span>
+                </Button>
+              )}
             </div>
-            <div className="p-2 rounded bg-muted font-mono text-xs break-all">
-              {publicKey}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("crypto.publicKeyHelp")}</p>
+            <Input
+              id="publicKey"
+              placeholder={t("crypto.publicKeyPlaceholder")}
+              value={publicKey}
+              onChange={(e) => onPublicKeyChange(e.target.value)}
+              className="font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">{t("crypto.publicKeyHelpVerify")}</p>
           </div>
         )}
 
@@ -473,7 +521,18 @@ export function IdentityPanel({
 
         {encryptionMethod !== "none" && (
           <div className="space-y-2">
-            <Label htmlFor="encryptionKey" className="text-xs">{t("crypto.encryptionKey")}</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="encryptionKey" className="text-xs">{t("crypto.encryptionKey")}</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateEncryptionKey}
+                className="h-6 px-2"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                <span className="text-xs">{t("crypto.generateEncryptionKey")}</span>
+              </Button>
+            </div>
             <Input
               id="encryptionKey"
               type="password"
@@ -489,6 +548,7 @@ export function IdentityPanel({
         <div className="flex items-start gap-2 p-2 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>{t("crypto.securityWarning")}</span>
+        </div>
         </div>
       </div>
     </div>

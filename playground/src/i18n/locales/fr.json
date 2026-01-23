@@ -31,13 +31,20 @@
     "privateKey": "Clé privée (hex)",
     "privateKeyPlaceholder": "32 octets (64 caractères hex)",
     "publicKey": "Clé publique (pour vérification)",
+    "publicKeyPlaceholder": "Collez la clé publique (hex) pour vérifier, ou dérivée automatiquement de la clé privée",
     "publicKeyHelp": "Partagez cette clé pour permettre la vérification de vos identifiants.",
+    "publicKeyHelpVerify": "Dérivée automatiquement de la clé privée lors de l'encodage. Collez une clé publique ici pour vérifier les QR codes scannés.",
+    "generateKeys": "Générer",
     "encryption": "Chiffrement",
     "none": "Aucun",
     "aes256": "AES-256",
     "aes128": "AES-128",
     "encryptionKey": "Clé de chiffrement (hex)",
+    "generateEncryptionKey": "Générer",
     "securityWarning": "Pour les tests uniquement. N'utilisez jamais les clés du playground en production. Les clés existent dans la mémoire du navigateur pendant cette session."
+  },
+  "credential": {
+    "title": "Paramètres du credential"
   },
   "cwt": {
     "title": "Paramètres du jeton",

@@ -31,13 +31,20 @@
     "privateKey": "Private Key (hex)",
     "privateKeyPlaceholder": "32 bytes (64 hex chars)",
     "publicKey": "Public Key (for verification)",
+    "publicKeyPlaceholder": "Paste public key (hex) to verify, or auto-derived from private key",
     "publicKeyHelp": "Share this key to allow verification of your credentials.",
+    "publicKeyHelpVerify": "Auto-derived from private key when encoding. Paste a public key here to verify scanned QR codes.",
+    "generateKeys": "Generate",
     "encryption": "Encryption",
     "none": "None",
     "aes256": "AES-256",
     "aes128": "AES-128",
     "encryptionKey": "Encryption Key (hex)",
+    "generateEncryptionKey": "Generate",
     "securityWarning": "For testing only. Never use playground keys in production. Keys exist in browser memory during this session."
+  },
+  "credential": {
+    "title": "Credential Settings"
   },
   "cwt": {
     "title": "Token Settings",
