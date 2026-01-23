@@ -61,6 +61,8 @@ plugins:
             Security & Validation: Security & Validation
             Test Vectors & Conformance: Test Vectors & Conformance
             Troubleshooting: Troubleshooting
+            Glossary: Glossary
+            Versioning: Versioning
             API Reference: API Reference
             Rust: Rust
             Python: Python
@@ -83,6 +85,8 @@ plugins:
             Security & Validation: Sécurité et validations
             Test Vectors & Conformance: Vecteurs de test et conformité
             Troubleshooting: Dépannage
+            Glossary: Glossaire
+            Versioning: Versioning
             API Reference: Référence API
             Rust: Rust
             Python: Python
@@ -105,6 +109,8 @@ plugins:
             Security & Validation: Seguridad y validación
             Test Vectors & Conformance: Vectores de prueba y conformidad
             Troubleshooting: Solución de problemas
+            Glossary: Glosario
+            Versioning: Versiones
             API Reference: Referencia API
             Rust: Rust
             Python: Python
@@ -159,6 +165,8 @@ nav:
     - Security & Validation: guides/security.md
     - Test Vectors & Conformance: guides/test-vectors.md
     - Troubleshooting: guides/troubleshooting.md
+    - Glossary: guides/glossary.md
+    - Versioning: guides/versioning.md
   - API Reference:
     - Rust: api/rust.md
     - Python: api/python.md

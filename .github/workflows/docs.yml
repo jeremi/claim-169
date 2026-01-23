@@ -1,0 +1,52 @@
+name: Docs
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "scripts/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "scripts/**"
+      - ".github/workflows/docs.yml"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install docs dependencies
+        run: uv sync --dev
+
+      - name: Check i18n completeness
+        run: python3 scripts/check-docs-i18n.py
+
+      - name: Build docs (strict)
+        run: uv run mkdocs build --strict
+
+      - name: Spellcheck (codespell)
+        uses: codespell-project/actions-codespell@v2
+        with:
+          path: docs
+          config: .codespellrc
+

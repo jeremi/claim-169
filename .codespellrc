@@ -1,0 +1,13 @@
+[codespell]
+check-filenames =
+check-hidden =
+skip =
+  ./.git,
+  ./target,
+  ./.venv,
+  ./site,
+  ./playground/dist,
+  ./sdks/typescript/dist,
+  ./sdks/typescript/wasm,
+  ./core/claim169-python/python/claim169/claim169.*.so
+ignore-words-list = mosip,cwt,cose,cbor,base45,wasm,ecdsa,ed25519,p256,maturin
