@@ -441,8 +441,6 @@ impl CoreSignatureVerifier for PySignatureVerifier {
     }
 }
 
-
-
 /// Python-callable decryptor hook
 #[pyclass]
 pub struct PyDecryptor {
@@ -492,8 +490,6 @@ impl CoreDecryptor for PyDecryptor {
         })
     }
 }
-
-
 
 // ============================================================================
 // Public API Functions
