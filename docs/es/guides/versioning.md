@@ -13,7 +13,7 @@ Este proyecto publica varios artefactos (crate Rust, paquete Python, paquete Typ
 
 ```toml
 [dependencies]
-claim169-core = "0.1.0-alpha"
+claim169-core = "0.1.0-alpha.2"
 ```
 
 ### Python

@@ -8,7 +8,7 @@ Ajoutez à votre `Cargo.toml` :
 
 ```toml
 [dependencies]
-claim169-core = "0.1.0-alpha"
+claim169-core = "0.1.0-alpha.2"
 ```
 
 Ou utilisez cargo :
@@ -29,7 +29,7 @@ Pour une intégration HSM/KMS (signature/vérification/déchiffrement personnali
 
 ```toml
 [dependencies]
-claim169-core = { version = "0.1.0-alpha", default-features = false }
+claim169-core = { version = "0.1.0-alpha.2", default-features = false }
 ```
 
 ## Python

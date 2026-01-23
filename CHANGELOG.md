@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.2] - 2026-01-23
+
+### Documentation
+
+- Improve READMEs and add version auto-update to release workflow
 ## [0.1.0-alpha] - 2026-01-23
 
 ### Bug Fixes
@@ -30,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **playground**: Prevent double camera initialization in React Strict Mode
 - **playground**: Show skipped status for COSE_Sign1 when unverified
 - **ci**: Remove non-existent release label from PR creation
+- **ci**: Add workflow_call trigger to enable reusable workflow
+- **ci**: Use auto manylinux for Python wheel builds
+- **ci**: Set up Python before maturin-action for wheel builds
+- **ci**: Simplify Python wheel builds, remove aarch64-linux cross-compile
+- **ci**: Drop macOS Intel, keep Linux x64, macOS arm64, Windows x64
 
 ### CI
 
@@ -75,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add playground screenshot to documentation
 - Move screenshot to top of playground pages
 - Consolidate unreleased changes into 0.1.0-alpha
+- Add GitHub workflow watching tip to CLAUDE.md
 
 ### Features
 
