@@ -63,6 +63,7 @@ plugins:
             Troubleshooting: Troubleshooting
             Glossary: Glossary
             Versioning: Versioning
+            Contributing: Contributing
             API Reference: API Reference
             Rust: Rust
             Python: Python
@@ -87,6 +88,7 @@ plugins:
             Troubleshooting: Dépannage
             Glossary: Glossaire
             Versioning: Versioning
+            Contributing: Contribuer
             API Reference: Référence API
             Rust: Rust
             Python: Python
@@ -111,6 +113,7 @@ plugins:
             Troubleshooting: Solución de problemas
             Glossary: Glosario
             Versioning: Versiones
+            Contributing: Contribuir
             API Reference: Referencia API
             Rust: Rust
             Python: Python
@@ -167,6 +170,7 @@ nav:
     - Troubleshooting: guides/troubleshooting.md
     - Glossary: guides/glossary.md
     - Versioning: guides/versioning.md
+    - Contributing: guides/contributing.md
   - API Reference:
     - Rust: api/rust.md
     - Python: api/python.md

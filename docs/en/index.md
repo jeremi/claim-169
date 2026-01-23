@@ -68,4 +68,7 @@ Identity Data → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → B
 - [Quick Start](getting-started/quick-start.md) - Encode and decode your first credential
 - [Key Material & Formats](guides/keys.md) - Understand key formats and PEM support
 - [Security & Validation](guides/security.md) - Learn safe defaults and policy knobs
+- [Glossary](guides/glossary.md) - Definitions of core terms (CBOR, COSE, CWT, etc.)
+- [Versioning](guides/versioning.md) - What the docs reflect and how to pin releases
+- [Contributing](guides/contributing.md) - How to edit docs and translations
 - [Playground](playground.md) - Try it in your browser
