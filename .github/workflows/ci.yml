@@ -246,6 +246,84 @@ jobs:
           chmod +x scripts/conformance-test.sh
           ./scripts/conformance-test.sh
 
+  # Test packaging (catches packaging issues before release)
+  test-packaging:
+    name: Test Packaging
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack@0.13.1 --locked
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-packaging-${{ hashFiles('**/Cargo.lock') }}
+
+      # Test Rust crate packaging
+      - name: Test cargo package (dry-run)
+        run: |
+          cargo package -p claim169-core --allow-dirty
+          echo "Rust crate packages successfully"
+
+      # Test Python wheel build
+      - name: Build Python wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: x86_64-unknown-linux-gnu
+          manylinux: manylinux_2_28
+          args: --release --out dist -m core/claim169-python/Cargo.toml
+
+      - name: Test Python wheel installation
+        run: |
+          python -m venv test-venv
+          source test-venv/bin/activate
+          pip install dist/*.whl
+          python -c "import claim169; print(f'Python SDK version: {claim169.version()}')"
+          echo "Python wheel installs and imports successfully"
+
+      # Test npm package build
+      - name: Build npm package
+        working-directory: sdks/typescript
+        run: |
+          npm run build:wasm
+          npm ci
+          npm run build:ts
+          npm pack
+
+      - name: Test npm package installation
+        run: |
+          mkdir -p /tmp/npm-test
+          cd /tmp/npm-test
+          npm init -y
+          npm install ${{ github.workspace }}/sdks/typescript/*.tgz
+          node -e "const c = require('claim169'); console.log('npm package loads successfully');"
+          echo "npm package installs and loads successfully"
+
   # Code coverage (only on push to main)
   coverage:
     name: Coverage
