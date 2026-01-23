@@ -49,11 +49,31 @@ else
     rm -f sdks/typescript/package.json.bak
 fi
 
-# 4. Update Cargo.lock
+# 4. Update version strings in documentation
+echo "  Updating README.md..."
+sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' README.md
+rm -f README.md.bak
+
+echo "  Updating core/claim169-core/README.md..."
+sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' core/claim169-core/README.md
+sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' core/claim169-core/README.md
+rm -f core/claim169-core/README.md.bak
+
+echo "  Updating docs (en/es/fr)..."
+for lang in en es fr; do
+    sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' "docs/$lang/getting-started/installation.md"
+    sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' "docs/$lang/getting-started/installation.md"
+    rm -f "docs/$lang/getting-started/installation.md.bak"
+
+    sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' "docs/$lang/guides/versioning.md"
+    rm -f "docs/$lang/guides/versioning.md.bak"
+done
+
+# 5. Update Cargo.lock
 echo "  Updating Cargo.lock..."
 cargo update -w --quiet
 
-# 5. Verify all versions match
+# 6. Verify all versions match
 echo "Verifying versions..."
 
 CARGO_VERSION=$(grep -m1 '^version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')

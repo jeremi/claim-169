@@ -8,7 +8,7 @@ Añade a tu `Cargo.toml`:
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.1.0-alpha"
 ```
 
 O usa cargo:
@@ -29,7 +29,7 @@ Para integrar con HSM/KMS (firma/verificación/descifrado personalizados), desac
 
 ```toml
 [dependencies]
-claim169-core = { version = "0.1", default-features = false }
+claim169-core = { version = "0.1.0-alpha", default-features = false }
 ```
 
 ## Python
@@ -82,7 +82,7 @@ Se requiere Node.js 16 o superior para WebAssembly (Node 18+ recomendado).
 
 ### Requisitos previos
 
-- Rust 1.70+ con cargo
+- Rust 1.75+ con cargo
 - Python 3.8+ con maturin (para bindings Python)
 - Node.js 18+ con npm (para SDK TypeScript)
 - wasm-pack (para bindings WebAssembly)

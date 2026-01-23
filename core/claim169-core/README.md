@@ -24,7 +24,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.1.0-alpha"
 ```
 
 ### Feature Flags
@@ -37,7 +37,7 @@ Disable default features to use only custom crypto backends:
 
 ```toml
 [dependencies]
-claim169-core = { version = "0.1", default-features = false }
+claim169-core = { version = "0.1.0-alpha", default-features = false }
 ```
 
 ## Encoding (Creating QR Codes)
@@ -50,18 +50,16 @@ use claim169_core::{Encoder, Claim169, CwtMeta};
 // Assume you already have a 32-byte Ed25519 private key
 let private_key: [u8; 32] = [/* your private key bytes */];
 
-let claim169 = Claim169 {
-    id: Some("123456789".to_string()),
-    full_name: Some("John Doe".to_string()),
-    date_of_birth: Some("1990-01-15".to_string()),
-    ..Default::default()
-};
+let claim = Claim169::default()
+    .with_id("123456789")
+    .with_full_name("John Doe")
+    .with_date_of_birth("1990-01-15");
 
-let cwt_meta = CwtMeta::new()
+let meta = CwtMeta::new()
     .with_issuer("https://issuer.example.com")
     .with_expires_at(1800000000);
 
-let qr_data = Encoder::new(claim169, cwt_meta)
+let qr_data = Encoder::new(claim, meta)
     .sign_with_ed25519(&private_key)?
     .encode()?;
 
@@ -110,23 +108,31 @@ let qr_data = Encoder::new(claim169, cwt_meta)
 
 ```rust
 use claim169_core::{Encoder, Signer, CryptoResult};
-use coset::iana::Algorithm;
+use coset::iana;
 
-struct HsmSigner { /* ... */ }
+struct HsmSigner {
+    hsm_client: HsmClient, // Your HSM client
+}
 
 impl Signer for HsmSigner {
-    fn sign(&self, algorithm: Algorithm, data: &[u8]) -> CryptoResult<Vec<u8>> {
-        // Delegate to HSM
+    fn sign(
+        &self,
+        algorithm: iana::Algorithm,
+        _key_id: Option<&[u8]>,
+        data: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        // Delegate to your HSM
         self.hsm_client.sign(data)
     }
 
-    fn algorithm(&self) -> Algorithm {
-        Algorithm::EdDSA
+    // Optional: override to provide a key ID
+    fn key_id(&self) -> Option<&[u8]> {
+        Some(b"my-key-id")
     }
 }
 
 let qr_data = Encoder::new(claim169, cwt_meta)
-    .sign_with(hsm_signer, Algorithm::EdDSA)
+    .sign_with(hsm_signer, iana::Algorithm::EdDSA)
     .encode()?;
 ```
 
@@ -188,18 +194,21 @@ let result = Decoder::new(qr_content)
 
 ```rust
 use claim169_core::{Decoder, SignatureVerifier, CryptoResult, CryptoError};
-use coset::iana::Algorithm;
+use coset::iana;
 
-struct HsmVerifier { /* ... */ }
+struct HsmVerifier {
+    hsm_client: HsmClient, // Your HSM client
+}
 
 impl SignatureVerifier for HsmVerifier {
     fn verify(
         &self,
-        algorithm: Algorithm,
-        key_id: Option<&[u8]>,
+        algorithm: iana::Algorithm,
+        _key_id: Option<&[u8]>,
         data: &[u8],
         signature: &[u8],
     ) -> CryptoResult<()> {
+        // Delegate to your HSM
         self.hsm_client
             .verify(data, signature)
             .map_err(|_| CryptoError::VerificationFailed)

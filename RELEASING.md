@@ -210,11 +210,13 @@ The release workflow automatically bumps versions in:
 
 | File | Field |
 |------|-------|
-| `core/claim169-core/Cargo.toml` | `version` |
-| `core/claim169-python/Cargo.toml` | `version` |
-| `core/claim169-wasm/Cargo.toml` | `version` |
+| `Cargo.toml` | workspace `version` |
 | `core/claim169-python/pyproject.toml` | `version` |
 | `sdks/typescript/package.json` | `version` |
+| `README.md` | dependency examples |
+| `core/claim169-core/README.md` | dependency examples |
+| `docs/{en,es,fr}/getting-started/installation.md` | dependency examples |
+| `docs/{en,es,fr}/guides/versioning.md` | dependency examples |
 
 ## Troubleshooting
 

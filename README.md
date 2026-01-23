@@ -1,22 +1,49 @@
 # Claim 169
 
-> **New Library**: This library is new and under active development. Use at your own risk and test thoroughly before production use.
+> **Alpha Software**: This library is under active development. APIs may change. Test thoroughly before production use.
 
 [![CI](https://github.com/jeremi/claim-169/actions/workflows/ci.yml/badge.svg)](https://github.com/jeremi/claim-169/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/jeremi/claim-169/graph/badge.svg)](https://codecov.io/gh/jeremi/claim-169)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 
-A Rust implementation of the [MOSIP Claim 169](https://github.com/mosip/id-claim-169/tree/main) QR code specification for encoding and verifying digital identity credentials.
+[![crates.io](https://img.shields.io/crates/v/claim169-core.svg?label=crates.io)](https://crates.io/crates/claim169-core)
+[![PyPI](https://img.shields.io/pypi/v/claim169.svg?label=pypi)](https://pypi.org/project/claim169/)
+[![npm](https://img.shields.io/npm/v/claim169.svg?label=npm)](https://www.npmjs.com/package/claim169)
+
+Multi-language SDKs for encoding and decoding [MOSIP Claim 169](https://github.com/mosip/id-claim-169/tree/main) QR codes — a compact, secure format for digital identity credentials.
+
+> **Try it now**: [Interactive Playground](https://jeremi.github.io/claim-169/) — encode and decode QR codes in your browser
+
+## Why Claim 169?
+
+Claim 169 QR codes enable **offline verification** of identity credentials — no internet connection required at the point of verification. Common use cases include:
+
+- **Border control & immigration** — verify travel documents without network access
+- **Healthcare credentials** — vaccination records, insurance cards, patient IDs
+- **Government benefits** — social protection programs, subsidy distribution
+- **Digital driver's licenses** — offline-verifiable mobile driving permits
+- **Event access** — tamper-proof tickets with identity binding
+
+The format is designed for constrained environments: a typical credential fits in a single QR code scannable by any smartphone camera.
 
 ## Overview
 
-MOSIP Claim 169 defines a compact, secure format for encoding identity data in QR codes. This implementation provides:
+[MOSIP Claim 169](https://github.com/mosip/id-claim-169/tree/main) is an IANA-registered specification for encoding identity data in QR codes. This project provides SDKs for multiple languages:
 
-- **Rust core library** with full encoding, decoding, signature verification, and encryption support
-- **Python bindings** for server-side integration with HSM support
-- **TypeScript/JavaScript SDK** via WebAssembly for browser and Node.js
-- **Interactive playground** for experimenting with QR codes ([try it online](https://jeremi.github.io/claim-169/))
+| SDK | Package | Use Case |
+|-----|---------|----------|
+| **Rust** | [`claim169-core`](https://crates.io/crates/claim169-core) | High-performance core library, embedded systems |
+| **Python** | [`claim169`](https://pypi.org/project/claim169/) | Server-side integration, HSM support |
+| **TypeScript/JavaScript** | [`claim169`](https://www.npmjs.com/package/claim169) | Browser apps, Node.js services |
+
+All SDKs share the same Rust core via native bindings (Python) or WebAssembly (TypeScript), ensuring consistent behavior across platforms.
+
+### Key Features
+
+- **Encode and decode** identity credentials to/from QR codes
+- **Sign and verify** with Ed25519 or ECDSA P-256
+- **Encrypt and decrypt** with AES-GCM (128 or 256 bit)
+- **Pluggable crypto backends** for HSM integration
 - **Comprehensive security** including weak key rejection, decompression limits, and timestamp validation
 
 ### Encoding Pipeline
@@ -56,27 +83,40 @@ claim-169/
 ### Rust
 
 ```toml
-# Cargo.toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.1.0-alpha"
 ```
 
 ```rust
 use claim169_core::{Decoder, Encoder, Claim169, CwtMeta};
 
-// Decoding (with Ed25519 verification)
+// Decode and verify a QR code
 let result = Decoder::new(qr_content)
     .verify_with_ed25519(&public_key)?
     .decode()?;
 
 println!("Name: {:?}", result.claim169.full_name);
-println!("Issuer: {:?}", result.cwt_meta.issuer);
+```
 
-// Encoding (Ed25519 signed)
-let qr_data = Encoder::new(claim169, cwt_meta)
+<details>
+<summary>Encoding example</summary>
+
+```rust
+// Create and sign a new credential
+let claim = Claim169::default()
+    .with_id("123456789")
+    .with_full_name("Jane Doe");
+
+let meta = CwtMeta::new()
+    .with_issuer("https://issuer.example.com")
+    .with_expires_at(1800000000);
+
+let qr_data = Encoder::new(claim, meta)
     .sign_with_ed25519(&private_key)?
     .encode()?;
 ```
+
+</details>
 
 ### Python
 
@@ -85,23 +125,26 @@ pip install claim169
 ```
 
 ```python
-from claim169 import Claim169Input, CwtMetaInput, encode_with_ed25519, decode_with_ed25519
+from claim169 import decode_with_ed25519
 
-# Encoding (Ed25519 signed)
-claim = Claim169Input(id="123", full_name="John Doe")
-meta = CwtMetaInput(issuer="https://example.com")
-qr_data = encode_with_ed25519(claim, meta, private_key_bytes)
-
-# Decoding (with Ed25519 verification)
+# Decode and verify a QR code
 result = decode_with_ed25519(qr_text, public_key_bytes)
-
 print(f"Name: {result.claim169.full_name}")
-print(f"Verified: {result.is_verified()}")
-
-# Check expiration
-if result.cwt_meta.is_expired():
-    print("Credential has expired!")
+print(f"Expired: {result.cwt_meta.is_expired()}")
 ```
+
+<details>
+<summary>Encoding example</summary>
+
+```python
+from claim169 import Claim169Input, CwtMetaInput, encode_with_ed25519
+
+claim = Claim169Input(id="123", full_name="Jane Doe")
+meta = CwtMetaInput(issuer="https://issuer.example.com")
+qr_data = encode_with_ed25519(claim, meta, private_key_bytes)
+```
+
+</details>
 
 ### TypeScript/JavaScript
 
@@ -110,32 +153,48 @@ npm install claim169
 ```
 
 ```typescript
-import { Encoder, Decoder, Claim169Input, CwtMetaInput } from 'claim169';
+import { Decoder } from 'claim169';
 
-// Encoding (Ed25519 signed)
-const claim169: Claim169Input = { id: "123", fullName: "John Doe" };
-const cwtMeta: CwtMetaInput = { issuer: "https://example.com" };
-const qrData = new Encoder(claim169, cwtMeta)
-  .signWithEd25519(privateKey)
-  .encode();
-
-// Decoding (with Ed25519 verification)
+// Decode and verify a QR code
 const result = new Decoder(qrText)
   .verifyWithEd25519(publicKey)
   .decode();
 
 console.log(`Name: ${result.claim169.fullName}`);
-console.log(`Issuer: ${result.cwtMeta.issuer}`);
 ```
+
+<details>
+<summary>Encoding example</summary>
+
+```typescript
+import { Encoder, Claim169Input, CwtMetaInput } from 'claim169';
+
+const claim: Claim169Input = { id: "123", fullName: "Jane Doe" };
+const meta: CwtMetaInput = { issuer: "https://issuer.example.com" };
+const qrData = new Encoder(claim, meta)
+  .signWithEd25519(privateKey)
+  .encode();
+```
+
+</details>
 
 ## Building from Source
 
 ### Prerequisites
 
-- Rust 1.70+ with cargo
+- Rust 1.75+ with cargo
 - Python 3.8+ with maturin (for Python bindings)
 - Node.js 18+ with npm (for TypeScript SDK)
 - wasm-pack (for WebAssembly bindings)
+
+### Compatibility
+
+| Platform | Minimum Version | Notes |
+|----------|-----------------|-------|
+| Rust | 1.75+ | MSRV tested in CI |
+| Python | 3.8+ | Wheels for Linux, macOS, Windows |
+| Node.js | 18+ | ESM and CommonJS |
+| Browsers | Chrome 89+, Firefox 89+, Safari 15+ | Via WebAssembly |
 
 ### Build All
 

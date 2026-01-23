@@ -15,7 +15,7 @@ Pin a crate version in `Cargo.toml`:
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.1.0-alpha"
 ```
 
 ### Python
