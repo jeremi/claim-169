@@ -167,8 +167,7 @@ jobs:
           ### Checklist
           - [ ] Changelog looks correct
           - [ ] Version bumps are correct in all files
-          - [ ] CI passes" \
-            --label "release"
+          - [ ] CI passes"
 
       - name: Dry run summary
         if: ${{ inputs.dry_run }}
