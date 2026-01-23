@@ -6,6 +6,8 @@ Essayez l'encodage et le décodage des identifiants Claim 169 directement dans v
 [Ouvrir le Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
+![Capture d'écran du Playground](../assets/img/playground.png)
+
 ## Fonctionnalités
 
 Le playground utilise une disposition unifiée à deux panneaux inspirée de [jwt.io](https://jwt.io), avec une synchronisation bidirectionnelle en temps réel.
@@ -71,10 +73,6 @@ Le playground s'exécute entièrement dans votre navigateur :
 - **html5-qrcode** - Scan QR via caméra
 
 Aucune donnée n'est envoyée à un serveur.
-
-## Capture d'écran
-
-![Capture d'écran du Playground](../assets/img/playground.png)
 
 ## Code source
 

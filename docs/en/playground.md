@@ -6,6 +6,8 @@ Try encoding and decoding Claim 169 credentials directly in your browser.
 [Open Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
+![Playground Screenshot](../assets/img/playground.png)
+
 ## Features
 
 The playground uses a unified two-panel layout inspired by [jwt.io](https://jwt.io), with live bidirectional sync between the panels.
@@ -71,10 +73,6 @@ The playground runs entirely in your browser using:
 - **html5-qrcode** - Camera-based QR scanning
 
 No data is sent to any server.
-
-## Screenshot
-
-![Playground Screenshot](../assets/img/playground.png)
 
 ## Source Code
 

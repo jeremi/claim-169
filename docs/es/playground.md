@@ -6,6 +6,8 @@ Prueba la codificación y decodificación de credenciales Claim 169 directamente
 [Abrir Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
+![Captura de pantalla del Playground](../assets/img/playground.png)
+
 ## Funcionalidades
 
 El playground utiliza un diseño unificado de dos paneles inspirado en [jwt.io](https://jwt.io), con sincronización bidireccional en tiempo real.
@@ -71,10 +73,6 @@ El playground se ejecuta completamente en tu navegador:
 - **html5-qrcode** - Escaneo de QR por cámara
 
 No se envía ningún dato a ningún servidor.
-
-## Captura de pantalla
-
-![Captura de pantalla del Playground](../assets/img/playground.png)
 
 ## Código fuente
 
