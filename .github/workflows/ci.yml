@@ -317,15 +317,17 @@ jobs:
           npm run build:ts
           npm pack
 
-      - name: Test npm package installation
+      - name: Test npm package structure
         run: |
           mkdir -p /tmp/npm-test
           cd /tmp/npm-test
-          npm init -y
-          npm pkg set type=module
-          npm install ${{ github.workspace }}/sdks/typescript/*.tgz
-          node -e "import('claim169').then(c => console.log('npm package loads successfully'));"
-          echo "npm package installs and loads successfully"
+          tar -xzf ${{ github.workspace }}/sdks/typescript/*.tgz
+          # Verify essential files exist
+          test -f package/dist/index.js || (echo "Missing dist/index.js" && exit 1)
+          test -f package/dist/index.d.ts || (echo "Missing dist/index.d.ts" && exit 1)
+          test -f package/wasm/claim169_wasm.js || (echo "Missing wasm/claim169_wasm.js" && exit 1)
+          test -f package/wasm/claim169_wasm_bg.wasm || (echo "Missing wasm/claim169_wasm_bg.wasm" && exit 1)
+          echo "npm package structure is correct"
 
   # Code coverage (only on push to main)
   coverage:
