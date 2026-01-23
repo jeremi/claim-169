@@ -320,8 +320,9 @@ jobs:
           mkdir -p /tmp/npm-test
           cd /tmp/npm-test
           npm init -y
+          npm pkg set type=module
           npm install ${{ github.workspace }}/sdks/typescript/*.tgz
-          node -e "const c = require('claim169'); console.log('npm package loads successfully');"
+          node -e "import('claim169').then(c => console.log('npm package loads successfully'));"
           echo "npm package installs and loads successfully"
 
   # Code coverage (only on push to main)
