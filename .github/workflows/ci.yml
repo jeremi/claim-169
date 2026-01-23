@@ -225,7 +225,14 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install target/wheels/claim169-*.whl
+          # maturin can emit multiple compatible wheels (e.g. linux + manylinux).
+          # Install exactly one wheel to avoid pip resolution conflicts.
+          WHEEL="$(ls -1 target/wheels/claim169-*.whl | grep -m 1 -E 'manylinux' || true)"
+          if [ -z "$WHEEL" ]; then
+            WHEEL="$(ls -1 target/wheels/claim169-*.whl | head -n 1)"
+          fi
+          echo "Installing wheel: $WHEEL"
+          pip install "$WHEEL"
 
       - name: Build TypeScript SDK
         working-directory: sdks/typescript
