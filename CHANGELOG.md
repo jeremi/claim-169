@@ -7,20 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Security
-- TypeScript `decode()` now requires a verification key unless `allowUnverified: true` is set (prevents accidental acceptance of forged credentials).
-- Python `decode_encrypted_aes()` / `decode_with_decryptor()` now require a verifier unless `allow_unverified=True` is set (prevents silently skipping nested signature verification).
-
-### Added
-- CHANGELOG.md for tracking version history
-- CONTRIBUTING.md with development guidelines
-
-### Changed
-- Python `decode()` now requires a verification key by default; unverified decoding requires `allow_unverified=True`.
-- Python `decode_with_ed25519()` / `decode_with_ecdsa_p256()` now accept decode options (biometrics skip, decompression limit, timestamp validation).
-- Removed `unsafe impl Send/Sync` from Python callback hook wrappers.
-
-## [0.1.0-alpha] - 2024-01-22
+## [0.1.0-alpha] - 2025-01-23
 
 Initial alpha release of the MOSIP Claim 169 QR code library.
 
@@ -66,9 +53,15 @@ Initial alpha release of the MOSIP Claim 169 QR code library.
 - SECURITY.md with threat model and security considerations
 - MOSIP Claim 169 specification reference (claim_169.md)
 - JSON Schema for output validation
+- CHANGELOG.md for tracking version history
+- CONTRIBUTING.md with development guidelines
+- RELEASING.md with release process documentation
 
 ### Security
 - Signature verification is required by default (secure-by-default)
+- TypeScript `decode()` requires a verification key unless `allowUnverified: true` is set
+- Python `decode()` requires a verification key by default; unverified decoding requires `allow_unverified=True`
+- Python `decode_encrypted_aes()` / `decode_with_decryptor()` require a verifier unless `allow_unverified=True` is set
 - Weak key detection and rejection
 - Memory zeroization for sensitive key material
 - Configurable decompression limits (default: 64KB)
