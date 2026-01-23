@@ -1,25 +1,27 @@
 # MOSIP Claim 169 Specification
 
-This library implements the [MOSIP Claim 169](https://github.com/mosip/id-claim-169) QR code specification.
+This library implements the [MOSIP Claim 169](https://github.com/mosip/id-claim-169) QR code specification for encoding and decoding offline-verifiable identity credentials.
 
 ## Overview
 
-Claim 169 is a compact, secure format for encoding identity credentials in QR codes. It's designed for:
+Claim 169 is designed for:
 
-- **Offline verification** - No network required to validate credentials
-- **Compact size** - Fits in standard QR codes
-- **Security** - Digital signatures and optional encryption
-- **Interoperability** - Based on open standards (CBOR, COSE, CWT)
+- **Offline verification** — no network is required to validate credentials
+- **Compact size** — optimized for QR code capacity
+- **Security** — signatures for authenticity, optional encryption for privacy
+- **Interoperability** — based on CBOR, COSE, and CWT
 
-## Encoding Pipeline
+## Encoding pipeline
 
 ```
 Identity Data → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → Base45 → QR Code
 ```
 
-### 1. CBOR Encoding
+## 1) Claim 169 payload (CBOR map)
 
-Identity fields are encoded as CBOR with numeric keys for compactness:
+Claim 169 uses CBOR with numeric keys for compactness. The payload is a CBOR map (key → value).
+
+### Demographics & core fields (keys 1–23)
 
 | Key | Field | Type |
 |-----|-------|------|
@@ -30,7 +32,7 @@ Identity fields are encoded as CBOR with numeric keys for compactness:
 | 5 | firstName | tstr |
 | 6 | middleName | tstr |
 | 7 | lastName | tstr |
-| 8 | dateOfBirth | tstr |
+| 8 | dateOfBirth | tstr (recommended: `YYYYMMDD`; commonly also `YYYY-MM-DD`) |
 | 9 | gender | int |
 | 10 | address | tstr |
 | 11 | email | tstr |
@@ -40,82 +42,89 @@ Identity fields are encoded as CBOR with numeric keys for compactness:
 | 15 | guardian | tstr |
 | 16 | photo | bstr |
 | 17 | photoFormat | int |
-| 18 | legalStatus | tstr |
-| 19 | countryOfIssuance | tstr |
-| 20 | locationCode | tstr |
-| 21 | secondaryLanguage | tstr |
-| 22 | secondaryFullName | tstr |
-| 23 | bestQualityFingers | array |
-| 50-65 | biometrics | map |
+| 18 | bestQualityFingers | array |
+| 19 | secondaryFullName | tstr |
+| 20 | secondaryLanguage | tstr |
+| 21 | locationCode | tstr |
+| 22 | legalStatus | tstr |
+| 23 | countryOfIssuance | tstr |
 
-### 2. CWT Wrapping
+### Biometrics (keys 50–65)
 
-The CBOR data is wrapped in a CWT (CBOR Web Token) with standard claims:
+Each biometric field is an array of biometric entries.
+
+| Key | Field |
+|-----|-------|
+| 50 | rightThumb |
+| 51 | rightPointerFinger |
+| 52 | rightMiddleFinger |
+| 53 | rightRingFinger |
+| 54 | rightLittleFinger |
+| 55 | leftThumb |
+| 56 | leftPointerFinger |
+| 57 | leftMiddleFinger |
+| 58 | leftRingFinger |
+| 59 | leftLittleFinger |
+| 60 | rightIris |
+| 61 | leftIris |
+| 62 | face |
+| 63 | rightPalm |
+| 64 | leftPalm |
+| 65 | voice |
+
+### Biometric entry structure
+
+A biometric entry is a CBOR map:
+
+| Key | Field | Type |
+|-----|-------|------|
+| 0 | data | bstr |
+| 1 | format | int |
+| 2 | subFormat | int |
+| 3 | issuer | tstr |
+
+## 2) CWT wrapping (CBOR Web Token)
+
+The Claim 169 CBOR map is stored inside a CWT with standard claims:
 
 | Claim | Key | Description |
 |-------|-----|-------------|
-| iss | 1 | Issuer URI |
-| sub | 2 | Subject identifier |
-| exp | 4 | Expiration time |
-| nbf | 5 | Not before time |
-| iat | 6 | Issued at time |
+| iss | 1 | Issuer |
+| sub | 2 | Subject |
+| exp | 4 | Expiration time (Unix seconds) |
+| nbf | 5 | Not before (Unix seconds) |
+| iat | 6 | Issued at (Unix seconds) |
 | **169** | 169 | Claim 169 payload |
 
-### 3. COSE Signing
+## 3) COSE signing (COSE_Sign1)
 
-The CWT is signed using COSE_Sign1:
-
-```
-COSE_Sign1 = [
-  protected: { alg: EdDSA | ES256 },
-  unprotected: {},
-  payload: CWT bytes,
-  signature: signature bytes
-]
-```
-
-Supported algorithms:
+The CWT is signed using COSE_Sign1. Supported signature algorithms:
 
 | Algorithm | COSE alg | Description |
 |-----------|----------|-------------|
-| EdDSA | -8 | Ed25519 signatures |
-| ES256 | -7 | ECDSA with P-256 and SHA-256 |
+| EdDSA | -8 | Ed25519 |
+| ES256 | -7 | ECDSA P-256 + SHA-256 |
 
-### 4. Optional Encryption
+## 4) Optional encryption (COSE_Encrypt0)
 
-For privacy, the signed payload can be encrypted:
+For privacy, the signed payload may be encrypted in a COSE_Encrypt0 envelope. Supported algorithms:
 
-```
-COSE_Encrypt0 = [
-  protected: { alg: A256GCM | A128GCM },
-  unprotected: { iv: random IV },
-  ciphertext: encrypted COSE_Sign1
-]
-```
-
-Supported algorithms:
-
-| Algorithm | COSE alg | Key Size |
+| Algorithm | COSE alg | Key size |
 |-----------|----------|----------|
-| A256GCM | 3 | 256 bits |
-| A128GCM | 1 | 128 bits |
+| A256GCM | 3 | 32 bytes |
+| A128GCM | 1 | 16 bytes |
 
-### 5. Compression
+The nonce/IV is 12 bytes and must be unique per encryption.
 
-The COSE structure is compressed with zlib (DEFLATE):
+## 5) Compression (zlib)
 
-- Reduces payload size by ~40-60%
-- Required for fitting in QR codes
+The COSE bytes are compressed with zlib (DEFLATE) to fit comfortably in QR codes.
 
-### 6. Base45 Encoding
+## 6) Base45 encoding
 
-The compressed bytes are encoded as Base45:
+The compressed bytes are encoded as Base45 for QR alphanumeric mode.
 
-- Alphabet: `0-9A-Z $%*+-./:` (45 characters)
-- Optimized for QR alphanumeric mode
-- ~30% overhead (vs ~33% for Base64)
-
-## Enumeration Values
+## Enumerations (as used by this library)
 
 ### Gender
 
@@ -125,7 +134,7 @@ The compressed bytes are encoded as Base45:
 | 2 | Female |
 | 3 | Other |
 
-### Marital Status
+### Marital status
 
 | Value | Meaning |
 |-------|---------|
@@ -133,56 +142,44 @@ The compressed bytes are encoded as Base45:
 | 2 | Married |
 | 3 | Divorced |
 
-### Photo Format
+### Photo format (key 17)
 
 | Value | Meaning |
 |-------|---------|
 | 1 | JPEG |
 | 2 | JPEG 2000 |
 | 3 | AVIF |
+| 4 | WEBP |
 
-### Biometric Format
+### Biometric format (biometric entry key 1)
 
 | Value | Meaning |
 |-------|---------|
-| 1 | ISO 19794-4 (Finger) |
-| 2 | ISO 19794-5 (Face) |
-| 3 | ISO 19794-6 (Iris) |
+| 0 | Image |
+| 1 | Template |
+| 2 | Sound |
+| 3 | BioHash |
 
-## Security Considerations
+### Biometric subFormat (biometric entry key 2)
 
-### Signature Verification
+The meaning of `subFormat` depends on `format`:
 
-Always verify signatures before trusting credential data. The library:
+- `Image`: `0=PNG, 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WEBP, 5=TIFF, 6=WSQ`
+- `Template`: `0=ANSI378, 1=ISO19794-2, 2=NIST`
+- `Sound`: `0=WAV, 1=MP3`
 
-- Rejects weak keys (small-order Ed25519 points, identity ECDSA point)
-- Validates algorithm matches expected
-- Returns clear verification status
+## Security & robustness notes (library behavior)
 
-### Timestamp Validation
-
-Validate CWT timestamps:
-
-- `exp` (expires) - Reject expired credentials
-- `nbf` (not before) - Reject credentials not yet valid
-- `iat` (issued at) - Consider clock skew tolerance
-
-### Decompression Limits
-
-The library limits decompression to prevent zip bombs:
-
-- Default limit: 64 KB
-- Sufficient for all standard credentials
-- Configurable if needed
-
-### CBOR Depth Limits
-
-CBOR nesting is limited to 128 levels to prevent stack overflow attacks.
+- **Verification is required by default** (unless you explicitly opt out for testing).
+- **Timestamp validation** (`exp`/`nbf`) is enabled by default in Rust and Python.
+- **Decompression limit** defaults to **64KB** and is configurable.
+- **CBOR nesting depth** is limited to **128 levels**.
+- **Unknown fields** are preserved for forward compatibility.
 
 ## References
 
 - [MOSIP Claim 169 Repository](https://github.com/mosip/id-claim-169)
-- [RFC 8949 - CBOR](https://www.rfc-editor.org/rfc/rfc8949)
-- [RFC 9052 - COSE](https://www.rfc-editor.org/rfc/rfc9052)
-- [RFC 8392 - CWT](https://www.rfc-editor.org/rfc/rfc8392)
-- [RFC 9285 - Base45](https://www.rfc-editor.org/rfc/rfc9285)
+- [RFC 8949 — CBOR](https://www.rfc-editor.org/rfc/rfc8949)
+- [RFC 9052 — COSE](https://www.rfc-editor.org/rfc/rfc9052)
+- [RFC 8392 — CWT](https://www.rfc-editor.org/rfc/rfc8392)
+- [RFC 9285 — Base45](https://www.rfc-editor.org/rfc/rfc9285)

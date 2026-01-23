@@ -40,15 +40,12 @@ Both algorithms use Galois/Counter Mode (GCM) which provides authenticated encry
 === "Python"
 
     ```python
-    from claim169 import Encoder, Claim169Input, CwtMetaInput
+    from claim169 import Claim169Input, CwtMetaInput, encode_signed_encrypted
 
     signing_key = bytes.fromhex("9d61b19d...")      # 32 bytes
     encryption_key = bytes.fromhex("10111213...")   # 32 bytes
 
-    qr_data = (Encoder(claim, meta)
-        .sign_with_ed25519(signing_key)
-        .encrypt_with_aes256(encryption_key)
-        .encode())
+    qr_data = encode_signed_encrypted(claim, meta, signing_key, encryption_key)
     ```
 
 === "TypeScript"
@@ -81,12 +78,8 @@ Both algorithms use Galois/Counter Mode (GCM) which provides authenticated encry
 === "Python"
 
     ```python
-    encryption_key = bytes.fromhex("1011121314151617...")  # 16 bytes
-
-    qr_data = (Encoder(claim, meta)
-        .sign_with_ed25519(signing_key)
-        .encrypt_with_aes128(encryption_key)
-        .encode())
+    # Note: the Python bindings currently expose AES-256-GCM encryption via
+    # encode_signed_encrypted(). AES-128-GCM encoding is not exposed yet.
     ```
 
 === "TypeScript"
@@ -121,15 +114,17 @@ When decrypting, you must specify the decryption method before verification:
 === "Python"
 
     ```python
-    from claim169 import Decoder
+    from claim169 import decode_encrypted_aes
 
     encryption_key = bytes.fromhex("10111213...")
-    public_key = bytes.fromhex("d75a9801...")
 
-    result = (Decoder(qr_data)
-        .decrypt_with_aes256(encryption_key)
-        .verify_with_ed25519(public_key)
-        .decode())
+    # Testing only: decrypt without nested signature verification
+    result = decode_encrypted_aes(qr_data, encryption_key)
+
+    # Production: provide a verifier callback (HSM/KMS) to verify the nested COSE_Sign1
+    # def my_verifier(algorithm, key_id, data, signature):
+    #     hsm.verify(key_id, data, signature)
+    # result = decode_encrypted_aes(qr_data, encryption_key, verifier=my_verifier)
     ```
 
 === "TypeScript"
@@ -193,17 +188,13 @@ Generate cryptographically secure random keys:
 Encrypt credentials so only authorized verifiers can read the contents:
 
 ```python
+from claim169 import Claim169Input, encode_signed_encrypted, decode_encrypted_aes
+
 # Issuer encrypts with verifier's key
-qr_data = (Encoder(claim, meta)
-    .sign_with_ed25519(issuer_signing_key)
-    .encrypt_with_aes256(verifier_encryption_key)
-    .encode())
+qr_data = encode_signed_encrypted(claim, meta, issuer_signing_key, verifier_encryption_key)
 
 # Only the authorized verifier can decrypt
-result = (Decoder(qr_data)
-    .decrypt_with_aes256(verifier_encryption_key)
-    .verify_with_ed25519(issuer_public_key)
-    .decode())
+result = decode_encrypted_aes(qr_data, verifier_encryption_key, verifier=my_verifier)
 ```
 
 ### Selective Disclosure
@@ -211,21 +202,17 @@ result = (Decoder(qr_data)
 Create multiple credentials with different encryption keys for different verifiers:
 
 ```python
+from claim169 import Claim169Input, encode_signed_encrypted
+
 # Full credential for government agencies
-full_qr = (Encoder(full_claim, meta)
-    .sign_with_ed25519(signing_key)
-    .encrypt_with_aes256(government_key)
-    .encode())
+full_qr = encode_signed_encrypted(full_claim, meta, signing_key, government_key)
 
 # Minimal credential for age verification
 minimal_claim = Claim169Input(
     id=full_claim.id,
     date_of_birth=full_claim.date_of_birth
 )
-age_qr = (Encoder(minimal_claim, meta)
-    .sign_with_ed25519(signing_key)
-    .encrypt_with_aes256(merchant_key)
-    .encode())
+age_qr = encode_signed_encrypted(minimal_claim, meta, signing_key, merchant_key)
 ```
 
 ## Error Handling
@@ -235,20 +222,16 @@ Decryption can fail for several reasons:
 === "Python"
 
     ```python
-    from claim169 import Decoder, Claim169Error
+    import claim169
 
     try:
-        result = (Decoder(qr_data)
-            .decrypt_with_aes256(encryption_key)
-            .verify_with_ed25519(public_key)
-            .decode())
-    except Claim169Error as e:
-        if "decrypt" in str(e).lower():
-            print("Decryption failed - wrong key?")
-        elif "signature" in str(e).lower():
-            print("Signature verification failed")
-        else:
-            print(f"Error: {e}")
+        result = claim169.decode_encrypted_aes(qr_data, encryption_key)
+    except claim169.DecryptionError as e:
+        print(f"Decryption failed (wrong key?): {e}")
+    except claim169.SignatureError as e:
+        print(f"Signature verification failed: {e}")
+    except claim169.Claim169Exception as e:
+        print(f"Claim 169 error: {e}")
     ```
 
 === "TypeScript"

@@ -23,8 +23,14 @@ The Rust crate supports these optional features:
 
 | Feature | Description | Default |
 |---------|-------------|---------|
-| `std` | Standard library support | Yes |
-| `alloc` | Allocation support (no_std) | Yes |
+| `software-crypto` | Software implementations of Ed25519, ECDSA P-256, and AES-GCM | Yes |
+
+If you want to integrate with an HSM/KMS (custom signing/verification/decryption), disable default features:
+
+```toml
+[dependencies]
+claim169-core = { version = "0.1", default-features = false }
+```
 
 ## Python
 
@@ -76,7 +82,7 @@ The TypeScript SDK uses WebAssembly and works in all modern browsers:
 
 ### Node.js Support
 
-Node.js 16 or later is required for WebAssembly support.
+Node.js 16 or later is required for WebAssembly support (Node 18+ recommended).
 
 ## Building from Source
 
@@ -126,7 +132,7 @@ npm run build
 
     ```python
     import claim169
-    print(f"claim169 version: {claim169.__version__}")
+    print(f"claim169 version: {claim169.version()}")
     ```
 
 === "TypeScript"

@@ -2,7 +2,15 @@
 
 Full API documentation is available at [docs.rs/claim169-core](https://docs.rs/claim169-core).
 
-## Core Types
+## Features
+
+The crate ships with software crypto enabled by default:
+
+- `software-crypto` (default): Ed25519, ECDSA P-256, AES-GCM helpers
+
+Disable default features if you want to plug in your own crypto (HSM/KMS) via the `Signer` / `SignatureVerifier` / `Encryptor` / `Decryptor` traits.
+
+## Core types
 
 ### Decoder
 
@@ -18,12 +26,20 @@ let decoder = Decoder::new(qr_data);
 
 | Method | Description |
 |--------|-------------|
-| `new(qr_data: &str)` | Create decoder from Base45 string |
-| `verify_with_ed25519(&public_key)` | Enable Ed25519 verification |
-| `verify_with_ecdsa_p256(&public_key)` | Enable ECDSA P-256 verification |
+| `new(qr_text)` | Create decoder from Base45 text |
+| `verify_with(verifier)` | Use a custom verifier (HSM/KMS integration) |
+| `verify_with_ed25519(public_key)` | Verify Ed25519 (requires `software-crypto`) |
+| `verify_with_ed25519_pem(pem)` | Verify Ed25519 from PEM/SPKI (requires `software-crypto`) |
+| `verify_with_ecdsa_p256(public_key)` | Verify ECDSA P-256 from SEC1 bytes (requires `software-crypto`) |
+| `verify_with_ecdsa_p256_pem(pem)` | Verify ECDSA P-256 from PEM/SPKI (requires `software-crypto`) |
+| `decrypt_with(decryptor)` | Use a custom decryptor (HSM/KMS integration) |
+| `decrypt_with_aes256(key)` | Decrypt AES-256-GCM (requires `software-crypto`) |
+| `decrypt_with_aes128(key)` | Decrypt AES-128-GCM (requires `software-crypto`) |
 | `allow_unverified()` | Skip signature verification (testing only) |
-| `decrypt_with_aes256(&key)` | Enable AES-256-GCM decryption |
-| `decrypt_with_aes128(&key)` | Enable AES-128-GCM decryption |
+| `skip_biometrics()` | Skip biometric parsing for speed |
+| `without_timestamp_validation()` | Disable `exp`/`nbf` checks |
+| `clock_skew_tolerance(seconds)` | Allow clock skew for timestamp checks |
+| `max_decompressed_bytes(bytes)` | Set the decompression size limit |
 | `decode()` | Execute decoding pipeline |
 
 ### Encoder
@@ -31,7 +47,7 @@ let decoder = Decoder::new(qr_data);
 Builder for encoding credentials.
 
 ```rust
-use claim169_core::{Encoder, Claim169Input, CwtMetaInput};
+use claim169_core::{Encoder, Claim169, CwtMeta};
 
 let encoder = Encoder::new(claim, meta);
 ```
@@ -40,12 +56,17 @@ let encoder = Encoder::new(claim, meta);
 
 | Method | Description |
 |--------|-------------|
-| `new(claim: Claim169Input, meta: CwtMetaInput)` | Create encoder |
-| `sign_with_ed25519(&private_key)` | Sign with Ed25519 |
-| `sign_with_ecdsa_p256(&private_key)` | Sign with ECDSA P-256 |
+| `new(claim169, cwt_meta)` | Create encoder |
+| `sign_with(signer, algorithm)` | Use a custom signer (HSM/KMS integration) |
+| `sign_with_ed25519(private_key)` | Sign with Ed25519 (requires `software-crypto`) |
+| `sign_with_ecdsa_p256(private_key)` | Sign with ECDSA P-256 (requires `software-crypto`) |
 | `allow_unsigned()` | Skip signing (testing only) |
-| `encrypt_with_aes256(&key)` | Encrypt with AES-256-GCM |
-| `encrypt_with_aes128(&key)` | Encrypt with AES-128-GCM |
+| `encrypt_with(encryptor, algorithm)` | Use a custom encryptor |
+| `encrypt_with_aes256(key)` | Encrypt with AES-256-GCM (requires `software-crypto`) |
+| `encrypt_with_aes128(key)` | Encrypt with AES-128-GCM (requires `software-crypto`) |
+| `encrypt_with_aes256_nonce(key, nonce)` | AES-256-GCM with explicit nonce (testing only) |
+| `encrypt_with_aes128_nonce(key, nonce)` | AES-128-GCM with explicit nonce (testing only) |
+| `skip_biometrics()` | Skip biometric fields during encoding |
 | `encode()` | Execute encoding pipeline |
 
 ### DecodeResult
@@ -56,152 +77,23 @@ Result of successful decoding.
 pub struct DecodeResult {
     pub claim169: Claim169,
     pub cwt_meta: CwtMeta,
+    pub verification_status: VerificationStatus,
+    pub warnings: Vec<Warning>,
 }
 ```
 
-### Claim169
+## Errors
 
-Identity data structure with builder methods for ergonomic construction.
+High-level operations return `claim169_core::Result<T>` which is a `Result<T, Claim169Error>`.
 
-```rust
-// Using builder pattern (recommended)
-let claim = Claim169::new()
-    .with_id("USER-001")
-    .with_full_name("Alice Smith")
-    .with_gender(Gender::Female)
-    .with_email("alice@example.com");
+Common `Claim169Error` cases:
 
-// Or using minimal constructor
-let claim = Claim169::minimal("USER-001", "Alice Smith");
-```
-
-#### Builder Methods
-
-| Method | Description |
-|--------|-------------|
-| `new()` | Create empty claim |
-| `minimal(id, full_name)` | Create claim with ID and name |
-| `with_id(id)` | Set unique identifier |
-| `with_full_name(name)` | Set full name |
-| `with_first_name(name)` | Set first name |
-| `with_last_name(name)` | Set last name |
-| `with_date_of_birth(dob)` | Set DOB (YYYYMMDD) |
-| `with_gender(gender)` | Set gender |
-| `with_email(email)` | Set email |
-| `with_phone(phone)` | Set phone |
-| `with_address(addr)` | Set address |
-| `with_nationality(nat)` | Set nationality |
-| `with_marital_status(status)` | Set marital status |
-| ... | (all fields have `with_*` methods) |
-
-#### Fields
-
-```rust
-pub struct Claim169 {
-    pub id: Option<String>,
-    pub version: Option<String>,
-    pub language: Option<String>,
-    pub full_name: Option<String>,
-    pub first_name: Option<String>,
-    pub middle_name: Option<String>,
-    pub last_name: Option<String>,
-    pub date_of_birth: Option<String>,
-    pub gender: Option<Gender>,
-    pub address: Option<String>,
-    pub email: Option<String>,
-    pub phone: Option<String>,
-    pub nationality: Option<String>,
-    pub marital_status: Option<MaritalStatus>,
-    pub guardian: Option<String>,
-    pub photo: Option<Vec<u8>>,
-    pub photo_format: Option<PhotoFormat>,
-    pub legal_status: Option<String>,
-    pub country_of_issuance: Option<String>,
-    pub location_code: Option<String>,
-    pub secondary_language: Option<String>,
-    pub secondary_full_name: Option<String>,
-    pub best_quality_fingers: Option<Vec<u8>>,
-    pub biometrics: Option<Vec<Biometric>>,
-    pub unknown_fields: HashMap<i64, ciborium::Value>,
-}
-```
-
-### CwtMeta
-
-CWT metadata from decoded credential.
-
-```rust
-pub struct CwtMeta {
-    pub issuer: Option<String>,
-    pub subject: Option<String>,
-    pub expires_at: Option<i64>,
-    pub not_before: Option<i64>,
-    pub issued_at: Option<i64>,
-}
-```
-
-### CwtMetaInput
-
-Input for CWT metadata when encoding.
-
-```rust
-pub struct CwtMetaInput {
-    pub issuer: Option<String>,
-    pub subject: Option<String>,
-    pub expires_at: Option<i64>,
-    pub not_before: Option<i64>,
-    pub issued_at: Option<i64>,
-}
-```
-
-## Enums
-
-### Gender
-
-```rust
-pub enum Gender {
-    Male = 1,
-    Female = 2,
-    Other = 3,
-}
-```
-
-### MaritalStatus
-
-```rust
-pub enum MaritalStatus {
-    Unmarried = 1,
-    Married = 2,
-    Divorced = 3,
-}
-```
-
-### PhotoFormat
-
-```rust
-pub enum PhotoFormat {
-    Jpeg = 1,
-    Jpeg2000 = 2,
-    Avif = 3,
-}
-```
-
-## Error Types
-
-### DecodeError
-
-```rust
-pub enum DecodeError {
-    Base45(Base45Error),
-    Decompression(DecompressionError),
-    Cose(CoseError),
-    Cwt(CwtError),
-    Claim169(Claim169Error),
-    Signature(SignatureError),
-    Decryption(DecryptionError),
-    Configuration(String),
-}
-```
+- `DecodingConfig(...)` (no verifier and no `allow_unverified()`)
+- `EncodingConfig(...)` (no signer and no `allow_unsigned()`)
+- `SignatureInvalid(...)`
+- `DecryptionFailed(...)`
+- `Expired(ts)` / `NotYetValid(ts)`
+- `DecompressLimitExceeded { max_bytes }`
 
 ## Example
 
@@ -209,10 +101,10 @@ pub enum DecodeError {
 use claim169_core::{
     Decoder, Encoder,
     Claim169, CwtMeta,
-    Gender, DecodeError
+    Gender,
 };
 
-fn main() -> Result<(), DecodeError> {
+fn main() -> Result<(), claim169_core::Claim169Error> {
     // Create a credential using builder pattern
     let claim = Claim169::new()
         .with_id("USER-001")

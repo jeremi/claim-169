@@ -203,16 +203,13 @@ Some credentials are encrypted for privacy. You need the decryption key to read 
 === "Python"
 
     ```python
-    from claim169 import Decoder
+    from claim169 import decode_encrypted_aes
 
     qr_data = "6BFCA0410D..."  # Encrypted credential
     encryption_key = bytes.fromhex("1011121314...")  # 32 bytes for AES-256
-    public_key = bytes.fromhex("994c54604862...")
 
-    result = (Decoder(qr_data)
-        .decrypt_with_aes256(encryption_key)
-        .verify_with_ed25519(public_key)
-        .decode())
+    # Testing only: decrypt but do not verify the nested signature
+    result = decode_encrypted_aes(qr_data, encryption_key)
     ```
 
 === "TypeScript"

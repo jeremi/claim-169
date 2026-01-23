@@ -28,6 +28,34 @@ Vérifiez les identifiants existants :
 - **Vérification** - Vérifiez les signatures Ed25519 ou ECDSA P-256
 - **Déchiffrement** - Déchiffrez les identifiants chiffrés AES
 
+## Démarrage rapide
+
+### Encoder un identifiant
+
+1. Ouvrez le [Playground](https://jeremi.github.io/claim-169/)
+2. Cliquez sur **Load Sample** pour charger des données de test
+3. Modifiez les champs d’identité si nécessaire
+4. Cliquez sur **Generate QR Code**
+5. Scannez le QR ou copiez le texte Base45
+
+### Vérifier un identifiant
+
+1. Passez à l’onglet **Decode**
+2. Sélectionnez un exemple dans la liste, ou collez vos propres données QR
+3. Entrez la clé publique (affichée lors de l’encodage)
+4. Cliquez sur **Decode**
+5. Consultez les données d’identité vérifiées
+
+## Technologie
+
+Le playground s’exécute entièrement dans votre navigateur :
+
+- **WebAssembly** — SDK claim169 compilé en WASM
+- **React** — Framework UI
+- **html5-qrcode** — Scan QR via caméra
+
+Aucune donnée n’est envoyée à un serveur.
+
 ## Code source
 
 Le code source du playground est disponible sur :

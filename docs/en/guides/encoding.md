@@ -15,7 +15,7 @@ The Claim 169 specification defines the following identity fields:
 | `firstName` | 5 | string | Given name |
 | `middleName` | 6 | string | Middle name(s) |
 | `lastName` | 7 | string | Family name |
-| `dateOfBirth` | 8 | string | Birth date (YYYYMMDD) |
+| `dateOfBirth` | 8 | string | Birth date (recommended: `YYYYMMDD`; commonly also `YYYY-MM-DD`) |
 | `gender` | 9 | integer | 1=Male, 2=Female, 3=Other |
 | `address` | 10 | string | Full address |
 | `email` | 11 | string | Email address |
@@ -24,13 +24,13 @@ The Claim 169 specification defines the following identity fields:
 | `maritalStatus` | 14 | integer | 1=Unmarried, 2=Married, 3=Divorced |
 | `guardian` | 15 | string | Guardian ID |
 | `photo` | 16 | bytes | Photo data |
-| `photoFormat` | 17 | integer | 1=JPEG, 2=JPEG2000, 3=AVIF |
-| `legalStatus` | 18 | string | Legal status |
-| `countryOfIssuance` | 19 | string | Issuing country |
-| `locationCode` | 20 | string | Location code |
-| `secondaryLanguage` | 21 | string | Secondary language |
-| `secondaryFullName` | 22 | string | Name in secondary language |
-| `bestQualityFingers` | 23 | array | Best quality finger positions (0-10) |
+| `photoFormat` | 17 | integer | 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WEBP |
+| `bestQualityFingers` | 18 | array | Best quality finger positions (0-10) |
+| `secondaryFullName` | 19 | string | Name in secondary language |
+| `secondaryLanguage` | 20 | string | Secondary language |
+| `locationCode` | 21 | string | Location code |
+| `legalStatus` | 22 | string | Legal status |
+| `countryOfIssuance` | 23 | string | Issuing country |
 
 ## Basic Example
 
@@ -217,12 +217,12 @@ Encrypt the credential for privacy:
 === "Python"
 
     ```python
+    from claim169 import encode_signed_encrypted
+
     encryption_key = bytes.fromhex("...")  # 32 bytes for AES-256
 
-    qr_data = (Encoder(claim, meta)
-        .sign_with_ed25519(signing_key)
-        .encrypt_with_aes256(encryption_key)
-        .encode())
+    # Python currently provides a convenience function for Ed25519 + AES-256-GCM:
+    qr_data = encode_signed_encrypted(claim, meta, signing_key, encryption_key)
     ```
 
 === "TypeScript"

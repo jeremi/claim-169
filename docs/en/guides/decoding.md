@@ -141,10 +141,15 @@ Encrypted credentials must be decrypted before verification:
 === "Python"
 
     ```python
-    result = (Decoder(qr_data)
-        .decrypt_with_aes256(encryption_key)  # First decrypt
-        .verify_with_ed25519(public_key)      # Then verify
-        .decode())
+    from claim169 import decode_encrypted_aes
+
+    # Testing only: decrypt but do not verify the nested signature
+    result = decode_encrypted_aes(qr_data, encryption_key)
+
+    # Production: provide a verifier callback (e.g. HSM) to verify the nested COSE_Sign1
+    # def my_verifier(algorithm, key_id, data, signature):
+    #     hsm.verify(key_id, data, signature)
+    # result = decode_encrypted_aes(qr_data, encryption_key, verifier=my_verifier)
     ```
 
 === "TypeScript"
@@ -221,23 +226,26 @@ The decoder can fail at various stages. Handle errors appropriately:
 === "Rust"
 
     ```rust
-    use claim169_core::{Decoder, DecodeError};
+    use claim169_core::{Claim169Error, Decoder};
 
     match Decoder::new(qr_data).allow_unverified().decode() {
         Ok(result) => {
             println!("Decoded: {:?}", result.claim169.full_name);
         }
-        Err(DecodeError::Base45(e)) => {
-            println!("Invalid Base45 encoding: {}", e);
+        Err(Claim169Error::Base45Decode(msg)) => {
+            println!("Invalid Base45 encoding: {}", msg);
         }
-        Err(DecodeError::Decompression(e)) => {
-            println!("Decompression failed: {}", e);
+        Err(Claim169Error::DecompressLimitExceeded { max_bytes }) => {
+            println!("Decompression limit exceeded: max {} bytes", max_bytes);
         }
-        Err(DecodeError::Cose(e)) => {
-            println!("Invalid COSE structure: {}", e);
+        Err(Claim169Error::Decompress(msg)) => {
+            println!("Decompression failed: {}", msg);
         }
-        Err(DecodeError::Signature(e)) => {
-            println!("Signature verification failed: {}", e);
+        Err(Claim169Error::CoseParse(msg)) => {
+            println!("Invalid COSE structure: {}", msg);
+        }
+        Err(Claim169Error::SignatureInvalid(msg)) => {
+            println!("Signature verification failed: {}", msg);
         }
         Err(e) => {
             println!("Decoding failed: {}", e);
@@ -248,25 +256,29 @@ The decoder can fail at various stages. Handle errors appropriately:
 === "Python"
 
     ```python
-    from claim169 import decode_unverified, Claim169Error
+    import claim169
 
     try:
-        result = decode_unverified(qr_data)
-    except Claim169Error as e:
+        result = claim169.decode_unverified(qr_data)
+    except claim169.Claim169Exception as e:
         print(f"Decoding failed: {e}")
     ```
 
 === "TypeScript"
 
     ```typescript
-    import { Decoder } from 'claim169';
+    import { Claim169Error, Decoder } from 'claim169';
 
     try {
       const result = new Decoder(qrData)
         .allowUnverified()
         .decode();
     } catch (error) {
-      console.error(`Decoding failed: ${error.message}`);
+      if (error instanceof Claim169Error) {
+        console.error(`Decoding failed: ${error.message}`);
+      } else {
+        console.error(`Decoding failed: ${String(error)}`);
+      }
     }
     ```
 

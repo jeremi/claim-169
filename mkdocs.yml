@@ -48,12 +48,69 @@ plugins:
           default: true
           name: English
           build: true
+          nav_translations:
+            Home: Home
+            Getting Started: Getting Started
+            Installation: Installation
+            Quick Start: Quick Start
+            Guides: Guides
+            Encoding Credentials: Encoding Credentials
+            Decoding & Verification: Decoding & Verification
+            Encryption: Encryption
+            Key Material & Formats: Key Material & Formats
+            Security & Validation: Security & Validation
+            Test Vectors & Conformance: Test Vectors & Conformance
+            Troubleshooting: Troubleshooting
+            API Reference: API Reference
+            Rust: Rust
+            Python: Python
+            TypeScript: TypeScript
+            Specification: Specification
+            Playground: Playground
         - locale: fr
           name: Français
           build: true
+          nav_translations:
+            Home: Accueil
+            Getting Started: Bien démarrer
+            Installation: Installation
+            Quick Start: Démarrage rapide
+            Guides: Guides
+            Encoding Credentials: Encodage des identifiants
+            Decoding & Verification: Décodage et vérification
+            Encryption: Chiffrement
+            Key Material & Formats: Matériel de clés et formats
+            Security & Validation: Sécurité et validations
+            Test Vectors & Conformance: Vecteurs de test et conformité
+            Troubleshooting: Dépannage
+            API Reference: Référence API
+            Rust: Rust
+            Python: Python
+            TypeScript: TypeScript
+            Specification: Spécification
+            Playground: Playground
         - locale: es
           name: Español
           build: true
+          nav_translations:
+            Home: Inicio
+            Getting Started: Primeros pasos
+            Installation: Instalación
+            Quick Start: Inicio rápido
+            Guides: Guías
+            Encoding Credentials: Codificación de credenciales
+            Decoding & Verification: Decodificación y verificación
+            Encryption: Cifrado
+            Key Material & Formats: Material de claves y formatos
+            Security & Validation: Seguridad y validación
+            Test Vectors & Conformance: Vectores de prueba y conformidad
+            Troubleshooting: Solución de problemas
+            API Reference: Referencia API
+            Rust: Rust
+            Python: Python
+            TypeScript: TypeScript
+            Specification: Especificación
+            Playground: Playground
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -98,6 +155,10 @@ nav:
     - Encoding Credentials: guides/encoding.md
     - Decoding & Verification: guides/decoding.md
     - Encryption: guides/encryption.md
+    - Key Material & Formats: guides/keys.md
+    - Security & Validation: guides/security.md
+    - Test Vectors & Conformance: guides/test-vectors.md
+    - Troubleshooting: guides/troubleshooting.md
   - API Reference:
     - Rust: api/rust.md
     - Python: api/python.md

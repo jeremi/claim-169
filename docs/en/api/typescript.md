@@ -6,384 +6,110 @@
 npm install claim169
 ```
 
-## Quick Reference
+## Quick reference
 
-```typescript
+```ts
 import {
+  // Errors
+  Claim169Error,
+  // Convenience API (unverified by default)
+  decode,
+  type DecodeOptions,
+  // Builder API (recommended in production)
   Decoder,
   Encoder,
-  Claim169Input,
-  CwtMetaInput,
-  DecodeResult,
+  // Types
+  type Claim169Input,
+  type CwtMetaInput,
+  type DecodeResult,
+  // Utilities
   hexToBytes,
   bytesToHex,
-} from 'claim169';
+  generateNonce,
+  version,
+  isLoaded,
+} from "claim169";
 ```
 
-## Decoder
+!!! warning "About `decode()`"
+    `decode()` is a convenience wrapper that decodes **without signature verification** unless you pass a verification key in `DecodeOptions`. Use the `Decoder` builder with `.verifyWithEd25519()` / `.verifyWithEcdsaP256()` in production.
 
-### Constructor
+## `decode(qrText, options?)`
 
-```typescript
-new Decoder(qrData: string): Decoder
+```ts
+decode(qrText: string, options?: DecodeOptions): DecodeResult
 ```
 
-Creates a new decoder from Base45-encoded QR data.
+Common options:
 
-### Methods
+- `verifyWithEd25519` / `verifyWithEcdsaP256`
+- `allowUnverified` (defaults to `true` if no key is provided)
+- `decryptWithAes256` / `decryptWithAes128`
+- `skipBiometrics`
+- `validateTimestamps` (disabled by default in WASM)
+- `clockSkewToleranceSeconds`
+- `maxDecompressedBytes`
 
-#### verifyWithEd25519
+## Decoder (builder)
 
-```typescript
-verifyWithEd25519(publicKey: Uint8Array): Decoder
+```ts
+new Decoder(qrText: string)
 ```
 
-Enable Ed25519 signature verification.
+### Verification
 
-- `publicKey` - Ed25519 public key (32 bytes)
+- `verifyWithEd25519(publicKey: Uint8Array)` (32 bytes)
+- `verifyWithEcdsaP256(publicKey: Uint8Array)` (33 or 65 bytes SEC1)
+- `allowUnverified()` (testing only)
 
-#### verifyWithEcdsaP256
+### Decryption
 
-```typescript
-verifyWithEcdsaP256(publicKey: Uint8Array): Decoder
+- `decryptWithAes256(key: Uint8Array)` (32 bytes)
+- `decryptWithAes128(key: Uint8Array)` (16 bytes)
+
+### Options
+
+- `skipBiometrics()`
+- `withTimestampValidation()`
+- `clockSkewTolerance(seconds: number)`
+- `maxDecompressedBytes(bytes: number)`
+
+### Execute
+
+- `decode(): DecodeResult`
+
+## Encoder (builder)
+
+```ts
+new Encoder(claim169: Claim169Input, cwtMeta: CwtMetaInput)
 ```
 
-Enable ECDSA P-256 signature verification.
+### Signing
 
-- `publicKey` - ECDSA P-256 public key (33 or 65 bytes)
+- `signWithEd25519(privateKey: Uint8Array)` (32 bytes)
+- `signWithEcdsaP256(privateKey: Uint8Array)` (32 bytes scalar)
+- `allowUnsigned()` (testing only)
 
-#### allowUnverified
+### Encryption
 
-```typescript
-allowUnverified(): Decoder
-```
+- `encryptWithAes256(key: Uint8Array)` (32 bytes)
+- `encryptWithAes128(key: Uint8Array)` (16 bytes)
 
-Skip signature verification (testing only).
+### Options
 
-#### decryptWithAes256
+- `skipBiometrics()`
 
-```typescript
-decryptWithAes256(key: Uint8Array): Decoder
-```
+### Execute
 
-Enable AES-256-GCM decryption.
+- `encode(): string`
 
-- `key` - AES-256 key (32 bytes)
+## Utilities
 
-#### decryptWithAes128
-
-```typescript
-decryptWithAes128(key: Uint8Array): Decoder
-```
-
-Enable AES-128-GCM decryption.
-
-- `key` - AES-128 key (16 bytes)
-
-#### decode
-
-```typescript
-decode(): DecodeResult
-```
-
-Execute the decoding pipeline and return the result.
-
-**Throws:** Error if decoding fails
-
-### Example
-
-```typescript
-import { Decoder, hexToBytes } from 'claim169';
-
-const publicKey = hexToBytes("d75a980182b10ab7...");
-
-const result = new Decoder(qrData)
-  .verifyWithEd25519(publicKey)
-  .decode();
-
-console.log(result.claim169.fullName);
-```
-
-## Encoder
-
-### Constructor
-
-```typescript
-new Encoder(claim: Claim169Input, meta: CwtMetaInput): Encoder
-```
-
-Creates a new encoder with identity data and metadata.
-
-### Methods
-
-#### signWithEd25519
-
-```typescript
-signWithEd25519(privateKey: Uint8Array): Encoder
-```
-
-Sign with Ed25519.
-
-- `privateKey` - Ed25519 private key (32 bytes)
-
-#### signWithEcdsaP256
-
-```typescript
-signWithEcdsaP256(privateKey: Uint8Array): Encoder
-```
-
-Sign with ECDSA P-256.
-
-- `privateKey` - ECDSA P-256 private key (32 bytes)
-
-#### allowUnsigned
-
-```typescript
-allowUnsigned(): Encoder
-```
-
-Skip signing (testing only).
-
-#### encryptWithAes256
-
-```typescript
-encryptWithAes256(key: Uint8Array): Encoder
-```
-
-Encrypt with AES-256-GCM.
-
-- `key` - AES-256 key (32 bytes)
-
-#### encryptWithAes128
-
-```typescript
-encryptWithAes128(key: Uint8Array): Encoder
-```
-
-Encrypt with AES-128-GCM.
-
-- `key` - AES-128 key (16 bytes)
-
-#### encode
-
-```typescript
-encode(): string
-```
-
-Execute the encoding pipeline and return Base45 string.
-
-**Throws:** Error if encoding fails
-
-### Example
-
-```typescript
-import { Encoder, hexToBytes } from 'claim169';
-
-const privateKey = hexToBytes("9d61b19deffd5a60...");
-
-const qrData = new Encoder(claim, meta)
-  .signWithEd25519(privateKey)
-  .encode();
-```
-
-## Types
-
-### Claim169Input
-
-Input for encoding credentials.
-
-```typescript
-interface Claim169Input {
-  id?: string;
-  version?: string;
-  language?: string;
-  fullName?: string;
-  firstName?: string;
-  middleName?: string;
-  lastName?: string;
-  dateOfBirth?: string;
-  gender?: number;          // 1=Male, 2=Female, 3=Other
-  address?: string;
-  email?: string;
-  phone?: string;
-  nationality?: string;
-  maritalStatus?: number;   // 1=Unmarried, 2=Married, 3=Divorced
-  guardian?: string;
-  photo?: Uint8Array;
-  photoFormat?: number;     // 1=JPEG, 2=JPEG2000, 3=AVIF
-  legalStatus?: string;
-  countryOfIssuance?: string;
-  locationCode?: string;
-  secondaryLanguage?: string;
-  secondaryFullName?: string;
-  bestQualityFingers?: number[];
-}
-```
-
-### CwtMetaInput
-
-CWT metadata for encoding.
-
-```typescript
-interface CwtMetaInput {
-  issuer?: string;
-  subject?: string;
-  expiresAt?: number;    // Unix timestamp
-  notBefore?: number;    // Unix timestamp
-  issuedAt?: number;     // Unix timestamp
-}
-```
-
-### DecodeResult
-
-Result of successful decoding.
-
-```typescript
-interface DecodeResult {
-  claim169: Claim169;
-  cwtMeta: CwtMeta;
-}
-```
-
-### Claim169
-
-Decoded identity data.
-
-```typescript
-interface Claim169 {
-  id?: string;
-  version?: string;
-  language?: string;
-  fullName?: string;
-  firstName?: string;
-  middleName?: string;
-  lastName?: string;
-  dateOfBirth?: string;
-  gender?: number;
-  address?: string;
-  email?: string;
-  phone?: string;
-  nationality?: string;
-  maritalStatus?: number;
-  guardian?: string;
-  photo?: Uint8Array;
-  photoFormat?: number;
-  legalStatus?: string;
-  countryOfIssuance?: string;
-  locationCode?: string;
-  secondaryLanguage?: string;
-  secondaryFullName?: string;
-  bestQualityFingers?: number[];
-}
-```
-
-### CwtMeta
-
-Decoded CWT metadata.
-
-```typescript
-interface CwtMeta {
-  issuer?: string;
-  subject?: string;
-  expiresAt?: number;
-  notBefore?: number;
-  issuedAt?: number;
-}
-```
-
-## Utility Functions
-
-### hexToBytes
-
-```typescript
-function hexToBytes(hex: string): Uint8Array
-```
-
-Convert hex string to Uint8Array.
-
-```typescript
-const bytes = hexToBytes("d75a980182b10ab7...");
-```
-
-### bytesToHex
-
-```typescript
-function bytesToHex(bytes: Uint8Array): string
-```
-
-Convert Uint8Array to hex string.
-
-```typescript
-const hex = bytesToHex(publicKey);
-```
-
-## Error Handling
-
-All methods that can fail throw standard JavaScript errors:
-
-```typescript
-try {
-  const result = new Decoder(qrData)
-    .verifyWithEd25519(publicKey)
-    .decode();
-} catch (error) {
-  if (error instanceof Error) {
-    console.error(`Decoding failed: ${error.message}`);
-  }
-}
-```
-
-## Complete Example
-
-```typescript
-import {
-  Encoder,
-  Decoder,
-  Claim169Input,
-  CwtMetaInput,
-  hexToBytes,
-} from 'claim169';
-
-// Keys (for demo - use secure key management in production)
-const privateKey = hexToBytes(
-  "9d61b19deffd5a60ba844af492ec2cc4" +
-  "4449c5697b326919703bac031cae7f60"
-);
-const publicKey = hexToBytes(
-  "d75a980182b10ab7d54bfed3c964073a" +
-  "0ee172f3daa62325af021a68f707511a"
-);
-
-// Create credential
-const claim: Claim169Input = {
-  id: "USER-12345",
-  fullName: "Alice Smith",
-  dateOfBirth: "19900101",
-  gender: 2,
-  email: "alice@example.com",
-};
-
-const meta: CwtMetaInput = {
-  issuer: "https://identity.example.org",
-  issuedAt: Math.floor(Date.now() / 1000),
-  expiresAt: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
-};
-
-// Encode
-const qrData = new Encoder(claim, meta)
-  .signWithEd25519(privateKey)
-  .encode();
-
-console.log(`Encoded: ${qrData.substring(0, 50)}...`);
-
-// Decode and verify
-const result = new Decoder(qrData)
-  .verifyWithEd25519(publicKey)
-  .decode();
-
-console.log(`Name: ${result.claim169.fullName}`);
-console.log(`Issuer: ${result.cwtMeta.issuer}`);
-```
+- `hexToBytes(hex: string): Uint8Array`
+- `bytesToHex(bytes: Uint8Array): string`
+- `generateNonce(): Uint8Array` (12 bytes)
+- `version(): string`
+- `isLoaded(): boolean`
 
 ## Browser Usage
 

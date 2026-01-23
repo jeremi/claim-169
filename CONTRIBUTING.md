@@ -195,6 +195,32 @@ When contributing, please consider:
 - Update CHANGELOG.md for notable changes
 - Keep examples working and up-to-date
 
+### MkDocs site (multi-language)
+
+This repo uses MkDocs Material + `mkdocs-static-i18n`:
+
+- Source: `docs/<locale>/...` (currently `en`, `fr`, `es`)
+- Config: `mkdocs.yml`
+
+Preview docs locally:
+
+```bash
+uv sync --group dev
+uv run mkdocs serve
+```
+
+Build the static site:
+
+```bash
+uv run mkdocs build
+```
+
+Translation workflow:
+
+- Treat `docs/en/` as the source of truth.
+- When adding a new page, prefer creating it for all locales to avoid mixed-language fallback.
+- Keep page paths consistent across locales so the shared `nav` works.
+
 ## Questions?
 
 - Open a GitHub Discussion for general questions

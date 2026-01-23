@@ -31,7 +31,7 @@ Datos de identidad → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib 
 === "Rust"
 
     ```rust
-    use claim169_core::{Decoder, Encoder, Claim169Input, CwtMetaInput};
+    use claim169_core::Decoder;
 
     // Decodificar un código QR
     let result = Decoder::new(qr_content)
@@ -66,4 +66,6 @@ Datos de identidad → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib 
 
 - [Instalación](getting-started/installation.md) - Instalar el SDK para tu lenguaje
 - [Inicio rápido](getting-started/quick-start.md) - Codificar y decodificar tu primera credencial
+- [Material de claves y formatos](guides/keys.md) - Formatos de claves y soporte PEM
+- [Seguridad y validación](guides/security.md) - Valores por defecto y políticas
 - [Playground](playground.md) - Pruébalo en tu navegador

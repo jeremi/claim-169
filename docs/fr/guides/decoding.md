@@ -32,4 +32,54 @@ Vérifiez toujours les signatures en production :
     print(f"Expire : {result.cwt_meta.expires_at}")
     ```
 
-Pour plus de détails, consultez la [documentation en anglais](../../en/guides/decoding.md).
+=== "Rust"
+
+    ```rust
+    use claim169_core::Decoder;
+
+    let result = Decoder::new(qr_text)
+        .verify_with_ed25519(&public_key)?
+        .decode()?;
+    ```
+
+=== "TypeScript"
+
+    ```ts
+    import { Decoder } from "claim169";
+
+    const result = new Decoder(qrText)
+      .verifyWithEd25519(publicKey)
+      .decode();
+    ```
+
+### Sans vérification (tests uniquement)
+
+!!! danger "Avertissement"
+    Sans vérification de signature, un QR code peut être falsifié.
+
+=== "Python"
+
+    ```python
+    import claim169
+
+    result = claim169.decode_unverified(qr_data)
+    ```
+
+## Identifiants chiffrés
+
+Pour les payloads chiffrés, il faut **déchiffrer avant de vérifier**.
+
+=== "Python"
+
+    ```python
+    from claim169 import decode_encrypted_aes
+
+    # Test uniquement : déchiffre sans vérifier la signature interne
+    result = decode_encrypted_aes(qr_data, encryption_key)
+    ```
+
+Voir aussi :
+
+- [Chiffrement](encryption.md)
+- [Matériel de clés et formats](keys.md)
+- [Sécurité et validations](security.md)

@@ -17,6 +17,21 @@ Ou utilisez cargo :
 cargo add claim169-core
 ```
 
+### Fonctionnalités (features)
+
+La crate Rust expose la feature optionnelle suivante :
+
+| Feature | Description | Défaut |
+|---------|-------------|--------|
+| `software-crypto` | Implémentations logicielles Ed25519, ECDSA P-256 et AES-GCM | Oui |
+
+Pour une intégration HSM/KMS (signature/vérification/déchiffrement personnalisés), désactivez les features par défaut :
+
+```toml
+[dependencies]
+claim169-core = { version = "0.1", default-features = false }
+```
+
 ## Python
 
 Installez depuis PyPI :
@@ -61,7 +76,7 @@ Le SDK TypeScript utilise WebAssembly et fonctionne dans tous les navigateurs mo
 
 ### Support Node.js
 
-Node.js 16 ou supérieur est requis pour le support WebAssembly.
+Node.js 16 ou supérieur est requis pour WebAssembly (Node 18+ recommandé).
 
 ## Compilation depuis les sources
 
@@ -111,7 +126,7 @@ npm run build
 
     ```python
     import claim169
-    print(f"Version claim169 : {claim169.__version__}")
+    print(f"Version claim169 : {claim169.version()}")
     ```
 
 === "TypeScript"

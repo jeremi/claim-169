@@ -46,13 +46,15 @@ const result = new Decoder(qrText)
   .decode();
 ```
 
-### Function API
+### `decode()` Convenience Function
+
+> **Security note**: `decode()` decodes **without signature verification** unless you pass a verification key (e.g. `verifyWithEd25519`). Use the `Decoder` builder API in production.
 
 ```typescript
-import { decode, DecodeOptions } from 'claim169';
+import { decode, type DecodeOptions } from 'claim169';
 
-// Simple decode
-const result = decode(qrText);
+// Simple decode (testing only)
+const result = decode(qrText, { allowUnverified: true });
 
 // With options
 const options: DecodeOptions = {
