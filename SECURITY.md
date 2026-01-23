@@ -8,170 +8,91 @@
 
 ## Reporting a Vulnerability
 
-Please report security vulnerabilities by emailing security@openspp.org.
+Please report security vulnerabilities through [GitHub's private vulnerability reporting](https://github.com/jeremi/claim-169/security/advisories/new).
+
+This allows us to discuss and address the issue privately before any public disclosure. You will receive updates on the progress of your report through GitHub.
 
 Do not report security vulnerabilities through public GitHub issues.
 
 ## Security Considerations
 
-### Cryptographic Properties
+### Cryptographic Primitives
 
-This library uses the following cryptographic primitives:
+| Algorithm | Purpose | Crate |
+|-----------|---------|-------|
+| Ed25519 | Signature verification | `ed25519-dalek` |
+| ECDSA P-256 | Signature verification | `p256` |
+| AES-GCM | Authenticated encryption | `aes-gcm` |
 
-- **Ed25519**: Signature verification via `ed25519-dalek` (RustCrypto)
-- **ECDSA P-256**: Signature verification via `p256` (RustCrypto)
-- **AES-GCM**: Authenticated encryption via `aes-gcm` (RustCrypto)
-
-All cryptographic operations are performed using constant-time implementations where applicable.
-
-### Memory Security
-
-- **Key Zeroization**: All signing keys and encryption keys are automatically zeroized on drop using the `zeroize` crate. This prevents sensitive key material from lingering in memory after use.
-
-- **Weak Key Rejection**: The library rejects known weak keys including:
-  - All-zeros Ed25519 public keys
-  - Small-order Ed25519 points (potential subgroup attacks)
-  - P-256 keys with all-zero coordinates
-
-### Input Validation
-
-- **Decompression Limits**: A configurable `max_decompressed_bytes` limit (default: 64KB) protects against zip bomb attacks.
-
-- **CBOR Depth Limits**: A maximum nesting depth of 128 prevents stack overflow attacks via deeply nested structures.
-
-- **Timestamp Validation**: Credentials are validated against `exp` (expiration) and `nbf` (not-before) claims by default.
-
-- **Algorithm Enforcement**: COSE messages must contain explicit algorithm headers - no default algorithms are assumed.
+All cryptographic operations use constant-time implementations where applicable.
 
 ### Secure Defaults
 
-The library uses secure defaults:
+The `Decoder` requires explicit configuration:
 
 ```rust
-DecodeOptions::default()
-    .allow_unverified: false    // Signature verification required
-    .validate_timestamps: true  // Timestamp validation enabled
-    .clock_skew_tolerance_seconds: 0  // No clock skew tolerance
+// Verification is required by default
+Decoder::new(qr_text)
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+
+// To skip verification, you must explicitly opt out
+Decoder::new(qr_text)
+    .allow_unverified()
+    .decode()?;
 ```
+
+Default settings:
+- Signature verification: **required** (must call `allow_unverified()` to skip)
+- Timestamp validation: **enabled**
+- Clock skew tolerance: **0 seconds**
+- Max decompressed size: **64KB**
+
+### Input Validation
+
+- **Decompression limits**: Configurable `max_decompressed_bytes` (default: 64KB) protects against zip bomb attacks
+- **CBOR depth limits**: Maximum nesting depth of 128 prevents stack overflow attacks
+- **Timestamp validation**: Credentials are validated against `exp` and `nbf` claims by default
+- **Algorithm enforcement**: COSE messages must contain explicit algorithm headers
+
+### Memory Security
+
+- **Key zeroization**: Signing and encryption keys are automatically zeroized on drop via the `zeroize` crate
+- **Weak key rejection**: All-zeros keys and small-order Ed25519 points are rejected
 
 ### Nonce Management (AES-GCM)
 
-The `AesGcmEncryptor` provides `generate_nonce()` for convenience, but **you are responsible for ensuring nonces are never reused** with the same key. Nonce reuse with AES-GCM is catastrophic and allows key recovery.
-
-For high-security contexts:
-- Use a hardware random number generator (HSM)
-- Consider AES-GCM-SIV for nonce-misuse resistance
-- Implement nonce tracking at your application layer
-
-### Key ID Handling
-
-The library extracts `key_id` from COSE headers but does not enforce binding between key IDs and keys. If your security model requires key ID validation, implement this check before calling `decode_with_verifier()`.
+`AesGcmEncryptor::generate_nonce()` is provided for convenience, but **you are responsible for ensuring nonces are never reused** with the same key. Nonce reuse with AES-GCM allows key recovery.
 
 ### Key Management
 
-The library does not handle key distribution or trust establishment. You are responsible for:
-
-1. **Secure Key Distribution**: Obtaining issuer public keys through secure channels
-2. **Certificate/Key Pinning**: Validating that keys come from trusted issuers
-3. **Key Rotation**: Handling key updates and revocation
-4. **JWKS Fetching**: If using `.well-known` JWKS endpoints, use TLS with certificate validation
-
-### Audit Logging
-
-Security-relevant events to consider logging in your application:
-
-- Signature verification failures (potential attack indicator)
-- Expired or not-yet-valid credentials
-- Unknown algorithm requests
-- Decompression limit exceeded
-- CBOR depth limit exceeded
-- Weak key rejection
-
-### Clock Synchronization
-
-Timestamp validation (`exp`, `nbf`) requires synchronized clocks between issuer and verifier. Use the `clock_skew_tolerance_seconds` option for deployments with potential clock drift:
-
-```rust
-DecodeOptions::new()
-    .with_clock_skew_tolerance(60)  // 60 seconds tolerance
-```
-
-### Rate Limiting
-
-The library does not implement rate limiting. For production deployments, implement rate limiting at your application or infrastructure layer to prevent:
-
-- Brute-force signature guessing attempts
-- Denial of service via expensive operations
+This library does not handle key distribution or trust establishment. You are responsible for:
+- Secure key distribution and storage
+- Certificate/key pinning and validation
+- Key rotation and revocation
 
 ## Threat Model
 
-This library is designed to decode and verify Claim 169 QR codes in scenarios where:
-
-1. The QR code content may be adversarially crafted
-2. The verifier has access to trusted issuer public keys
-3. Biometric data (if present) is handled appropriately
+This library is designed to decode and verify Claim 169 QR codes where:
+- The QR code content may be adversarially crafted
+- The verifier has access to trusted issuer public keys
 
 The library does NOT protect against:
-
-1. Key compromise at the issuer
-2. Physical QR code tampering (use tamper-evident materials)
-3. Replay attacks (implement application-level replay protection)
-4. Side-channel attacks on the host system
+- Key compromise at the issuer
+- Replay attacks (implement application-level protection)
+- Side-channel attacks on the host system
 
 ## Fuzzing
 
-The library includes fuzz testing targets. To run fuzzing:
-
 ```bash
-cd fuzz
 cargo +nightly fuzz run fuzz_decode
 cargo +nightly fuzz run fuzz_base45
 cargo +nightly fuzz run fuzz_decompress
 ```
 
-## Dependencies
-
-All cryptographic dependencies are from the RustCrypto project or well-established maintainers:
-
-| Crate | Purpose |
-|-------|---------|
-| `ed25519-dalek` | Ed25519 signatures |
-| `p256` | ECDSA P-256 signatures |
-| `aes-gcm` | AES-GCM encryption |
-| `coset` | COSE structure parsing |
-| `ciborium` | CBOR parsing |
-| `zeroize` | Secure memory clearing |
-
 ## Release Signing
 
-All releases are cryptographically signed and verifiable:
-
-### Git Tags
-
-Release tags are GPG-signed. To verify a release:
-
-```bash
-git verify-tag v0.1.0
-```
-
-### Package Provenance
-
-- **npm**: Published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements), providing cryptographic proof that packages were built by our GitHub Actions workflows. Look for the provenance badge on the npm package page.
-
-- **PyPI**: Published using [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OpenID Connect), which provides cryptographic attestation that packages came from our GitHub repository.
-
-- **crates.io**: Published from verified GitHub Actions workflows with authentication tokens.
-
-### Verifying Releases
-
-1. **Verify git tag signature**:
-   ```bash
-   git fetch --tags
-   git verify-tag v0.1.0
-   ```
-
-2. **Check npm provenance**:
-   - Visit https://www.npmjs.com/package/claim169
-   - Look for the "Provenance" badge linking to the build
-
-3. **Verify checksums**: Each GitHub Release includes SHA256 checksums for all artifacts
+- **Git tags**: GPG-signed (`git verify-tag v0.1.0`)
+- **npm**: Published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements)
+- **PyPI**: Published using [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+- **crates.io**: Published from verified GitHub Actions workflows

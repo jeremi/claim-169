@@ -561,16 +561,38 @@ fn decode_unverified(
 /// Args:
 ///     qr_text: The QR code text content
 ///     public_key: Ed25519 public key bytes (32 bytes)
+///     skip_biometrics: If True, skip decoding biometric data (default: False)
+///     max_decompressed_bytes: Maximum decompressed size (default: 65536)
+///     validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+///     clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
 ///
 /// Returns:
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
-fn decode_with_ed25519(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeResult> {
-    let result = Decoder::new(qr_text)
+#[pyo3(signature = (qr_text, public_key, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+fn decode_with_ed25519(
+    qr_text: &str,
+    public_key: &[u8],
+    skip_biometrics: bool,
+    max_decompressed_bytes: usize,
+    validate_timestamps: bool,
+    clock_skew_tolerance_seconds: i64,
+) -> PyResult<DecodeResult> {
+    let mut decoder = Decoder::new(qr_text)
         .verify_with_ed25519(public_key)
         .map_err(|e| SignatureError::new_err(e.to_string()))?
-        .decode()
-        .map_err(to_py_err)?;
+        .max_decompressed_bytes(max_decompressed_bytes)
+        .clock_skew_tolerance(clock_skew_tolerance_seconds);
+
+    if skip_biometrics {
+        decoder = decoder.skip_biometrics();
+    }
+
+    if !validate_timestamps {
+        decoder = decoder.without_timestamp_validation();
+    }
+
+    let result = decoder.decode().map_err(to_py_err)?;
 
     Ok(DecodeResult {
         claim169: Claim169::from(&result.claim169),
@@ -584,16 +606,38 @@ fn decode_with_ed25519(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeResul
 /// Args:
 ///     qr_text: The QR code text content
 ///     public_key: SEC1 encoded P-256 public key bytes (33 or 65 bytes)
+///     skip_biometrics: If True, skip decoding biometric data (default: False)
+///     max_decompressed_bytes: Maximum decompressed size (default: 65536)
+///     validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+///     clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
 ///
 /// Returns:
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
-fn decode_with_ecdsa_p256(qr_text: &str, public_key: &[u8]) -> PyResult<DecodeResult> {
-    let result = Decoder::new(qr_text)
+#[pyo3(signature = (qr_text, public_key, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+fn decode_with_ecdsa_p256(
+    qr_text: &str,
+    public_key: &[u8],
+    skip_biometrics: bool,
+    max_decompressed_bytes: usize,
+    validate_timestamps: bool,
+    clock_skew_tolerance_seconds: i64,
+) -> PyResult<DecodeResult> {
+    let mut decoder = Decoder::new(qr_text)
         .verify_with_ecdsa_p256(public_key)
         .map_err(|e| SignatureError::new_err(e.to_string()))?
-        .decode()
-        .map_err(to_py_err)?;
+        .max_decompressed_bytes(max_decompressed_bytes)
+        .clock_skew_tolerance(clock_skew_tolerance_seconds);
+
+    if skip_biometrics {
+        decoder = decoder.skip_biometrics();
+    }
+
+    if !validate_timestamps {
+        decoder = decoder.without_timestamp_validation();
+    }
+
+    let result = decoder.decode().map_err(to_py_err)?;
 
     Ok(DecodeResult {
         claim169: Claim169::from(&result.claim169),
@@ -639,29 +683,37 @@ fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<Decod
 ///     qr_text: The QR code text content
 ///     key: AES-GCM key bytes (16 bytes for AES-128, 32 bytes for AES-256)
 ///     verifier: Optional verifier callable for nested signature verification
+///     allow_unverified: If True, allow decoding without signature verification (INSECURE)
 ///
 /// Returns:
 ///     DecodeResult containing the decrypted and decoded claim
 #[pyfunction]
-#[pyo3(signature = (qr_text, key, verifier=None))]
+#[pyo3(signature = (qr_text, key, verifier=None, allow_unverified=false))]
 fn decode_encrypted_aes(
     qr_text: &str,
     key: &[u8],
     verifier: Option<Py<PyAny>>,
+    allow_unverified: bool,
 ) -> PyResult<DecodeResult> {
     let decryptor =
         AesGcmDecryptor::from_bytes(key).map_err(|e| PyValueError::new_err(e.to_string()))?;
 
     let decoder = Decoder::new(qr_text).decrypt_with(decryptor);
 
-    let result = if let Some(v) = verifier {
-        let py_verifier = PySignatureVerifier::new(v);
-        decoder
-            .verify_with(py_verifier)
-            .decode()
-            .map_err(to_py_err)?
-    } else {
-        decoder.allow_unverified().decode().map_err(to_py_err)?
+    let result = match (verifier, allow_unverified) {
+        (Some(v), _) => {
+            let py_verifier = PySignatureVerifier::new(v);
+            decoder
+                .verify_with(py_verifier)
+                .decode()
+                .map_err(to_py_err)?
+        }
+        (None, true) => decoder.allow_unverified().decode().map_err(to_py_err)?,
+        (None, false) => {
+            return Err(PyValueError::new_err(
+                "decode_encrypted_aes() requires a verifier unless allow_unverified=True",
+            ))
+        }
     };
 
     Ok(DecodeResult {
@@ -678,6 +730,7 @@ fn decode_encrypted_aes(
 ///     decryptor: A callable that takes (algorithm, key_id, nonce, aad, ciphertext)
 ///                and returns the decrypted plaintext bytes
 ///     verifier: Optional verifier callable for nested signature verification
+///     allow_unverified: If True, allow decoding without signature verification (INSECURE)
 ///
 /// Example:
 ///     def my_hsm_decrypt(algorithm, key_id, nonce, aad, ciphertext):
@@ -685,24 +738,31 @@ fn decode_encrypted_aes(
 ///
 ///     result = decode_with_decryptor(qr_text, my_hsm_decrypt)
 #[pyfunction]
-#[pyo3(signature = (qr_text, decryptor, verifier=None))]
+#[pyo3(signature = (qr_text, decryptor, verifier=None, allow_unverified=false))]
 fn decode_with_decryptor(
     qr_text: &str,
     decryptor: Py<PyAny>,
     verifier: Option<Py<PyAny>>,
+    allow_unverified: bool,
 ) -> PyResult<DecodeResult> {
     let py_decryptor = PyDecryptor::new(decryptor);
 
     let decoder = Decoder::new(qr_text).decrypt_with(py_decryptor);
 
-    let result = if let Some(v) = verifier {
-        let py_verifier = PySignatureVerifier::new(v);
-        decoder
-            .verify_with(py_verifier)
-            .decode()
-            .map_err(to_py_err)?
-    } else {
-        decoder.allow_unverified().decode().map_err(to_py_err)?
+    let result = match (verifier, allow_unverified) {
+        (Some(v), _) => {
+            let py_verifier = PySignatureVerifier::new(v);
+            decoder
+                .verify_with(py_verifier)
+                .decode()
+                .map_err(to_py_err)?
+        }
+        (None, true) => decoder.allow_unverified().decode().map_err(to_py_err)?,
+        (None, false) => {
+            return Err(PyValueError::new_err(
+                "decode_with_decryptor() requires a verifier unless allow_unverified=True",
+            ))
+        }
     };
 
     Ok(DecodeResult {

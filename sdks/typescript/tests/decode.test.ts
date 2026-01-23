@@ -67,9 +67,14 @@ describe("claim169", () => {
       expect(bytesToHex(bytes)).toBe("0a0b0c");
     });
 
-    it("decode() should default to allowUnverified", () => {
+    it("decode() should require a verification key by default", () => {
       const vector = loadTestVector("valid", "minimal");
-      const result = decode(vector.qr_data);
+      expect(() => decode(vector.qr_data)).toThrow(Claim169Error);
+    });
+
+    it("decode() should allow unverified decoding when allowUnverified is true", () => {
+      const vector = loadTestVector("valid", "minimal");
+      const result = decode(vector.qr_data, { allowUnverified: true });
 
       expect(result.claim169.id).toBe(vector.expected_claim169?.id);
       expect(result.claim169.fullName).toBe(vector.expected_claim169?.fullName);

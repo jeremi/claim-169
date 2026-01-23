@@ -1,19 +1,46 @@
 # Claim 169
 
-Una implementación multi-lenguaje de la especificación [MOSIP Claim 169](https://github.com/mosip/id-claim-169) para codificar y verificar credenciales de identidad digital en códigos QR.
+Codifica y verifica credenciales de identidad digital con la especificación de código QR [MOSIP Claim 169](https://github.com/mosip/id-claim-169).
 
-## Descripción general
+[Comenzar](getting-started/installation.md){ .md-button .md-button--primary }
+[Probar el playground](playground.md){ .md-button }
 
-MOSIP Claim 169 define un formato compacto y seguro para codificar datos de identidad en códigos QR, optimizado para verificación sin conexión. Esta biblioteca proporciona:
+## ¿Qué es Claim 169?
 
-- **Biblioteca Rust** con codificación, decodificación, verificación de firma y cifrado
-- **SDK Python** para integración del lado del servidor
-- **SDK TypeScript/JavaScript** via WebAssembly para navegador y Node.js
-- **Playground interactivo** para experimentar con códigos QR
+MOSIP Claim 169 define un formato compacto y seguro para codificar datos de identidad en códigos QR, optimizado para verificación sin conexión. Este repositorio proporciona:
+
+- **Biblioteca Rust** (codificación, decodificación, verificación, cifrado)
+- **SDK Python** (integración del lado del servidor)
+- **SDK TypeScript/JavaScript** (WASM para navegador y Node.js)
+- **Playground interactivo** (prueba vectores y construye payloads QR)
+
+<div class="grid cards" markdown>
+
+-   ### Rust Core
+    Codificación/decodificación de alto rendimiento con verificación de firma y cifrado opcional.
+
+    [API Rust](api/rust.md){ .md-button }
+
+-   ### SDK Python
+    Funciones simples para verificación, descifrado y pipelines de decodificación en servicios Python.
+
+    [API Python](api/python.md){ .md-button }
+
+-   ### TypeScript / JavaScript
+    SDK impulsado por WebAssembly para navegador y Node.js.
+
+    [API TypeScript](api/typescript.md){ .md-button }
+
+-   ### Playground
+    Codifica, decodifica, descifra y verifica sin instalar nada.
+
+    [Abrir playground](playground.md){ .md-button }
+
+</div>
 
 ## Pipeline de codificación
 
-```
+```text
 Datos de identidad → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → Base45 → Código QR
 ```
 
@@ -33,7 +60,6 @@ Datos de identidad → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib 
     ```rust
     use claim169_core::Decoder;
 
-    // Decodificar un código QR
     let result = Decoder::new(qr_content)
         .verify_with_ed25519(&public_key)?
         .decode()?;
@@ -53,7 +79,7 @@ Datos de identidad → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib 
 === "TypeScript"
 
     ```typescript
-    import { Decoder } from 'claim169';
+    import { Decoder } from "claim169";
 
     const result = new Decoder(qrText)
       .verifyWithEd25519(publicKey)
@@ -62,13 +88,49 @@ Datos de identidad → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib 
     console.log(`Nombre: ${result.claim169.fullName}`);
     ```
 
+## Enlaces rápidos
+
+<div class="grid cards" markdown>
+
+-   ### Instalación
+    Instala el SDK para tu lenguaje.
+
+    [Instalar](getting-started/installation.md){ .md-button }
+
+-   ### Inicio rápido
+    Codifica y decodifica tu primera credencial.
+
+    [Inicio rápido](getting-started/quick-start.md){ .md-button }
+
+-   ### Claves
+    Formatos de claves y cómo proporcionarlas.
+
+    [Claves](guides/keys.md){ .md-button }
+
+-   ### Seguridad y validación
+    Valores por defecto y opciones de política.
+
+    [Seguridad](guides/security.md){ .md-button }
+
+-   ### Especificación
+    El formato de transmisión y las estructuras.
+
+    [Especificación](specification.md){ .md-button }
+
+-   ### Solución de problemas
+    Errores comunes y soluciones.
+
+    [Solución de problemas](guides/troubleshooting.md){ .md-button }
+
+</div>
+
 ## Próximos pasos
 
-- [Instalación](getting-started/installation.md) - Instalar el SDK para tu lenguaje
-- [Inicio rápido](getting-started/quick-start.md) - Codificar y decodificar tu primera credencial
-- [Material de claves y formatos](guides/keys.md) - Formatos de claves y soporte PEM
-- [Seguridad y validación](guides/security.md) - Valores por defecto y políticas
-- [Glosario](guides/glossary.md) - Definiciones de términos clave (CBOR, COSE, CWT, etc.)
-- [Versiones](guides/versioning.md) - Qué reflejan los docs y cómo fijar versiones
-- [Contribuir](guides/contributing.md) - Cómo editar docs y traducciones
-- [Playground](playground.md) - Pruébalo en tu navegador
+- [Inicio rápido](getting-started/quick-start.md) — codifica y decodifica tu primera credencial
+- [Material de claves y formatos](guides/keys.md) — formatos de claves y soporte PEM
+- [Seguridad y validación](guides/security.md) — valores por defecto y opciones de política
+- [Glosario](guides/glossary.md) — CBOR, COSE, CWT, etc.
+- [Versiones](guides/versioning.md) — relación entre la documentación y las versiones
+- [Solución de problemas](guides/troubleshooting.md) — errores comunes y soluciones
+
+**¿Necesitas ayuda?** Comienza con [Solución de problemas](guides/troubleshooting.md) o consulta [Contribuir](guides/contributing.md) para mejorar la documentación.

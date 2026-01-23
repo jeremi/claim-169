@@ -166,15 +166,29 @@ def decode(
     max_decompressed_bytes: int = 65536,
     validate_timestamps: bool = True,
     clock_skew_tolerance_seconds: int = 0,
+    verify_with_ed25519: Optional[bytes] = None,
+    verify_with_ecdsa_p256: Optional[bytes] = None,
+    allow_unverified: bool = False,
 ) -> DecodeResult:
     """
-    Convenience alias for `decode_unverified()` (INSECURE).
+    Decode a Claim 169 QR code.
 
-    Use `decode_with_ed25519()` / `decode_with_ecdsa_p256()` in production.
+    Security:
+    - By default, requires signature verification via `verify_with_ed25519` or
+      `verify_with_ecdsa_p256`.
+    - To explicitly decode without verification (testing only), set
+      `allow_unverified=True`.
     """
     ...
 
-def decode_with_ed25519(qr_text: str, public_key: bytes) -> DecodeResult:
+def decode_with_ed25519(
+    qr_text: str,
+    public_key: bytes,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult:
     """
     Decode with Ed25519 signature verification.
 
@@ -184,7 +198,14 @@ def decode_with_ed25519(qr_text: str, public_key: bytes) -> DecodeResult:
     """
     ...
 
-def decode_with_ecdsa_p256(qr_text: str, public_key: bytes) -> DecodeResult:
+def decode_with_ecdsa_p256(
+    qr_text: str,
+    public_key: bytes,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult:
     """
     Decode with ECDSA P-256 signature verification.
 
@@ -214,6 +235,7 @@ def decode_encrypted_aes(
     qr_text: str,
     key: bytes,
     verifier: Optional[VerifierCallback] = None,
+    allow_unverified: bool = False,
 ) -> DecodeResult:
     """
     Decode an encrypted Claim 169 QR code.
@@ -222,6 +244,7 @@ def decode_encrypted_aes(
         qr_text: The QR code text content
         key: AES-GCM key bytes (16 or 32 bytes)
         verifier: Optional verifier for nested signature verification
+        allow_unverified: If True, allow decoding without signature verification (INSECURE)
     """
     ...
 
@@ -229,6 +252,7 @@ def decode_with_decryptor(
     qr_text: str,
     decryptor: DecryptorCallback,
     verifier: Optional[VerifierCallback] = None,
+    allow_unverified: bool = False,
 ) -> DecodeResult:
     """
     Decode encrypted with a custom decryptor hook (for HSM integration).
@@ -237,6 +261,7 @@ def decode_with_decryptor(
         qr_text: The QR code text content
         decryptor: Callable that decrypts ciphertext
         verifier: Optional verifier for nested signature verification
+        allow_unverified: If True, allow decoding without signature verification (INSECURE)
 
     Example:
         def my_hsm_decrypt(algorithm, key_id, nonce, aad, ciphertext):

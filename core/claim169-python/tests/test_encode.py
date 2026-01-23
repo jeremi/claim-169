@@ -428,7 +428,7 @@ class TestEncodeSignedEncrypted:
         )
 
         with pytest.raises(claim169.Claim169Exception):
-            claim169.decode_encrypted_aes(qr_data, wrong_decrypt_key)
+            claim169.decode_encrypted_aes(qr_data, wrong_decrypt_key, allow_unverified=True)
 
     def test_invalid_sign_key_length(self, encrypted_signed_vector):
         """Test that invalid signing key length raises error."""

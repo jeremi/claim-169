@@ -1,6 +1,6 @@
 # Claim 169
 
-> **Alpha Software**: This library is under active development. APIs may change without notice. Not recommended for production use without thorough testing.
+> **New Library**: This library is new and under active development. Use at your own risk and test thoroughly before production use.
 
 [![CI](https://github.com/jeremi/claim-169/actions/workflows/ci.yml/badge.svg)](https://github.com/jeremi/claim-169/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/jeremi/claim-169/graph/badge.svg)](https://codecov.io/gh/jeremi/claim-169)
@@ -190,7 +190,7 @@ See [SECURITY.md](SECURITY.md) for detailed security information and threat mode
 
 ### Reporting Security Issues
 
-Please report security vulnerabilities to security@openspp.org. Do not use public GitHub issues for security reports.
+Please report security vulnerabilities through [GitHub's private vulnerability reporting](https://github.com/jeremi/claim-169/security/advisories/new). Do not use public GitHub issues for security reports.
 
 ## Documentation
 

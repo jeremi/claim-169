@@ -18,15 +18,13 @@ class TestModule:
         """Test that __version__ matches version()."""
         assert claim169.__version__ == claim169.version()
 
-    def test_decode_alias_matches_decode_unverified(self, minimal_vector):
-        """Test that decode() is a convenience alias for decode_unverified()."""
-        result = claim169.decode(minimal_vector["qr_data"])
-        result_unverified = claim169.decode_unverified(minimal_vector["qr_data"])
+    def test_decode_requires_verification_by_default(self, minimal_vector):
+        """Test that decode() requires a key unless allow_unverified=True."""
+        with pytest.raises(ValueError):
+            claim169.decode(minimal_vector["qr_data"])
 
-        assert result.claim169.id == result_unverified.claim169.id
-        assert result.claim169.full_name == result_unverified.claim169.full_name
+        result = claim169.decode(minimal_vector["qr_data"], allow_unverified=True)
         assert result.verification_status == "skipped"
-        assert result_unverified.verification_status == "skipped"
 
 
 class TestDecodeValidVectors:
@@ -222,6 +220,12 @@ class TestDecodeWithEd25519:
 class TestDecodeEncrypted:
     """Tests for encrypted payload decoding."""
 
+    def test_decrypt_requires_verifier_by_default(self, encrypted_aes256_vector):
+        """Test that encrypted decode requires a verifier unless allow_unverified=True."""
+        enc_key = bytes(32)  # length-valid key
+        with pytest.raises(ValueError):
+            claim169.decode_encrypted_aes(encrypted_aes256_vector["qr_data"], enc_key)
+
     def test_decrypt_signed_aes256(self, encrypted_signed_vector):
         """Test decrypting an AES-256-GCM encrypted payload containing a signed CWT."""
         enc_key = bytes.fromhex(
@@ -255,8 +259,7 @@ class TestDecodeEncrypted:
         wrong_key = bytes(32)  # All zeros
         with pytest.raises(claim169.Claim169Exception):
             claim169.decode_encrypted_aes(
-                encrypted_aes256_vector["qr_data"],
-                wrong_key
+                encrypted_aes256_vector["qr_data"], wrong_key, allow_unverified=True
             )
 
 
@@ -298,6 +301,16 @@ class TestDecodeWithVerifierHook:
 class TestDecodeWithDecryptorHook:
     """Tests for custom decryptor hook."""
 
+    def test_custom_decryptor_requires_verifier_by_default(self, encrypted_aes256_vector):
+        """Test that decryptor hook requires a verifier unless allow_unverified=True."""
+        def decrypt_callback(algorithm, key_id, nonce, aad, ciphertext):
+            return b""
+
+        with pytest.raises(ValueError):
+            claim169.decode_with_decryptor(
+                encrypted_aes256_vector["qr_data"], decrypt_callback
+            )
+
     def test_custom_decryptor_success(self, encrypted_signed_vector):
         """Test that custom decryptor can decrypt payload with nested signature."""
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -336,8 +349,7 @@ class TestDecodeWithDecryptorHook:
 
         with pytest.raises(claim169.Claim169Exception):
             claim169.decode_with_decryptor(
-                encrypted_aes256_vector["qr_data"],
-                decrypt_callback
+                encrypted_aes256_vector["qr_data"], decrypt_callback, allow_unverified=True
             )
 
 

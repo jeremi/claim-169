@@ -446,7 +446,7 @@ export class Decoder implements IDecoder {
  * Options for the `decode()` convenience function.
  *
  * Notes:
- * - If you don't provide a verification key, `decode()` decodes without verification (testing only).
+ * - If you don't provide a verification key, you must explicitly set `allowUnverified: true` (testing only).
  * - Timestamp validation is disabled by default in WASM; set `validateTimestamps: true` to enable it.
  */
 export interface DecodeOptions {
@@ -466,7 +466,7 @@ export interface DecodeOptions {
  *
  * This is a convenience wrapper around the `Decoder` builder.
  * Security:
- * - If you do not pass a verification key, this will decode without verification (testing only).
+ * - If you do not pass a verification key, you must set `allowUnverified: true` (testing only).
  */
 export function decode(qrText: string, options: DecodeOptions = {}): DecodeResult {
   let decoder = new Decoder(qrText);
@@ -498,7 +498,7 @@ export function decode(qrText: string, options: DecodeOptions = {}): DecodeResul
     decoder = decoder.verifyWithEd25519(options.verifyWithEd25519);
   } else if (options.verifyWithEcdsaP256) {
     decoder = decoder.verifyWithEcdsaP256(options.verifyWithEcdsaP256);
-  } else if (options.allowUnverified ?? true) {
+  } else if (options.allowUnverified === true) {
     decoder = decoder.allowUnverified();
   } else {
     throw new Claim169Error(

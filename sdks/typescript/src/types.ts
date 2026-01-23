@@ -221,7 +221,7 @@ export interface DecodeResult {
   /**
    * Signature verification status.
    * - "verified": Signature verified successfully with provided public key
-   * - "skipped": Verification skipped (allowUnverified() or legacy decode() function)
+   * - "skipped": Verification skipped (allowUnverified() or decode(..., { allowUnverified: true }))
    * - "failed": Signature verification failed
    */
   verificationStatus: VerificationStatus;

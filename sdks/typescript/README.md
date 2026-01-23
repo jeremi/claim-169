@@ -48,7 +48,7 @@ const result = new Decoder(qrText)
 
 ### `decode()` Convenience Function
 
-> **Security note**: `decode()` decodes **without signature verification** unless you pass a verification key (e.g. `verifyWithEd25519`). Use the `Decoder` builder API in production.
+> **Security note**: `decode()` requires a verification key unless you explicitly set `allowUnverified: true` (testing only). Use the `Decoder` builder API in production.
 
 ```typescript
 import { decode, type DecodeOptions } from 'claim169';
@@ -61,6 +61,7 @@ const options: DecodeOptions = {
   maxDecompressedBytes: 32768,  // 32KB limit
   skipBiometrics: true,         // Skip biometric parsing
   validateTimestamps: false,    // Disabled by default in WASM
+  allowUnverified: true,        // Explicit opt-out (testing only)
 };
 
 const result = decode(qrText, options);
@@ -257,7 +258,7 @@ interface Biometric {
 import { decode, Claim169Error } from 'claim169';
 
 try {
-  const result = decode(qrText);
+  const result = decode(qrText, { allowUnverified: true });
 } catch (error) {
   if (error instanceof Claim169Error) {
     // Handle decode error

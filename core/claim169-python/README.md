@@ -28,9 +28,9 @@ MOSIP Claim 169 defines a standard for encoding identity data in QR codes using:
 ```python
 import claim169
 
-# Decode a QR code (without signature verification)
+# Decode a QR code (recommended: with signature verification)
 qr_text = "6BF5YZB2..."  # Base45-encoded QR content
-result = claim169.decode(qr_text)
+result = claim169.decode(qr_text, verify_with_ed25519=public_key_bytes)
 
 # Access identity data
 print(f"ID: {result.claim169.id}")
@@ -177,17 +177,26 @@ def my_hsm_decrypt(algorithm: str, key_id: bytes | None, nonce: bytes, aad: byte
     """
     return hsm.decrypt(key_id, nonce, aad, ciphertext)
 
-result = claim169.decode_with_decryptor(qr_text, my_hsm_decrypt)
+# Provide a verifier for the inner COSE_Sign1 (recommended)
+result = claim169.decode_with_decryptor(qr_text, my_hsm_decrypt, verifier=my_hsm_verify)
 ```
 
 ## Decode Options
 
 ```python
 # Skip biometric data for faster parsing
-result = claim169.decode(qr_text, skip_biometrics=True)
+result = claim169.decode(
+    qr_text,
+    verify_with_ed25519=public_key_bytes,
+    skip_biometrics=True,
+)
 
 # Limit decompressed size (default: 64KB)
-result = claim169.decode(qr_text, max_decompressed_bytes=32768)
+result = claim169.decode(
+    qr_text,
+    verify_with_ed25519=public_key_bytes,
+    max_decompressed_bytes=32768,
+)
 ```
 
 ## Data Model
