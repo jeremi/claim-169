@@ -13,19 +13,19 @@ Ce projet publie plusieurs artefacts (crate Rust, package Python, package TypeSc
 
 ```toml
 [dependencies]
-claim169-core = "0.1.0-alpha"
+claim169-core = "0.1.0-alpha.2"
 ```
 
 ### Python
 
 ```bash
-pip install "claim169==0.1.0-alpha"
+pip install "claim169==0.1.0-alpha.2"
 ```
 
 ### TypeScript
 
 ```bash
-npm install "claim169@0.1.0-alpha"
+npm install "claim169@0.1.0-alpha.2"
 ```
 
 ## Quand mettre à jour la doc
