@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Html5Qrcode } from "html5-qrcode"
 import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/components/ui/button"
@@ -11,8 +12,8 @@ interface QrScannerProps {
 }
 
 export function QrScanner({ onScan, onClose }: QrScannerProps) {
+  const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
-  const [isScanning, setIsScanning] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -26,11 +27,10 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
 
         const cameras = await Html5Qrcode.getCameras()
         if (cameras.length === 0) {
-          setError("No cameras found. Try uploading an image instead.")
+          setError(t("scanner.noCameras"))
           return
         }
 
-        setIsScanning(true)
         await scanner.start(
           { facingMode: "environment" },
           {
@@ -46,8 +46,7 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
           }
         )
       } catch (err) {
-        setError(`Camera access failed: ${err instanceof Error ? err.message : String(err)}`)
-        setIsScanning(false)
+        setError(`${t("scanner.cameraFailed")}: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
 
@@ -59,15 +58,15 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
   }, [])
 
   const stopScanner = async () => {
-    if (scannerRef.current && isScanning) {
+    if (scannerRef.current) {
       try {
         await scannerRef.current.stop()
         scannerRef.current.clear()
       } catch {
-        // Ignore stop errors
+        // Ignore stop errors (may already be stopped)
       }
+      scannerRef.current = null
     }
-    setIsScanning(false)
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +90,7 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold flex items-center gap-2">
             <Camera className="h-5 w-5" />
-            Scan QR Code
+            {t("scanner.title")}
           </h3>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -120,10 +119,10 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
               className="hidden"
             />
             <Upload className="h-4 w-4 mr-2" />
-            Upload Image
+            {t("scanner.uploadImage")}
           </label>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t("scanner.cancel")}
           </Button>
         </div>
       </div>

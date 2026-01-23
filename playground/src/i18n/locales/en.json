@@ -1,0 +1,135 @@
+{
+  "app": {
+    "title": "Claim 169 Playground",
+    "footer": {
+      "privacy": "All processing happens in your browser. No data is sent to any server.",
+      "builtWith": "Built with Rust + WebAssembly",
+      "spec": "MOSIP Claim 169 Spec"
+    }
+  },
+  "encoded": {
+    "title": "Encoded",
+    "loadExample": "Load example...",
+    "sample": "Sample",
+    "base45Label": "Base45 Data",
+    "base45Placeholder": "Paste Base45-encoded QR data here, or edit fields on the right...",
+    "scanQr": "Scan QR Code",
+    "chars": "chars",
+    "scan": "Scan",
+    "downloadPng": "PNG"
+  },
+  "decoded": {
+    "title": "Decoded",
+    "rawJson": "Raw JSON"
+  },
+  "crypto": {
+    "title": "Cryptography",
+    "signing": "Signing",
+    "ed25519": "Ed25519",
+    "ecdsaP256": "ECDSA P-256",
+    "unsigned": "Unsigned",
+    "privateKey": "Private Key (hex)",
+    "privateKeyPlaceholder": "32 bytes (64 hex chars)",
+    "publicKey": "Public Key (for verification)",
+    "publicKeyHelp": "Share this key to allow verification of your credentials.",
+    "encryption": "Encryption",
+    "none": "None",
+    "aes256": "AES-256",
+    "aes128": "AES-128",
+    "encryptionKey": "Encryption Key (hex)",
+    "securityWarning": "For testing only. Never use playground keys in production. Keys exist in browser memory during this session."
+  },
+  "cwt": {
+    "title": "Token Settings",
+    "issuer": "Issuer",
+    "issuerPlaceholder": "https://identity.example.com",
+    "subject": "Subject",
+    "subjectPlaceholder": "User ID",
+    "issuedAt": "Issued At",
+    "expiresAt": "Expires At",
+    "now": "Now",
+    "plus30d": "+30d",
+    "plus1y": "+1y",
+    "configured": "Configured",
+    "optional": "Optional"
+  },
+  "result": {
+    "title": "QR Code",
+    "noQrYet": "Fill in the identity fields to generate a QR code",
+    "tryDemo": "Try Demo"
+  },
+  "identity": {
+    "title": "Identity",
+    "moreFields": "More Fields",
+    "id": "ID",
+    "idPlaceholder": "USER-12345",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "John Doe",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "language": "Language (ISO 639-3)",
+    "languagePlaceholder": "eng",
+    "secondaryLanguage": "Secondary Language",
+    "secondaryLanguagePlaceholder": "tha",
+    "localName": "Name in Local Language",
+    "localNamePlaceholder": "ศิริวรรณ ไชยพร",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "genderOptions": {
+      "notSpecified": "Not specified",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "email": "Email",
+    "phone": "Phone",
+    "nationality": "Nationality",
+    "nationalityPlaceholder": "US",
+    "maritalStatus": "Marital Status",
+    "maritalOptions": {
+      "notSpecified": "Not specified",
+      "unmarried": "Unmarried",
+      "married": "Married",
+      "divorced": "Divorced"
+    },
+    "address": "Address",
+    "addressPlaceholder": "123 Main Street, City, Country"
+  },
+  "verification": {
+    "verified": "Signature Verified",
+    "unverified": "Not Verified",
+    "invalid": "Invalid Signature",
+    "unsigned": "Unsigned",
+    "algorithm": "Algorithm"
+  },
+  "pipeline": {
+    "title": "Pipeline Details",
+    "stages": "stages",
+    "compression": "compression",
+    "base45": "Base45",
+    "zlib": "zlib",
+    "coseSign1": "COSE_Sign1",
+    "cwtCbor": "CWT/CBOR",
+    "claim169": "Claim 169"
+  },
+  "scanner": {
+    "title": "Scan QR Code",
+    "uploadImage": "Upload Image",
+    "cancel": "Cancel",
+    "noCameras": "No cameras found. Try uploading an image instead.",
+    "cameraFailed": "Camera access failed"
+  },
+  "examples": {
+    "loadExample": "Load example...",
+    "demoIdentity": "Demo Identity",
+    "ed25519Signed": "Ed25519 Signed",
+    "fullDemographics": "Full Demographics",
+    "encryptedSigned": "Encrypted + Signed"
+  },
+  "common": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "processing": "Processing...",
+    "error": "Error"
+  }
+}

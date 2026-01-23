@@ -1,0 +1,496 @@
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { Claim169Input, CwtMetaInput } from "claim169"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { ChevronDown, ChevronRight, Copy, Check, Eye, EyeOff, AlertTriangle } from "lucide-react"
+import { copyToClipboard } from "@/lib/utils"
+import type { SigningMethod, EncryptionMethod } from "@/components/UnifiedPlayground"
+
+interface IdentityPanelProps {
+  claim169: Claim169Input
+  onClaim169Change: (value: Claim169Input) => void
+  cwtMeta: CwtMetaInput
+  onCwtMetaChange: (value: CwtMetaInput) => void
+  signingMethod: SigningMethod
+  onSigningMethodChange: (method: SigningMethod) => void
+  privateKey: string
+  onPrivateKeyChange: (key: string) => void
+  publicKey: string
+  encryptionMethod: EncryptionMethod
+  onEncryptionMethodChange: (method: EncryptionMethod) => void
+  encryptionKey: string
+  onEncryptionKeyChange: (key: string) => void
+  onLoadSample: () => void
+  onLoadExample: (key: string) => void
+  examples: Record<string, { name: string; qrData: string }>
+}
+
+export function IdentityPanel({
+  claim169,
+  onClaim169Change,
+  cwtMeta,
+  onCwtMetaChange,
+  signingMethod,
+  onSigningMethodChange,
+  privateKey,
+  onPrivateKeyChange,
+  publicKey,
+  encryptionMethod,
+  onEncryptionMethodChange,
+  encryptionKey,
+  onEncryptionKeyChange,
+  onLoadSample,
+  onLoadExample,
+  examples,
+}: IdentityPanelProps) {
+  const { t } = useTranslation()
+  const [showCwtMeta, setShowCwtMeta] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showPrivateKey, setShowPrivateKey] = useState(false)
+  const [publicKeyCopied, setPublicKeyCopied] = useState(false)
+
+  const handleExampleChange = (value: string) => {
+    if (value === "demo") {
+      onLoadSample()
+    } else if (value) {
+      onLoadExample(value)
+    }
+  }
+
+  const updateClaim = (field: keyof Claim169Input, value: string | number | undefined) => {
+    onClaim169Change({ ...claim169, [field]: value })
+  }
+
+  const updateMeta = (field: keyof CwtMetaInput, value: string | number | undefined) => {
+    onCwtMetaChange({ ...cwtMeta, [field]: value })
+  }
+
+  const setNow = () => {
+    updateMeta("issuedAt", Math.floor(Date.now() / 1000))
+  }
+
+  const setExpires = (days: number) => {
+    updateMeta("expiresAt", Math.floor(Date.now() / 1000) + days * 24 * 60 * 60)
+  }
+
+  const handleCopyPublicKey = async () => {
+    if (publicKey) {
+      await copyToClipboard(publicKey)
+      setPublicKeyCopied(true)
+      setTimeout(() => setPublicKeyCopied(false), 2000)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Identity Data Section - Always expanded */}
+      <div className="space-y-3 p-4 rounded-lg border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-green-800 dark:text-green-200">{t("identity.title")}</h3>
+          <Select
+            value=""
+            onChange={(e) => handleExampleChange(e.target.value)}
+            className="w-44 text-sm"
+          >
+            <option value="">{t("examples.loadExample")}</option>
+            <option value="demo">✨ {t("examples.demoIdentity")}</option>
+            {Object.entries(examples).map(([key, example]) => (
+              <option key={key} value={key}>
+                {example.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        {/* Essential fields - always visible */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="id" className="text-xs">{t("identity.id")}</Label>
+            <Input
+              id="id"
+              placeholder={t("identity.idPlaceholder")}
+              value={claim169.id || ""}
+              onChange={(e) => updateClaim("id", e.target.value || undefined)}
+              className="text-sm h-8"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="fullName" className="text-xs">{t("identity.fullName")}</Label>
+            <Input
+              id="fullName"
+              placeholder={t("identity.fullNamePlaceholder")}
+              value={claim169.fullName || ""}
+              onChange={(e) => updateClaim("fullName", e.target.value || undefined)}
+              className="text-sm h-8"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="dob" className="text-xs">{t("identity.dateOfBirth")}</Label>
+            <Input
+              id="dob"
+              type="date"
+              value={claim169.dateOfBirth || ""}
+              onChange={(e) => updateClaim("dateOfBirth", e.target.value || undefined)}
+              className="text-sm h-8"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="gender" className="text-xs">{t("identity.gender")}</Label>
+            <Select
+              id="gender"
+              value={String(claim169.gender || 0)}
+              onChange={(e) => updateClaim("gender", Number(e.target.value) || undefined)}
+              className="text-sm h-8"
+            >
+              <option value="0">{t("identity.genderOptions.notSpecified")}</option>
+              <option value="1">{t("identity.genderOptions.male")}</option>
+              <option value="2">{t("identity.genderOptions.female")}</option>
+              <option value="3">{t("identity.genderOptions.other")}</option>
+            </Select>
+          </div>
+        </div>
+
+        {/* Advanced fields - collapsible */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start px-0 h-8 text-muted-foreground hover:text-foreground"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+          {showAdvanced ? <ChevronDown className="h-4 w-4 mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
+          {t("identity.moreFields")}
+        </Button>
+
+        {showAdvanced && (
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-green-200 dark:border-green-800">
+            <div className="space-y-1">
+              <Label htmlFor="firstName" className="text-xs">{t("identity.firstName")}</Label>
+              <Input
+                id="firstName"
+                value={claim169.firstName || ""}
+                onChange={(e) => updateClaim("firstName", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="lastName" className="text-xs">{t("identity.lastName")}</Label>
+              <Input
+                id="lastName"
+                value={claim169.lastName || ""}
+                onChange={(e) => updateClaim("lastName", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="language" className="text-xs">{t("identity.language")}</Label>
+              <Input
+                id="language"
+                placeholder={t("identity.languagePlaceholder")}
+                value={claim169.language || ""}
+                onChange={(e) => updateClaim("language", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="secondaryLanguage" className="text-xs">{t("identity.secondaryLanguage")}</Label>
+              <Input
+                id="secondaryLanguage"
+                placeholder={t("identity.secondaryLanguagePlaceholder")}
+                value={claim169.secondaryLanguage || ""}
+                onChange={(e) => updateClaim("secondaryLanguage", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label htmlFor="secondaryFullName" className="text-xs">{t("identity.localName")}</Label>
+              <Input
+                id="secondaryFullName"
+                placeholder={t("identity.localNamePlaceholder")}
+                value={claim169.secondaryFullName || ""}
+                onChange={(e) => updateClaim("secondaryFullName", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-xs">{t("identity.email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={claim169.email || ""}
+                onChange={(e) => updateClaim("email", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="phone" className="text-xs">{t("identity.phone")}</Label>
+              <Input
+                id="phone"
+                value={claim169.phone || ""}
+                onChange={(e) => updateClaim("phone", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="nationality" className="text-xs">{t("identity.nationality")}</Label>
+              <Input
+                id="nationality"
+                placeholder={t("identity.nationalityPlaceholder")}
+                value={claim169.nationality || ""}
+                onChange={(e) => updateClaim("nationality", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="maritalStatus" className="text-xs">{t("identity.maritalStatus")}</Label>
+              <Select
+                id="maritalStatus"
+                value={String(claim169.maritalStatus || 0)}
+                onChange={(e) => updateClaim("maritalStatus", Number(e.target.value) || undefined)}
+                className="text-sm h-8"
+              >
+                <option value="0">{t("identity.maritalOptions.notSpecified")}</option>
+                <option value="1">{t("identity.maritalOptions.unmarried")}</option>
+                <option value="2">{t("identity.maritalOptions.married")}</option>
+                <option value="3">{t("identity.maritalOptions.divorced")}</option>
+              </Select>
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label htmlFor="address" className="text-xs">{t("identity.address")}</Label>
+              <Textarea
+                id="address"
+                placeholder={t("identity.addressPlaceholder")}
+                value={claim169.address || ""}
+                onChange={(e) => updateClaim("address", e.target.value || undefined)}
+                className="text-sm min-h-[60px] resize-none"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* CWT Metadata Section - Collapsed by default */}
+      <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
+        <Button
+          variant="ghost"
+          className="w-full justify-between px-4 py-3 h-auto"
+          onClick={() => setShowCwtMeta(!showCwtMeta)}
+        >
+          <div className="flex items-center gap-2">
+            {showCwtMeta ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            <span className="font-medium text-blue-800 dark:text-blue-200">{t("cwt.title")}</span>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {cwtMeta.issuer ? t("cwt.configured") : t("cwt.optional")}
+          </span>
+        </Button>
+
+        {showCwtMeta && (
+          <div className="px-4 pb-4 space-y-3 border-t border-blue-200 dark:border-blue-800">
+            <div className="pt-3 space-y-1">
+              <Label htmlFor="issuer" className="text-xs">{t("cwt.issuer")}</Label>
+              <Input
+                id="issuer"
+                placeholder={t("cwt.issuerPlaceholder")}
+                value={cwtMeta.issuer || ""}
+                onChange={(e) => updateMeta("issuer", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="subject" className="text-xs">{t("cwt.subject")}</Label>
+                <Input
+                  id="subject"
+                  placeholder={t("cwt.subjectPlaceholder")}
+                  value={cwtMeta.subject || ""}
+                  onChange={(e) => updateMeta("subject", e.target.value || undefined)}
+                  className="text-sm h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="issuedAt" className="text-xs">{t("cwt.issuedAt")}</Label>
+                <div className="flex gap-1">
+                  <Input
+                    id="issuedAt"
+                    type="number"
+                    placeholder="Unix timestamp"
+                    value={cwtMeta.issuedAt || ""}
+                    onChange={(e) => updateMeta("issuedAt", e.target.value ? Number(e.target.value) : undefined)}
+                    className="text-sm h-8 font-mono"
+                  />
+                  <Button variant="outline" size="sm" onClick={setNow} className="h-8 px-2 text-xs shrink-0">
+                    {t("cwt.now")}
+                  </Button>
+                </div>
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="expiresAt" className="text-xs">{t("cwt.expiresAt")}</Label>
+                <div className="flex gap-1">
+                  <Input
+                    id="expiresAt"
+                    type="number"
+                    placeholder="Unix timestamp"
+                    value={cwtMeta.expiresAt || ""}
+                    onChange={(e) => updateMeta("expiresAt", e.target.value ? Number(e.target.value) : undefined)}
+                    className="text-sm h-8 font-mono flex-1"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => setExpires(30)} className="h-8 px-2 text-xs shrink-0">
+                    {t("cwt.plus30d")}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setExpires(365)} className="h-8 px-2 text-xs shrink-0">
+                    {t("cwt.plus1y")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Cryptography Section */}
+      <div className="space-y-3 p-4 rounded-lg border border-orange-200 bg-orange-50/50 dark:border-orange-900 dark:bg-orange-950/20">
+        <h3 className="font-medium text-orange-800 dark:text-orange-200">{t("crypto.title")}</h3>
+
+        {/* Signing Method */}
+        <div className="space-y-2">
+          <Label className="text-xs">{t("crypto.signing")}</Label>
+          <div className="flex flex-wrap gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="signing"
+                checked={signingMethod === "ed25519"}
+                onChange={() => onSigningMethodChange("ed25519")}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">{t("crypto.ed25519")}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="signing"
+                checked={signingMethod === "ecdsa"}
+                onChange={() => onSigningMethodChange("ecdsa")}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">{t("crypto.ecdsaP256")}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="signing"
+                checked={signingMethod === "unsigned"}
+                onChange={() => onSigningMethodChange("unsigned")}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-muted-foreground">{t("crypto.unsigned")}</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Private Key */}
+        {signingMethod !== "unsigned" && (
+          <div className="space-y-2">
+            <Label htmlFor="privateKey" className="text-xs">{t("crypto.privateKey")}</Label>
+            <div className="relative">
+              <Input
+                id="privateKey"
+                type={showPrivateKey ? "text" : "password"}
+                placeholder={t("crypto.privateKeyPlaceholder")}
+                value={privateKey}
+                onChange={(e) => onPrivateKeyChange(e.target.value)}
+                className="font-mono text-xs pr-10"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setShowPrivateKey(!showPrivateKey)}
+              >
+                {showPrivateKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Public Key (for verification) */}
+        {publicKey && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">{t("crypto.publicKey")}</Label>
+              <Button variant="ghost" size="sm" onClick={handleCopyPublicKey} className="h-6 px-2">
+                {publicKeyCopied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                <span className="text-xs">{t("common.copy")}</span>
+              </Button>
+            </div>
+            <div className="p-2 rounded bg-muted font-mono text-xs break-all">
+              {publicKey}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("crypto.publicKeyHelp")}</p>
+          </div>
+        )}
+
+        {/* Encryption */}
+        <div className="space-y-2">
+          <Label className="text-xs">{t("crypto.encryption")}</Label>
+          <div className="flex flex-wrap gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="encryption"
+                checked={encryptionMethod === "none"}
+                onChange={() => onEncryptionMethodChange("none")}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">{t("crypto.none")}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="encryption"
+                checked={encryptionMethod === "aes256"}
+                onChange={() => onEncryptionMethodChange("aes256")}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">{t("crypto.aes256")}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="encryption"
+                checked={encryptionMethod === "aes128"}
+                onChange={() => onEncryptionMethodChange("aes128")}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">{t("crypto.aes128")}</span>
+            </label>
+          </div>
+        </div>
+
+        {encryptionMethod !== "none" && (
+          <div className="space-y-2">
+            <Label htmlFor="encryptionKey" className="text-xs">{t("crypto.encryptionKey")}</Label>
+            <Input
+              id="encryptionKey"
+              type="password"
+              placeholder={encryptionMethod === "aes256" ? "32 bytes (64 hex)" : "16 bytes (32 hex)"}
+              value={encryptionKey}
+              onChange={(e) => onEncryptionKeyChange(e.target.value)}
+              className="font-mono text-xs"
+            />
+          </div>
+        )}
+
+        {/* Security Warning */}
+        <div className="flex items-start gap-2 p-2 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{t("crypto.securityWarning")}</span>
+        </div>
+      </div>
+    </div>
+  )
+}

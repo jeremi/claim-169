@@ -1,0 +1,135 @@
+{
+  "app": {
+    "title": "Playground Claim 169",
+    "footer": {
+      "privacy": "Tout le traitement se fait dans votre navigateur. Aucune donnée n'est envoyée à un serveur.",
+      "builtWith": "Construit avec Rust + WebAssembly",
+      "spec": "Spécification MOSIP Claim 169"
+    }
+  },
+  "encoded": {
+    "title": "Encodé",
+    "loadExample": "Charger un exemple...",
+    "sample": "Exemple",
+    "base45Label": "Données Base45",
+    "base45Placeholder": "Collez les données QR encodées en Base45 ici, ou modifiez les champs à droite...",
+    "scanQr": "Scanner le QR Code",
+    "chars": "caractères",
+    "scan": "Scanner",
+    "downloadPng": "PNG"
+  },
+  "decoded": {
+    "title": "Décodé",
+    "rawJson": "JSON brut"
+  },
+  "crypto": {
+    "title": "Cryptographie",
+    "signing": "Signature",
+    "ed25519": "Ed25519",
+    "ecdsaP256": "ECDSA P-256",
+    "unsigned": "Non signé",
+    "privateKey": "Clé privée (hex)",
+    "privateKeyPlaceholder": "32 octets (64 caractères hex)",
+    "publicKey": "Clé publique (pour vérification)",
+    "publicKeyHelp": "Partagez cette clé pour permettre la vérification de vos identifiants.",
+    "encryption": "Chiffrement",
+    "none": "Aucun",
+    "aes256": "AES-256",
+    "aes128": "AES-128",
+    "encryptionKey": "Clé de chiffrement (hex)",
+    "securityWarning": "Pour les tests uniquement. N'utilisez jamais les clés du playground en production. Les clés existent dans la mémoire du navigateur pendant cette session."
+  },
+  "cwt": {
+    "title": "Paramètres du jeton",
+    "issuer": "Émetteur",
+    "issuerPlaceholder": "https://identity.example.com",
+    "subject": "Sujet",
+    "subjectPlaceholder": "ID utilisateur",
+    "issuedAt": "Émis le",
+    "expiresAt": "Expire le",
+    "now": "Maintenant",
+    "plus30d": "+30j",
+    "plus1y": "+1an",
+    "configured": "Configuré",
+    "optional": "Optionnel"
+  },
+  "result": {
+    "title": "QR Code",
+    "noQrYet": "Remplissez les champs d'identité pour générer un QR code",
+    "tryDemo": "Essayer la démo"
+  },
+  "identity": {
+    "title": "Identité",
+    "moreFields": "Plus de champs",
+    "id": "ID",
+    "idPlaceholder": "USER-12345",
+    "fullName": "Nom complet",
+    "fullNamePlaceholder": "Jean Dupont",
+    "firstName": "Prénom",
+    "lastName": "Nom de famille",
+    "language": "Langue (ISO 639-3)",
+    "languagePlaceholder": "fra",
+    "secondaryLanguage": "Langue secondaire",
+    "secondaryLanguagePlaceholder": "eng",
+    "localName": "Nom en langue locale",
+    "localNamePlaceholder": "ศิริวรรณ ไชยพร",
+    "dateOfBirth": "Date de naissance",
+    "gender": "Genre",
+    "genderOptions": {
+      "notSpecified": "Non spécifié",
+      "male": "Masculin",
+      "female": "Féminin",
+      "other": "Autre"
+    },
+    "email": "Email",
+    "phone": "Téléphone",
+    "nationality": "Nationalité",
+    "nationalityPlaceholder": "FR",
+    "maritalStatus": "État civil",
+    "maritalOptions": {
+      "notSpecified": "Non spécifié",
+      "unmarried": "Célibataire",
+      "married": "Marié(e)",
+      "divorced": "Divorcé(e)"
+    },
+    "address": "Adresse",
+    "addressPlaceholder": "123 Rue Principale, Ville, Pays"
+  },
+  "verification": {
+    "verified": "Signature vérifiée",
+    "unverified": "Non vérifié",
+    "invalid": "Signature invalide",
+    "unsigned": "Non signé",
+    "algorithm": "Algorithme"
+  },
+  "pipeline": {
+    "title": "Détails du pipeline",
+    "stages": "étapes",
+    "compression": "compression",
+    "base45": "Base45",
+    "zlib": "zlib",
+    "coseSign1": "COSE_Sign1",
+    "cwtCbor": "CWT/CBOR",
+    "claim169": "Claim 169"
+  },
+  "scanner": {
+    "title": "Scanner le QR Code",
+    "uploadImage": "Télécharger une image",
+    "cancel": "Annuler",
+    "noCameras": "Aucune caméra trouvée. Essayez de télécharger une image à la place.",
+    "cameraFailed": "Échec de l'accès à la caméra"
+  },
+  "examples": {
+    "loadExample": "Charger un exemple...",
+    "demoIdentity": "Identité démo",
+    "ed25519Signed": "Signé Ed25519",
+    "fullDemographics": "Données complètes",
+    "encryptedSigned": "Chiffré + Signé"
+  },
+  "common": {
+    "copy": "Copier",
+    "copied": "Copié",
+    "processing": "Traitement en cours...",
+    "error": "Erreur"
+  }
+}
