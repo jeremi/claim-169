@@ -233,7 +233,7 @@ export interface DecodeResult {
  * @example
  * ```typescript
  * try {
- *   decode(qrText);
+ *   decode(qrText, { allowUnverified: true }); // testing only
  * } catch (error) {
  *   if (error instanceof Claim169Error) {
  *     console.error('Decoding failed:', error.message);

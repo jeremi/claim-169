@@ -75,7 +75,7 @@ Pour les payloads chiffrés, il faut **déchiffrer avant de vérifier**.
     from claim169 import decode_encrypted_aes
 
     # Test uniquement : déchiffre sans vérifier la signature interne
-    result = decode_encrypted_aes(qr_data, encryption_key)
+    result = decode_encrypted_aes(qr_data, encryption_key, allow_unverified=True)
     ```
 
 Voir aussi :

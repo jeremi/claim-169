@@ -209,7 +209,7 @@ Some credentials are encrypted for privacy. You need the decryption key to read 
     encryption_key = bytes.fromhex("1011121314...")  # 32 bytes for AES-256
 
     # Testing only: decrypt but do not verify the nested signature
-    result = decode_encrypted_aes(qr_data, encryption_key)
+    result = decode_encrypted_aes(qr_data, encryption_key, allow_unverified=True)
     ```
 
 === "TypeScript"

@@ -267,7 +267,7 @@ def decode_with_decryptor(
         def my_hsm_decrypt(algorithm, key_id, nonce, aad, ciphertext):
             return hsm.decrypt(key_id, nonce, aad, ciphertext)
 
-        result = decode_with_decryptor(qr_text, my_hsm_decrypt)
+        result = decode_with_decryptor(qr_text, my_hsm_decrypt, allow_unverified=True)  # testing only
     """
     ...
 

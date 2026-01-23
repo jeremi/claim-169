@@ -19,7 +19,7 @@ Fix:
 === "Python"
 
     - Production: use `decode_with_ed25519()` / `decode_with_ecdsa_p256()`
-    - Testing: use `decode_unverified()` (or `decode()`, if you enabled the alias)
+    - Testing: use `decode_unverified()` (or `decode(..., allow_unverified=True)`)
 
 === "TypeScript"
 
@@ -70,4 +70,3 @@ Fix:
 
 - ensure you decrypt **before** verifying,
 - verify key size: AES-256 is 32 bytes, AES-128 is 16 bytes.
-

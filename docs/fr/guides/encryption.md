@@ -65,7 +65,7 @@ Identifiant signé (COSE_Sign1) → COSE_Encrypt0 → zlib → Base45 → QR
     from claim169 import decode_encrypted_aes
 
     # Test uniquement : déchiffre sans vérifier la signature interne
-    result = decode_encrypted_aes(qr_text, encryption_key)
+    result = decode_encrypted_aes(qr_text, encryption_key, allow_unverified=True)
     ```
 
 === "TypeScript"

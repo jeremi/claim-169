@@ -57,7 +57,7 @@ Esta guía cubre el cifrado de credenciales Claim 169 para proteger datos de ide
     from claim169 import decode_encrypted_aes
 
     # Solo pruebas: descifra sin verificar la firma interna
-    result = decode_encrypted_aes(qr_text, encryption_key)
+    result = decode_encrypted_aes(qr_text, encryption_key, allow_unverified=True)
     ```
 
 === "TypeScript"

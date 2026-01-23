@@ -143,7 +143,7 @@ result = claim169.decode_with_verifier(qr_text, my_hsm_verify)
 ```python
 # Decrypt with AES-256-GCM key
 aes_key = bytes.fromhex("000102030405...")  # 32 bytes for AES-256
-result = claim169.decode_encrypted_aes(qr_text, aes_key)
+result = claim169.decode_encrypted_aes(qr_text, aes_key, allow_unverified=True)  # testing only
 ```
 
 ### With Nested Signature Verification

@@ -119,7 +119,7 @@ When decrypting, you must specify the decryption method before verification:
     encryption_key = bytes.fromhex("10111213...")
 
     # Testing only: decrypt without nested signature verification
-    result = decode_encrypted_aes(qr_data, encryption_key)
+    result = decode_encrypted_aes(qr_data, encryption_key, allow_unverified=True)
 
     # Production: provide a verifier callback (HSM/KMS) to verify the nested COSE_Sign1
     # def my_verifier(algorithm, key_id, data, signature):
@@ -224,8 +224,13 @@ Decryption can fail for several reasons:
     ```python
     import claim169
 
+    def verifier(algorithm, key_id, data, signature):
+        # Verify nested signature here (HSM/KMS or software verifier).
+        # Raise if verification fails.
+        ...
+
     try:
-        result = claim169.decode_encrypted_aes(qr_data, encryption_key)
+        result = claim169.decode_encrypted_aes(qr_data, encryption_key, verifier=verifier)
     except claim169.DecryptionError as e:
         print(f"Decryption failed (wrong key?): {e}")
     except claim169.SignatureError as e:

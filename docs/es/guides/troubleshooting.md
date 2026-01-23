@@ -12,7 +12,7 @@ Si ves un error como “either provide a verifier or explicitly allow unverified
 Soluciones:
 
 - **Rust**: en producción, llamar `.verify_with_ed25519(...)` / `.verify_with_ecdsa_p256(...)`; en pruebas, llamar `.allow_unverified()`
-- **Python**: en producción, usar `decode_with_ed25519()` / `decode_with_ecdsa_p256()`; en pruebas, usar `decode_unverified()` (o `decode()` si habilitas el alias)
+- **Python**: en producción, usar `decode_with_ed25519()` / `decode_with_ecdsa_p256()`; en pruebas, usar `decode_unverified()` (o `decode(..., allow_unverified=True)`)
 - **TypeScript**: en producción, llamar `.verifyWithEd25519(...)` / `.verifyWithEcdsaP256(...)`; en pruebas, llamar `.allowUnverified()`
 
 ## Fallos de verificación de firma
@@ -59,4 +59,3 @@ Solución:
 
 - descifrar **antes** de verificar,
 - verificar tamaños: AES-256 = 32 bytes, AES-128 = 16 bytes.
-

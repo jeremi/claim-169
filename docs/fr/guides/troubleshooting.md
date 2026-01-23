@@ -12,7 +12,7 @@ Si vous obtenez une erreur du type « either provide a verifier or explicitly al
 Correctifs :
 
 - **Rust** : en production, appeler `.verify_with_ed25519(...)` / `.verify_with_ecdsa_p256(...)` ; en test, appeler `.allow_unverified()`
-- **Python** : en production, utiliser `decode_with_ed25519()` / `decode_with_ecdsa_p256()` ; en test, utiliser `decode_unverified()` (ou `decode()` si l’alias est activé)
+- **Python** : en production, utiliser `decode_with_ed25519()` / `decode_with_ecdsa_p256()` ; en test, utiliser `decode_unverified()` (ou `decode(..., allow_unverified=True)`)
 - **TypeScript** : en production, appeler `.verifyWithEd25519(...)` / `.verifyWithEcdsaP256(...)` ; en test, appeler `.allowUnverified()`
 
 ## Échecs de vérification de signature
@@ -59,4 +59,3 @@ Correctifs :
 
 - déchiffrer **avant** de vérifier,
 - vérifier la taille : AES-256 = 32 octets, AES-128 = 16 octets.
-

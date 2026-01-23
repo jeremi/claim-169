@@ -45,7 +45,7 @@ from claim169 import (
 ```
 
 !!! warning "À propos de `decode()`"
-    `decode()` est un alias de `decode_unverified()` (pas de vérification de signature). En production, utilisez `decode_with_ed25519()` / `decode_with_ecdsa_p256()`.
+    `decode()` exige une clé de vérification par défaut. Pour décoder sans vérification explicitement (tests uniquement), utilisez `allow_unverified=True`.
 
 ## Exceptions
 
@@ -60,6 +60,21 @@ Toutes les erreurs héritent de `Claim169Exception`. Cas courants :
 - `DecryptionError`
 
 ## Décodage
+
+### `decode` (point d’entrée recommandé)
+
+```python
+def decode(
+    qr_text: str,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+    verify_with_ed25519: bytes | None = None,
+    verify_with_ecdsa_p256: bytes | None = None,
+    allow_unverified: bool = False,
+) -> DecodeResult
+```
 
 ### `decode_unverified` (tests uniquement)
 
@@ -76,7 +91,14 @@ def decode_unverified(
 ### `decode_with_ed25519`
 
 ```python
-def decode_with_ed25519(qr_text: str, public_key: bytes) -> DecodeResult
+def decode_with_ed25519(
+    qr_text: str,
+    public_key: bytes,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult
 ```
 
 - `public_key` doit faire 32 octets.
@@ -84,7 +106,14 @@ def decode_with_ed25519(qr_text: str, public_key: bytes) -> DecodeResult
 ### `decode_with_ecdsa_p256`
 
 ```python
-def decode_with_ecdsa_p256(qr_text: str, public_key: bytes) -> DecodeResult
+def decode_with_ecdsa_p256(
+    qr_text: str,
+    public_key: bytes,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult
 ```
 
 - `public_key` doit être encodée en SEC1 (33 octets compressés ou 65 octets non compressés).
@@ -99,13 +128,14 @@ def decode_with_verifier(qr_text: str, verifier: VerifierCallback) -> DecodeResu
 
 ### `decode_encrypted_aes`
 
-Décoder des identifiants chiffrés avec une clé AES (16 ou 32 octets). Si vous passez `verifier`, la signature COSE_Sign1 interne est vérifiée via le callback ; sinon la vérification est ignorée.
+Décoder des identifiants chiffrés avec une clé AES (16 ou 32 octets). Par défaut, cela nécessite un callback `verifier` pour la signature COSE_Sign1 interne. Pour ignorer explicitement la vérification (tests uniquement), utilisez `allow_unverified=True`.
 
 ```python
 def decode_encrypted_aes(
     qr_text: str,
     key: bytes,
     verifier: VerifierCallback | None = None,
+    allow_unverified: bool = False,
 ) -> DecodeResult
 ```
 
@@ -116,6 +146,7 @@ def decode_with_decryptor(
     qr_text: str,
     decryptor: DecryptorCallback,
     verifier: VerifierCallback | None = None,
+    allow_unverified: bool = False,
 ) -> DecodeResult
 ```
 
@@ -168,4 +199,3 @@ def encode_unsigned(claim169: Claim169Input, cwt_meta: CwtMetaInput) -> str
 def generate_nonce() -> bytes  # 12 octets
 def version() -> str
 ```
-

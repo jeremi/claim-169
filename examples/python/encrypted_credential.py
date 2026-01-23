@@ -115,7 +115,7 @@ def example_wrong_key():
     wrong_key = bytes(32)  # All zeros
 
     try:
-        result = claim169.decode_encrypted_aes(qr_data, wrong_key)
+        result = claim169.decode_encrypted_aes(qr_data, wrong_key, allow_unverified=True)
         print(f"  Unexpected success: {result}")
     except claim169.DecryptionError as e:
         print(f"  Expected error - decryption failed: {e}")

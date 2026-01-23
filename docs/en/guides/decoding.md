@@ -144,7 +144,7 @@ Encrypted credentials must be decrypted before verification:
     from claim169 import decode_encrypted_aes
 
     # Testing only: decrypt but do not verify the nested signature
-    result = decode_encrypted_aes(qr_data, encryption_key)
+    result = decode_encrypted_aes(qr_data, encryption_key, allow_unverified=True)
 
     # Production: provide a verifier callback (e.g. HSM) to verify the nested COSE_Sign1
     # def my_verifier(algorithm, key_id, data, signature):

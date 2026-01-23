@@ -63,7 +63,7 @@ Para payloads cifrados, hay que **descifrar antes de verificar**.
 from claim169 import decode_encrypted_aes
 
 # Solo pruebas: descifra sin verificar la firma interna
-result = decode_encrypted_aes(qr_data, encryption_key)
+result = decode_encrypted_aes(qr_data, encryption_key, allow_unverified=True)
 ```
 
 Ver también:

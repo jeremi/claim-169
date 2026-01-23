@@ -7,13 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- TypeScript `decode()` now requires a verification key unless `allowUnverified: true` is set (prevents accidental acceptance of forged credentials).
+- Python `decode_encrypted_aes()` / `decode_with_decryptor()` now require a verifier unless `allow_unverified=True` is set (prevents silently skipping nested signature verification).
+
 ### Added
 - CHANGELOG.md for tracking version history
 - CONTRIBUTING.md with development guidelines
 
 ### Changed
-- Updated TypeScript SDK documentation with verification examples
-- Updated WASM bindings documentation with full API reference
+- Python `decode()` now requires a verification key by default; unverified decoding requires `allow_unverified=True`.
+- Python `decode_with_ed25519()` / `decode_with_ecdsa_p256()` now accept decode options (biometrics skip, decompression limit, timestamp validation).
+- Removed `unsafe impl Send/Sync` from Python callback hook wrappers.
 
 ## [0.1.0-alpha] - 2024-01-22
 

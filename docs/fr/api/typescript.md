@@ -12,7 +12,7 @@ npm install claim169
 import {
   // Erreurs
   Claim169Error,
-  // API de convenance (non vérifiée par défaut)
+  // API de convenance (vérification requise par défaut)
   decode,
   type DecodeOptions,
   // API builder (recommandée en production)
@@ -32,7 +32,7 @@ import {
 ```
 
 !!! warning "À propos de `decode()`"
-    `decode()` est une fonction de convenance qui **ne vérifie pas** la signature si vous ne fournissez pas de clé dans `DecodeOptions`. En production, utilisez `new Decoder(...).verifyWithEd25519(...)` / `verifyWithEcdsaP256(...)`.
+    `decode()` exige une clé de vérification par défaut. Pour décoder sans vérification explicitement (tests uniquement), passez `{ allowUnverified: true }`. En production, utilisez `new Decoder(...).verifyWithEd25519(...)` / `verifyWithEcdsaP256(...)`.
 
 ## `decode(qrText, options?)`
 
@@ -43,7 +43,7 @@ decode(qrText: string, options?: DecodeOptions): DecodeResult
 Options courantes :
 
 - `verifyWithEd25519` / `verifyWithEcdsaP256`
-- `allowUnverified` (par défaut `true` si aucune clé n’est fournie)
+- `allowUnverified` (doit être `true` si aucune clé n’est fournie)
 - `decryptWithAes256` / `decryptWithAes128`
 - `skipBiometrics`
 - `validateTimestamps` (désactivé par défaut en WASM)
@@ -134,4 +134,3 @@ import { Decoder } from "claim169";
 const result = new Decoder(qrData).allowUnverified().decode();
 console.log(result.claim169.fullName);
 ```
-
