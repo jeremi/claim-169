@@ -1,14 +1,14 @@
-# Reusable workflow for building Python wheels across all platforms
+# Reusable workflow for building Python wheels across platforms
 #
 # Builds wheels for:
 # - Linux x86_64
-# - macOS x86_64 and arm64
+# - macOS arm64 (Apple Silicon)
 # - Windows x86_64
 #
 # Also builds source distribution (sdist)
 #
-# Note: Linux aarch64 cross-compilation requires additional setup and is not
-# currently included. Users on Linux ARM can build from source using the sdist.
+# Note: Linux aarch64 and macOS x86_64 (Intel) users can build from source
+# using the sdist.
 
 name: Build Python Wheels
 
@@ -35,12 +35,8 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
 
-          # macOS x86_64 (Intel)
-          - os: macos-13
-            target: x86_64-apple-darwin
-
           # macOS arm64 (Apple Silicon)
-          - os: macos-14
+          - os: macos-latest
             target: aarch64-apple-darwin
 
           # Windows x86_64
