@@ -125,6 +125,47 @@ export function isLoaded(): boolean {
 }
 
 /**
+ * Convert a hex string to bytes.
+ *
+ * Accepts optional `0x` prefix and ignores whitespace.
+ *
+ * @throws {Claim169Error} If the input is not valid hex
+ */
+export function hexToBytes(hex: string): Uint8Array {
+  const normalized = hex.trim().replace(/^0x/i, "").replace(/\s+/g, "");
+
+  if (normalized.length === 0) {
+    return new Uint8Array();
+  }
+
+  if (normalized.length % 2 !== 0) {
+    throw new Claim169Error("hex string must have even length");
+  }
+
+  const out = new Uint8Array(normalized.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    const byteStr = normalized.slice(i * 2, i * 2 + 2);
+    const value = Number.parseInt(byteStr, 16);
+    if (!Number.isFinite(value) || Number.isNaN(value)) {
+      throw new Claim169Error(`invalid hex byte: ${byteStr}`);
+    }
+    out[i] = value;
+  }
+  return out;
+}
+
+/**
+ * Convert bytes to a lowercase hex string.
+ */
+export function bytesToHex(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i++) {
+    out += bytes[i].toString(16).padStart(2, "0");
+  }
+  return out;
+}
+
+/**
  * Transform raw WASM result to typed DecodeResult
  */
 function transformResult(raw: unknown): DecodeResult {
@@ -399,6 +440,73 @@ export class Decoder implements IDecoder {
       throw new Claim169Error(String(error));
     }
   }
+}
+
+/**
+ * Options for the `decode()` convenience function.
+ *
+ * Notes:
+ * - If you don't provide a verification key, `decode()` decodes without verification (testing only).
+ * - Timestamp validation is disabled by default in WASM; set `validateTimestamps: true` to enable it.
+ */
+export interface DecodeOptions {
+  verifyWithEd25519?: Uint8Array;
+  verifyWithEcdsaP256?: Uint8Array;
+  decryptWithAes256?: Uint8Array;
+  decryptWithAes128?: Uint8Array;
+  allowUnverified?: boolean;
+  skipBiometrics?: boolean;
+  validateTimestamps?: boolean;
+  clockSkewToleranceSeconds?: number;
+  maxDecompressedBytes?: number;
+}
+
+/**
+ * Decode a Claim 169 QR string.
+ *
+ * This is a convenience wrapper around the `Decoder` builder.
+ * Security:
+ * - If you do not pass a verification key, this will decode without verification (testing only).
+ */
+export function decode(qrText: string, options: DecodeOptions = {}): DecodeResult {
+  let decoder = new Decoder(qrText);
+
+  if (options.decryptWithAes256) {
+    decoder = decoder.decryptWithAes256(options.decryptWithAes256);
+  }
+  if (options.decryptWithAes128) {
+    decoder = decoder.decryptWithAes128(options.decryptWithAes128);
+  }
+
+  if (options.skipBiometrics) {
+    decoder = decoder.skipBiometrics();
+  }
+
+  if (options.validateTimestamps) {
+    decoder = decoder.withTimestampValidation();
+  }
+
+  if (options.clockSkewToleranceSeconds !== undefined) {
+    decoder = decoder.clockSkewTolerance(options.clockSkewToleranceSeconds);
+  }
+
+  if (options.maxDecompressedBytes !== undefined) {
+    decoder = decoder.maxDecompressedBytes(options.maxDecompressedBytes);
+  }
+
+  if (options.verifyWithEd25519) {
+    decoder = decoder.verifyWithEd25519(options.verifyWithEd25519);
+  } else if (options.verifyWithEcdsaP256) {
+    decoder = decoder.verifyWithEcdsaP256(options.verifyWithEcdsaP256);
+  } else if (options.allowUnverified ?? true) {
+    decoder = decoder.allowUnverified();
+  } else {
+    throw new Claim169Error(
+      "decode() requires a verification key or allowUnverified: true"
+    );
+  }
+
+  return decoder.decode();
 }
 
 /**

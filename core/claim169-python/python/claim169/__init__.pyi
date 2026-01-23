@@ -131,7 +131,7 @@ DecryptorCallback = Callable[
     bytes  # Returns decrypted plaintext
 ]
 
-def decode(
+def decode_unverified(
     qr_text: str,
     skip_biometrics: bool = False,
     max_decompressed_bytes: int = 65536,
@@ -139,7 +139,7 @@ def decode(
     clock_skew_tolerance_seconds: int = 0,
 ) -> DecodeResult:
     """
-    Decode a Claim 169 QR code without signature verification.
+    Decode a Claim 169 QR code without signature verification (INSECURE).
 
     Args:
         qr_text: The QR code text content (Base45 encoded)
@@ -157,6 +157,20 @@ def decode(
         CoseParseError: If COSE parsing fails
         CwtParseError: If CWT parsing fails
         Claim169NotFoundError: If claim 169 is not present
+    """
+    ...
+
+def decode(
+    qr_text: str,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult:
+    """
+    Convenience alias for `decode_unverified()` (INSECURE).
+
+    Use `decode_with_ed25519()` / `decode_with_ecdsa_p256()` in production.
     """
     ...
 

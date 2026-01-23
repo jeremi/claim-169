@@ -35,6 +35,31 @@ from .claim169 import (
     version,
 )
 
+def decode(
+    qr_text: str,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult:
+    """
+    Decode a Claim 169 QR code without signature verification (INSECURE).
+
+    This is a convenience alias for `decode_unverified()`.
+    Use `decode_with_ed25519()` / `decode_with_ecdsa_p256()` in production.
+    """
+
+    return decode_unverified(
+        qr_text,
+        skip_biometrics=skip_biometrics,
+        max_decompressed_bytes=max_decompressed_bytes,
+        validate_timestamps=validate_timestamps,
+        clock_skew_tolerance_seconds=clock_skew_tolerance_seconds,
+    )
+
+
+__version__ = version()
+
 __all__ = [
     # Exceptions
     "Claim169Exception",
@@ -55,6 +80,7 @@ __all__ = [
     "CwtMetaInput",
     # Decode functions
     "decode_unverified",
+    "decode",
     "decode_with_ed25519",
     "decode_with_ecdsa_p256",
     "decode_with_verifier",
@@ -68,4 +94,5 @@ __all__ = [
     "generate_nonce",
     # Utilities
     "version",
+    "__version__",
 ]
