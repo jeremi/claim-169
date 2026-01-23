@@ -218,6 +218,14 @@ Use pre-release suffixes for alpha/beta releases:
 - `0.2.0-beta` - Beta release (npm tag: `beta`)
 - `0.2.0-rc.1` - Release candidate (npm tag: `rc`)
 
+## GitHub Workflow Tips
+
+When watching GitHub Actions workflows, pipe through `tail` to reduce token usage:
+```bash
+# Instead of: gh run watch <id> --exit-status
+gh run watch <id> --exit-status 2>&1 | tail -20
+```
+
 ## Specification Reference
 
 The implementation follows `claim_169.md` (MOSIP Claim 169 v1.2.0). Key compliance points:
