@@ -199,6 +199,109 @@ ECDSA P-256 (ES256) is widely supported in existing PKI systems:
       .encode();
     ```
 
+### Custom Signer (HSM/KMS)
+
+For production environments, private keys should never leave secure hardware. Use a custom signer callback to integrate with Hardware Security Modules (HSM), cloud Key Management Services (AWS KMS, Google Cloud KMS, Azure Key Vault), smart cards, TPMs, or remote signing services.
+
+The callback receives:
+
+- `algorithm`: The COSE algorithm name (e.g., `"EdDSA"`, `"ES256"`)
+- `key_id`: Optional key identifier bytes (from COSE header, if present)
+- `data`: The data to sign (COSE `Sig_structure`)
+
+The callback must return the signature bytes.
+
+=== "Rust"
+
+    ```rust
+    use claim169_core::{Encoder, Signer};
+
+    struct HsmSigner {
+        hsm_client: MyHsmClient,
+        key_id: String,
+    }
+
+    impl Signer for HsmSigner {
+        fn sign(&self, algorithm: &str, _key_id: Option<&[u8]>, data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+            // Call your HSM to sign the data
+            let signature = self.hsm_client.sign(&self.key_id, data)?;
+            Ok(signature)
+        }
+    }
+
+    let signer = HsmSigner {
+        hsm_client: my_hsm,
+        key_id: "my-signing-key".to_string(),
+    };
+
+    let qr_data = Encoder::new(claim, meta)
+        .sign_with(&signer, "EdDSA")?
+        .encode()?;
+    ```
+
+=== "Python"
+
+    ```python
+    from claim169 import encode_with_signer
+
+    def my_signer(algorithm: str, key_id: bytes | None, data: bytes) -> bytes:
+        """
+        Custom signer callback for HSM/KMS integration.
+
+        Args:
+            algorithm: COSE algorithm name ("EdDSA", "ES256", etc.)
+            key_id: Optional key identifier from COSE header
+            data: The data to sign (COSE Sig_structure)
+
+        Returns:
+            Signature bytes
+        """
+        # Example: AWS KMS
+        # response = kms_client.sign(
+        #     KeyId='alias/my-signing-key',
+        #     Message=data,
+        #     SigningAlgorithm='ECDSA_SHA_256'
+        # )
+        # return response['Signature']
+
+        # Example: PKCS#11 HSM
+        return my_hsm.sign(key_id, data)
+
+    qr_data = encode_with_signer(claim, meta, my_signer, "EdDSA")
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    import { Encoder, SignerCallback } from 'claim169';
+
+    const mySigner: SignerCallback = async (
+      algorithm: string,
+      keyId: Uint8Array | null,
+      data: Uint8Array
+    ): Promise<Uint8Array> => {
+      // Example: Google Cloud KMS
+      // const [signResponse] = await kmsClient.asymmetricSign({
+      //   name: keyVersionName,
+      //   data: data,
+      // });
+      // return new Uint8Array(signResponse.signature);
+
+      // Example: Azure Key Vault
+      // const result = await cryptoClient.sign("ES256", data);
+      // return result.result;
+
+      return myHsm.sign(keyId, data);
+    };
+
+    const qrData = new Encoder(claim, meta)
+      .signWith(mySigner, "EdDSA")
+      .encode();
+    ```
+
+!!! tip "Key ID in COSE Header"
+    You can include a key identifier in the COSE header to help the verifier locate the correct public key. This is useful when rotating keys or when multiple issuers share infrastructure.
+
 ## Adding Encryption
 
 Encrypt the credential for privacy:

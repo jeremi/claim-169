@@ -191,6 +191,119 @@ export interface Claim169 {
  */
 export type VerificationStatus = "verified" | "skipped" | "failed";
 
+// ============================================================================
+// Custom Crypto Provider Callback Types
+// ============================================================================
+
+/**
+ * Algorithm identifier for COSE algorithms.
+ * - "EdDSA" - Edwards-curve Digital Signature Algorithm (Ed25519)
+ * - "ES256" - ECDSA with P-256 and SHA-256
+ * - "A256GCM" - AES-256-GCM encryption
+ * - "A128GCM" - AES-128-GCM encryption
+ */
+export type Algorithm = "EdDSA" | "ES256" | "A256GCM" | "A128GCM";
+
+/**
+ * Custom signature verifier callback.
+ * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+ *
+ * The callback should throw an error if verification fails.
+ *
+ * @param algorithm - COSE algorithm identifier (e.g., "EdDSA", "ES256")
+ * @param keyId - Optional key identifier from the COSE header
+ * @param data - Data that was signed (the COSE Sig_structure)
+ * @param signature - Signature to verify
+ *
+ * @example
+ * ```typescript
+ * const myVerifier: VerifierCallback = (algorithm, keyId, data, signature) => {
+ *   const result = myKms.verify({ keyId, algorithm, data, signature });
+ *   if (!result.valid) throw new Error("Verification failed");
+ * };
+ * ```
+ */
+export type VerifierCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  data: Uint8Array,
+  signature: Uint8Array
+) => void;
+
+/**
+ * Custom decryptor callback.
+ * Use for external crypto providers (HSM, cloud KMS, etc.)
+ *
+ * @param algorithm - COSE algorithm identifier (e.g., "A256GCM", "A128GCM")
+ * @param keyId - Optional key identifier from the COSE header
+ * @param nonce - Nonce/IV for decryption (12 bytes for AES-GCM)
+ * @param aad - Additional authenticated data
+ * @param ciphertext - Ciphertext with authentication tag
+ * @returns Decrypted plaintext
+ *
+ * @example
+ * ```typescript
+ * const myDecryptor: DecryptorCallback = (algorithm, keyId, nonce, aad, ciphertext) => {
+ *   return myKms.decrypt({ keyId, nonce, aad, ciphertext });
+ * };
+ * ```
+ */
+export type DecryptorCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  nonce: Uint8Array,
+  aad: Uint8Array,
+  ciphertext: Uint8Array
+) => Uint8Array;
+
+/**
+ * Custom signer callback.
+ * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+ *
+ * @param algorithm - COSE algorithm identifier (e.g., "EdDSA", "ES256")
+ * @param keyId - Optional key identifier
+ * @param data - Data to sign (the COSE Sig_structure)
+ * @returns Signature bytes
+ *
+ * @example
+ * ```typescript
+ * const mySigner: SignerCallback = (algorithm, keyId, data) => {
+ *   return myKms.sign({ keyId, algorithm, data });
+ * };
+ * ```
+ */
+export type SignerCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  data: Uint8Array
+) => Uint8Array;
+
+/**
+ * Custom encryptor callback.
+ * Use for external crypto providers (HSM, cloud KMS, etc.)
+ *
+ * @param algorithm - COSE algorithm identifier (e.g., "A256GCM", "A128GCM")
+ * @param keyId - Optional key identifier
+ * @param nonce - Nonce/IV for encryption (12 bytes for AES-GCM)
+ * @param aad - Additional authenticated data
+ * @param plaintext - Data to encrypt
+ * @returns Ciphertext with authentication tag
+ *
+ * @example
+ * ```typescript
+ * const myEncryptor: EncryptorCallback = (algorithm, keyId, nonce, aad, plaintext) => {
+ *   return myKms.encrypt({ keyId, nonce, aad, plaintext });
+ * };
+ * ```
+ */
+export type EncryptorCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  nonce: Uint8Array,
+  aad: Uint8Array,
+  plaintext: Uint8Array
+) => Uint8Array;
+
 /**
  * Result of decoding a Claim 169 QR code.
  *
@@ -394,6 +507,48 @@ export interface IEncoder {
   skipBiometrics(): IEncoder;
 
   /**
+   * Sign with a custom signer callback.
+   * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+   *
+   * @param signer - Function that signs data
+   * @param algorithm - Signature algorithm: "EdDSA" or "ES256"
+   * @returns The encoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const qrData = new Encoder(claim169, cwtMeta)
+   *   .signWith((algorithm, keyId, data) => {
+   *     return myKms.sign({ keyId, data });
+   *   }, "EdDSA")
+   *   .encode();
+   * ```
+   */
+  signWith(signer: SignerCallback, algorithm: "EdDSA" | "ES256"): IEncoder;
+
+  /**
+   * Encrypt with a custom encryptor callback.
+   * Use for external crypto providers (HSM, cloud KMS, etc.)
+   *
+   * @param encryptor - Function that encrypts data
+   * @param algorithm - Encryption algorithm: "A256GCM" or "A128GCM"
+   * @returns The encoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const qrData = new Encoder(claim169, cwtMeta)
+   *   .signWithEd25519(signKey)
+   *   .encryptWith((algorithm, keyId, nonce, aad, plaintext) => {
+   *     return myKms.encrypt({ keyId, nonce, aad, plaintext });
+   *   }, "A256GCM")
+   *   .encode();
+   * ```
+   */
+  encryptWith(
+    encryptor: EncryptorCallback,
+    algorithm: "A256GCM" | "A128GCM"
+  ): IEncoder;
+
+  /**
    * Encode the credential to a Base45 QR string.
    * @returns Base45-encoded string suitable for QR code generation
    * @throws {Claim169Error} If encoding fails
@@ -500,6 +655,44 @@ export interface IDecoder {
    * @returns The decoder instance for chaining
    */
   maxDecompressedBytes(bytes: number): IDecoder;
+
+  /**
+   * Verify signature with a custom verifier callback.
+   * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+   *
+   * @param verifier - Function that verifies signatures
+   * @returns The decoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const result = new Decoder(qrText)
+   *   .verifyWith((algorithm, keyId, data, signature) => {
+   *     // Call your crypto provider here
+   *     myKms.verify(keyId, data, signature);
+   *   })
+   *   .decode();
+   * ```
+   */
+  verifyWith(verifier: VerifierCallback): IDecoder;
+
+  /**
+   * Decrypt with a custom decryptor callback.
+   * Use for external crypto providers (HSM, cloud KMS, etc.)
+   *
+   * @param decryptor - Function that decrypts ciphertext
+   * @returns The decoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const result = new Decoder(qrText)
+   *   .decryptWith((algorithm, keyId, nonce, aad, ciphertext) => {
+   *     // Call your crypto provider here
+   *     return myKms.decrypt(keyId, ciphertext, { nonce, aad });
+   *   })
+   *   .decode();
+   * ```
+   */
+  decryptWith(decryptor: DecryptorCallback): IDecoder;
 
   /**
    * Decode the QR code with the configured options.

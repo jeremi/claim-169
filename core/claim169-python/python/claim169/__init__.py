@@ -20,18 +20,29 @@ from .claim169 import (
     # Data classes (encode input)
     Claim169Input,
     CwtMetaInput,
+    # Custom crypto provider wrappers
+    PySignatureVerifier,
+    PyDecryptor,
+    PySigner,
+    PyEncryptor,
     # Decode functions
     decode_unverified,
     decode_with_ed25519,
     decode_with_ecdsa_p256,
     decode_with_verifier,
     decode_encrypted_aes,
+    decode_encrypted_aes256,
+    decode_encrypted_aes128,
     decode_with_decryptor,
     # Encode functions
     encode_with_ed25519,
     encode_with_ecdsa_p256,
     encode_signed_encrypted,
+    encode_signed_encrypted_aes128,
     encode_unsigned,
+    encode_with_signer,
+    encode_with_signer_and_encryptor,
+    encode_with_encryptor,
     generate_nonce,
     # Utilities
     version,
@@ -115,6 +126,11 @@ __all__ = [
     # Data classes (encode input)
     "Claim169Input",
     "CwtMetaInput",
+    # Custom crypto provider wrappers
+    "PySignatureVerifier",
+    "PyDecryptor",
+    "PySigner",
+    "PyEncryptor",
     # Decode functions
     "decode_unverified",
     "decode",
@@ -122,12 +138,18 @@ __all__ = [
     "decode_with_ecdsa_p256",
     "decode_with_verifier",
     "decode_encrypted_aes",
+    "decode_encrypted_aes256",
+    "decode_encrypted_aes128",
     "decode_with_decryptor",
     # Encode functions
     "encode_with_ed25519",
     "encode_with_ecdsa_p256",
     "encode_signed_encrypted",
+    "encode_signed_encrypted_aes128",
     "encode_unsigned",
+    "encode_with_signer",
+    "encode_with_signer_and_encryptor",
+    "encode_with_encryptor",
     "generate_nonce",
     # Utilities
     "version",

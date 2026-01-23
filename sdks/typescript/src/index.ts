@@ -85,15 +85,20 @@
  */
 
 export type {
+  Algorithm,
   Biometric,
   Claim169,
   Claim169Input,
   CwtMeta,
   CwtMetaInput,
   DecodeResult,
+  DecryptorCallback,
+  EncryptorCallback,
   IDecoder,
   IEncoder,
+  SignerCallback,
   VerificationStatus,
+  VerifierCallback,
 } from "./types.js";
 
 export { Claim169Error } from "./types.js";
@@ -102,8 +107,12 @@ import type {
   Claim169Input,
   CwtMetaInput,
   DecodeResult,
+  DecryptorCallback,
+  EncryptorCallback,
   IDecoder,
   IEncoder,
+  SignerCallback,
+  VerifierCallback,
 } from "./types.js";
 import { Claim169Error } from "./types.js";
 
@@ -423,6 +432,64 @@ export class Decoder implements IDecoder {
   }
 
   /**
+   * Verify signature with a custom verifier callback.
+   * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+   *
+   * @param verifier - Function that verifies signatures
+   * @returns The decoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const result = new Decoder(qrText)
+   *   .verifyWith((algorithm, keyId, data, signature) => {
+   *     // Call your crypto provider here
+   *     myKms.verify(keyId, data, signature);
+   *   })
+   *   .decode();
+   * ```
+   */
+  verifyWith(verifier: VerifierCallback): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.verifyWith(verifier);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Decrypt with a custom decryptor callback.
+   * Use for external crypto providers (HSM, cloud KMS, etc.)
+   *
+   * @param decryptor - Function that decrypts ciphertext
+   * @returns The decoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const result = new Decoder(qrText)
+   *   .decryptWith((algorithm, keyId, nonce, aad, ciphertext) => {
+   *     // Call your crypto provider here
+   *     return myKms.decrypt(keyId, ciphertext, { nonce, aad });
+   *   })
+   *   .decode();
+   * ```
+   */
+  decryptWith(decryptor: DecryptorCallback): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.decryptWith(decryptor);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
    * Decode the QR code with the configured options.
    * Requires either a verifier (verifyWithEd25519/verifyWithEcdsaP256) or
    * explicit allowUnverified() to be called first.
@@ -637,6 +704,68 @@ export class Encoder implements IEncoder {
   skipBiometrics(): Encoder {
     this.wasmEncoder = this.wasmEncoder.skipBiometrics();
     return this;
+  }
+
+  /**
+   * Sign with a custom signer callback.
+   * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+   *
+   * @param signer - Function that signs data
+   * @param algorithm - Signature algorithm: "EdDSA" or "ES256"
+   * @returns The encoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const qrData = new Encoder(claim169, cwtMeta)
+   *   .signWith((algorithm, keyId, data) => {
+   *     return myKms.sign({ keyId, data });
+   *   }, "EdDSA")
+   *   .encode();
+   * ```
+   */
+  signWith(signer: SignerCallback, algorithm: "EdDSA" | "ES256"): Encoder {
+    try {
+      this.wasmEncoder = this.wasmEncoder.signWith(signer, algorithm);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Encrypt with a custom encryptor callback.
+   * Use for external crypto providers (HSM, cloud KMS, etc.)
+   *
+   * @param encryptor - Function that encrypts data
+   * @param algorithm - Encryption algorithm: "A256GCM" or "A128GCM"
+   * @returns The encoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const qrData = new Encoder(claim169, cwtMeta)
+   *   .signWithEd25519(signKey)
+   *   .encryptWith((algorithm, keyId, nonce, aad, plaintext) => {
+   *     return myKms.encrypt({ keyId, nonce, aad, plaintext });
+   *   }, "A256GCM")
+   *   .encode();
+   * ```
+   */
+  encryptWith(
+    encryptor: EncryptorCallback,
+    algorithm: "A256GCM" | "A128GCM"
+  ): Encoder {
+    try {
+      this.wasmEncoder = this.wasmEncoder.encryptWith(encryptor, algorithm);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
   }
 
   /**

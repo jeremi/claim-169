@@ -188,6 +188,14 @@ pub enum CryptoError {
     #[error("decryption failed: {0}")]
     DecryptionFailed(String),
 
+    /// Signing failed (for custom signer callbacks)
+    #[error("signing failed: {0}")]
+    SigningFailed(String),
+
+    /// Encryption failed (for custom encryptor callbacks)
+    #[error("encryption failed: {0}")]
+    EncryptionFailed(String),
+
     /// Unsupported algorithm
     #[error("unsupported algorithm: {0}")]
     UnsupportedAlgorithm(String),
@@ -204,6 +212,8 @@ impl From<CryptoError> for Claim169Error {
                 Claim169Error::SignatureInvalid("verification failed".to_string())
             }
             CryptoError::DecryptionFailed(msg) => Claim169Error::DecryptionFailed(msg),
+            CryptoError::SigningFailed(msg) => Claim169Error::SignatureFailed(msg),
+            CryptoError::EncryptionFailed(msg) => Claim169Error::EncryptionFailed(msg),
             CryptoError::UnsupportedAlgorithm(alg) => Claim169Error::UnsupportedAlgorithm(alg),
             CryptoError::KeyNotFound => Claim169Error::KeyNotFound(None),
             other => Claim169Error::Crypto(other.to_string()),

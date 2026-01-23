@@ -43,7 +43,7 @@ All SDKs share the same Rust core via native bindings (Python) or WebAssembly (T
 - **Encode and decode** identity credentials to/from QR codes
 - **Sign and verify** with Ed25519 or ECDSA P-256
 - **Encrypt and decrypt** with AES-GCM (128 or 256 bit)
-- **Pluggable crypto backends** for HSM integration
+- **Pluggable crypto backends** for HSM, cloud KMS, smart cards, and TPM integration
 - **Comprehensive security** including weak key rejection, decompression limits, and timestamp validation
 
 ### Encoding Pipeline

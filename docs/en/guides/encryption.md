@@ -93,6 +93,120 @@ Both algorithms use Galois/Counter Mode (GCM) which provides authenticated encry
       .encode();
     ```
 
+### Custom Encryptor (HSM/KMS)
+
+For production environments where encryption keys are managed externally, use a custom encryptor callback to integrate with Hardware Security Modules (HSM) or cloud Key Management Services (AWS KMS, Google Cloud KMS, Azure Key Vault).
+
+The callback receives:
+
+- `algorithm`: The COSE algorithm name (e.g., `"A256GCM"`, `"A128GCM"`)
+- `key_id`: Optional key identifier bytes (for COSE header)
+- `plaintext`: The data to encrypt
+- `aad`: Additional authenticated data (AAD) for AEAD
+
+The callback must return the ciphertext with the authentication tag appended.
+
+=== "Rust"
+
+    ```rust
+    use claim169_core::{Encoder, Encryptor};
+
+    struct HsmEncryptor {
+        hsm_client: MyHsmClient,
+        key_id: String,
+    }
+
+    impl Encryptor for HsmEncryptor {
+        fn encrypt(
+            &self,
+            algorithm: &str,
+            _key_id: Option<&[u8]>,
+            plaintext: &[u8],
+            aad: &[u8],
+        ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+            // Call your HSM to encrypt the data
+            // Returns ciphertext || auth_tag
+            let ciphertext = self.hsm_client.encrypt(&self.key_id, plaintext, aad)?;
+            Ok(ciphertext)
+        }
+    }
+
+    let encryptor = HsmEncryptor {
+        hsm_client: my_hsm,
+        key_id: "my-encryption-key".to_string(),
+    };
+
+    let qr_data = Encoder::new(claim, meta)
+        .sign_with_ed25519(&signing_key)?
+        .encrypt_with(&encryptor, "A256GCM")?
+        .encode()?;
+    ```
+
+=== "Python"
+
+    ```python
+    from claim169 import encode_with_signer_and_encryptor
+
+    def my_encryptor(algorithm: str, key_id: bytes | None, plaintext: bytes, aad: bytes) -> bytes:
+        """
+        Custom encryptor callback for HSM/KMS integration.
+
+        Args:
+            algorithm: COSE algorithm name ("A256GCM", "A128GCM", etc.)
+            key_id: Optional key identifier for COSE header
+            plaintext: The data to encrypt
+            aad: Additional authenticated data for AEAD
+
+        Returns:
+            Ciphertext with authentication tag appended
+        """
+        # Example: AWS KMS (envelope encryption pattern)
+        # data_key = kms_client.generate_data_key(KeyId='alias/my-key')
+        # ciphertext = aes_gcm_encrypt(data_key['Plaintext'], plaintext, aad)
+        # return ciphertext
+
+        # Example: PKCS#11 HSM
+        return my_hsm.encrypt(key_id, plaintext, aad)
+
+    def my_signer(algorithm: str, key_id: bytes | None, data: bytes) -> bytes:
+        return my_hsm.sign(key_id, data)
+
+    qr_data = encode_with_signer_and_encryptor(
+        claim, meta,
+        my_signer, "EdDSA",
+        my_encryptor, "A256GCM"
+    )
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    import { Encoder, EncryptorCallback, SignerCallback } from 'claim169';
+
+    const myEncryptor: EncryptorCallback = async (
+      algorithm: string,
+      keyId: Uint8Array | null,
+      plaintext: Uint8Array,
+      aad: Uint8Array
+    ): Promise<Uint8Array> => {
+      // Example: Google Cloud KMS
+      // const [encryptResponse] = await kmsClient.encrypt({
+      //   name: keyName,
+      //   plaintext: plaintext,
+      //   additionalAuthenticatedData: aad,
+      // });
+      // return new Uint8Array(encryptResponse.ciphertext);
+
+      // Your HSM encryption
+      return myHsm.encrypt(keyId, plaintext, aad);
+    };
+
+    const qrData = new Encoder(claim, meta)
+      .signWith(mySigner, "EdDSA")
+      .encryptWith(myEncryptor, "A256GCM")
+      .encode();
+    ```
+
 ## Decrypting Credentials
 
 When decrypting, you must specify the decryption method before verification:
@@ -140,6 +254,128 @@ When decrypting, you must specify the decryption method before verification:
       .verifyWithEd25519(publicKey)
       .decode();
     ```
+
+### Custom Decryptor (HSM/KMS)
+
+For production environments where decryption keys are managed externally, use a custom decryptor callback to integrate with Hardware Security Modules (HSM) or cloud Key Management Services.
+
+The callback receives:
+
+- `algorithm`: The COSE algorithm name (e.g., `"A256GCM"`, `"A128GCM"`)
+- `key_id`: Optional key identifier bytes (from COSE header, if present)
+- `ciphertext`: The encrypted data (ciphertext with auth tag)
+- `aad`: Additional authenticated data (AAD) for AEAD
+
+The callback must return the decrypted plaintext. Throw an exception if decryption fails (e.g., authentication tag mismatch).
+
+=== "Rust"
+
+    ```rust
+    use claim169_core::{Decoder, Decryptor};
+
+    struct HsmDecryptor {
+        hsm_client: MyHsmClient,
+    }
+
+    impl Decryptor for HsmDecryptor {
+        fn decrypt(
+            &self,
+            algorithm: &str,
+            key_id: Option<&[u8]>,
+            ciphertext: &[u8],
+            aad: &[u8],
+        ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+            // Use key_id to locate the correct decryption key in your HSM
+            let key_name = key_id
+                .map(|id| String::from_utf8_lossy(id).to_string())
+                .unwrap_or_else(|| "default-encryption-key".to_string());
+
+            // Call your HSM to decrypt the data
+            let plaintext = self.hsm_client.decrypt(&key_name, ciphertext, aad)?;
+            Ok(plaintext)
+        }
+    }
+
+    let decryptor = HsmDecryptor { hsm_client: my_hsm };
+
+    let result = Decoder::new(qr_data)
+        .decrypt_with(&decryptor)?
+        .verify_with_ed25519(&public_key)?
+        .decode()?;
+    ```
+
+=== "Python"
+
+    ```python
+    from claim169 import decode_with_decryptor_and_verifier
+
+    def my_decryptor(algorithm: str, key_id: bytes | None, ciphertext: bytes, aad: bytes) -> bytes:
+        """
+        Custom decryptor callback for HSM/KMS integration.
+
+        Args:
+            algorithm: COSE algorithm name ("A256GCM", "A128GCM", etc.)
+            key_id: Optional key identifier from COSE header
+            ciphertext: The encrypted data (ciphertext with auth tag)
+            aad: Additional authenticated data for AEAD
+
+        Returns:
+            Decrypted plaintext
+
+        Raises:
+            Exception: If decryption fails (e.g., auth tag mismatch)
+        """
+        # Example: AWS KMS
+        # response = kms_client.decrypt(
+        #     KeyId='alias/my-key',
+        #     CiphertextBlob=ciphertext,
+        # )
+        # return response['Plaintext']
+
+        # Example: PKCS#11 HSM
+        return my_hsm.decrypt(key_id, ciphertext, aad)
+
+    def my_verifier(algorithm: str, key_id: bytes | None, data: bytes, signature: bytes):
+        my_hsm.verify(key_id, data, signature)
+
+    result = decode_with_decryptor_and_verifier(qr_data, my_decryptor, my_verifier)
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    import { Decoder, DecryptorCallback, VerifierCallback } from 'claim169';
+
+    const myDecryptor: DecryptorCallback = async (
+      algorithm: string,
+      keyId: Uint8Array | null,
+      ciphertext: Uint8Array,
+      aad: Uint8Array
+    ): Promise<Uint8Array> => {
+      // Example: Google Cloud KMS
+      // const [decryptResponse] = await kmsClient.decrypt({
+      //   name: keyName,
+      //   ciphertext: ciphertext,
+      //   additionalAuthenticatedData: aad,
+      // });
+      // return new Uint8Array(decryptResponse.plaintext);
+
+      // Example: Azure Key Vault
+      // const result = await cryptoClient.decrypt("A256GCM", ciphertext);
+      // return result.result;
+
+      // Your HSM decryption - throw on failure
+      return myHsm.decrypt(keyId, ciphertext, aad);
+    };
+
+    const result = new Decoder(qrData)
+      .decryptWith(myDecryptor)
+      .verifyWith(myVerifier)
+      .decode();
+    ```
+
+!!! warning "Authentication Tag Verification"
+    AES-GCM includes an authentication tag that ensures data integrity. If your HSM returns an error during decryption (e.g., "authentication failed"), propagate this error rather than returning corrupted data.
 
 ## Key Management
 

@@ -69,11 +69,14 @@ qr_data = encode_signed_encrypted(claim, meta, sign_key_bytes, encrypt_key_bytes
 
 ```python
 from claim169 import (
-    encode_with_ed25519,       # Ed25519 signed
-    encode_with_ecdsa_p256,    # ECDSA P-256 signed
-    encode_signed_encrypted,   # Signed + AES-256-GCM encrypted
-    encode_unsigned,           # Unsigned (testing only)
-    generate_nonce,            # Generate random 12-byte nonce
+    encode_with_ed25519,           # Ed25519 signed
+    encode_with_ecdsa_p256,        # ECDSA P-256 signed
+    encode_signed_encrypted,       # Signed + AES-256-GCM encrypted
+    encode_signed_encrypted_aes128,# Signed + AES-128-GCM encrypted
+    encode_with_signer,            # Custom signer (HSM, cloud KMS, etc.)
+    encode_with_signer_and_encryptor,  # Custom signer + encryptor
+    encode_unsigned,               # Unsigned (testing only)
+    generate_nonce,                # Generate random 12-byte nonce
 )
 
 # Ed25519 signed (recommended)
@@ -85,11 +88,70 @@ qr_data = encode_with_ecdsa_p256(claim, cwt_meta, private_key)  # 32-byte key
 # Signed and encrypted (AES-256-GCM)
 qr_data = encode_signed_encrypted(claim, cwt_meta, sign_key, encrypt_key)
 
+# Signed and encrypted (AES-128-GCM)
+qr_data = encode_signed_encrypted_aes128(claim, cwt_meta, sign_key, encrypt_key)
+
 # Unsigned (for testing only - not recommended for production)
 qr_data = encode_unsigned(claim, cwt_meta)
 
 # Generate a random 12-byte nonce for encryption
 nonce = generate_nonce()
+```
+
+### Custom Signer (HSM/Cloud KMS)
+
+For integrating with external crypto providers like HSMs, cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault), smart cards, TPMs, or remote signing services:
+
+```python
+from claim169 import encode_with_signer, encode_with_signer_and_encryptor
+
+def my_signer(algorithm: str, key_id: bytes | None, data: bytes) -> bytes:
+    """Custom signer callback.
+
+    Args:
+        algorithm: COSE algorithm name ("EdDSA" or "ES256")
+        key_id: Optional key identifier
+        data: The data to sign (COSE Sig_structure)
+
+    Returns:
+        Signature bytes (64 bytes for EdDSA, 64 bytes for ES256)
+    """
+    return my_hsm.sign(key_id, data)
+
+# Sign with custom signer
+qr_data = encode_with_signer(claim, meta, my_signer, "EdDSA")
+
+# Sign with custom signer and key_id
+qr_data = encode_with_signer(claim, meta, my_signer, "EdDSA", key_id=b"my-key-123")
+
+# Sign with custom signer (ES256)
+qr_data = encode_with_signer(claim, meta, my_signer, "ES256")
+```
+
+### Custom Encryptor (HSM/Cloud KMS)
+
+```python
+def my_encryptor(algorithm: str, key_id: bytes | None, nonce: bytes, aad: bytes, plaintext: bytes) -> bytes:
+    """Custom encryptor callback.
+
+    Args:
+        algorithm: COSE algorithm name ("A256GCM" or "A128GCM")
+        key_id: Optional key identifier
+        nonce: 12-byte IV for AES-GCM
+        aad: Additional authenticated data
+        plaintext: Data to encrypt
+
+    Returns:
+        Ciphertext with authentication tag appended
+    """
+    return my_hsm.encrypt(key_id, nonce, aad, plaintext)
+
+# Sign with custom signer and encrypt with custom encryptor
+qr_data = encode_with_signer_and_encryptor(
+    claim, meta,
+    my_signer, "EdDSA",
+    my_encryptor, "A256GCM"
+)
 ```
 
 ## Signature Verification
@@ -113,27 +175,27 @@ public_key = bytes.fromhex("04...")  # SEC1-encoded (33 or 65 bytes)
 result = claim169.decode_with_ecdsa_p256(qr_text, public_key)
 ```
 
-### Custom Verifier (HSM Support)
+### Custom Verifier (HSM/Cloud KMS)
 
-For hardware security module (HSM) integration:
+For integrating with external crypto providers like HSMs, cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault), smart cards, or TPMs:
 
 ```python
-def my_hsm_verify(algorithm: str, key_id: bytes | None, data: bytes, signature: bytes):
-    """Custom verifier callback for HSM integration.
+def my_verifier(algorithm: str, key_id: bytes | None, data: bytes, signature: bytes):
+    """Custom verifier callback.
 
     Args:
-        algorithm: COSE algorithm name (e.g., "EdDSA", "ES256")
+        algorithm: COSE algorithm name ("EdDSA" or "ES256")
         key_id: Optional key identifier from COSE header
-        data: The signed data (Sig_structure)
+        data: The signed data (COSE Sig_structure)
         signature: The signature bytes
 
     Raises:
         Exception: If verification fails
     """
-    # Delegate to your HSM
-    hsm.verify(key_id, data, signature)
+    # Delegate to your crypto provider
+    my_hsm.verify(key_id, data, signature)
 
-result = claim169.decode_with_verifier(qr_text, my_hsm_verify)
+result = claim169.decode_with_verifier(qr_text, my_verifier)
 ```
 
 ## Encrypted Payloads
@@ -159,26 +221,26 @@ result = claim169.decode_encrypted_aes(
 )
 ```
 
-### Custom Decryptor (HSM Support)
+### Custom Decryptor (HSM/Cloud KMS)
 
 ```python
-def my_hsm_decrypt(algorithm: str, key_id: bytes | None, nonce: bytes, aad: bytes, ciphertext: bytes) -> bytes:
-    """Custom decryptor callback for HSM integration.
+def my_decryptor(algorithm: str, key_id: bytes | None, nonce: bytes, aad: bytes, ciphertext: bytes) -> bytes:
+    """Custom decryptor callback.
 
     Args:
-        algorithm: COSE algorithm name (e.g., "A256GCM")
+        algorithm: COSE algorithm name ("A256GCM" or "A128GCM")
         key_id: Optional key identifier from COSE header
-        nonce: IV/nonce from COSE header
-        aad: Additional authenticated data (Enc_structure)
-        ciphertext: The encrypted data
+        nonce: 12-byte IV from COSE header
+        aad: Additional authenticated data (COSE Enc_structure)
+        ciphertext: The encrypted data with auth tag
 
     Returns:
         Decrypted plaintext bytes
     """
-    return hsm.decrypt(key_id, nonce, aad, ciphertext)
+    return my_hsm.decrypt(key_id, nonce, aad, ciphertext)
 
 # Provide a verifier for the inner COSE_Sign1 (recommended)
-result = claim169.decode_with_decryptor(qr_text, my_hsm_decrypt, verifier=my_hsm_verify)
+result = claim169.decode_with_decryptor(qr_text, my_decryptor, verifier=my_verifier)
 ```
 
 ## Decode Options

@@ -2,20 +2,37 @@
 //!
 //! This module provides WASM bindings using wasm-bindgen for the claim169-core library.
 //! It supports encoding (signing, encryption) and decoding of Claim 169 QR codes.
+//!
+//! ## Custom Crypto Providers
+//!
+//! For integration with external crypto providers (HSM, cloud KMS, remote signing services,
+//! smart cards, TPMs, etc.), the decoder and encoder support custom callback functions:
+//!
+//! - `verifyWith(callback)` - Custom signature verification
+//! - `decryptWith(callback)` - Custom decryption
+//! - `signWith(callback, algorithm)` - Custom signing
+//! - `encryptWith(callback, algorithm)` - Custom encryption
 
+use js_sys::{Function, Uint8Array};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+
+use claim169_core::crypto::traits::{
+    Decryptor as CoreDecryptor, Encryptor as CoreEncryptor,
+    SignatureVerifier as CoreSignatureVerifier, Signer as CoreSigner,
+};
+use claim169_core::error::{CryptoError, CryptoResult};
+use claim169_core::model::{
+    Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
+};
+use claim169_core::{Decoder, Encoder};
+use coset::iana;
 
 // Install panic hook on module load
 #[wasm_bindgen(start)]
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
-
-use claim169_core::model::{
-    Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
-};
-use claim169_core::{Decoder, Encoder};
 
 // ============================================================================
 // JavaScript Error Types
@@ -26,6 +43,235 @@ extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn error(s: &str);
 }
+
+// ============================================================================
+// JavaScript Callback Wrappers for Custom Crypto Providers
+// ============================================================================
+
+/// Convert algorithm enum to JavaScript string
+fn algorithm_to_string(alg: iana::Algorithm) -> String {
+    match alg {
+        iana::Algorithm::EdDSA => "EdDSA".to_string(),
+        iana::Algorithm::ES256 => "ES256".to_string(),
+        iana::Algorithm::A128GCM => "A128GCM".to_string(),
+        iana::Algorithm::A256GCM => "A256GCM".to_string(),
+        other => format!("{:?}", other),
+    }
+}
+
+/// JavaScript signature verifier callback wrapper.
+///
+/// Calls a JavaScript function with signature:
+/// `function(algorithm: string, keyId: Uint8Array | null, data: Uint8Array, signature: Uint8Array): void`
+///
+/// Throws if verification fails.
+struct JsSignatureVerifier {
+    callback: Function,
+}
+
+impl CoreSignatureVerifier for JsSignatureVerifier {
+    fn verify(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        data: &[u8],
+        signature: &[u8],
+    ) -> CryptoResult<()> {
+        let alg_str = algorithm_to_string(algorithm);
+        let key_id_js: JsValue = match key_id {
+            Some(k) => Uint8Array::from(k).into(),
+            None => JsValue::NULL,
+        };
+        let data_js = Uint8Array::from(data);
+        let sig_js = Uint8Array::from(signature);
+
+        let result = self.callback.call4(
+            &JsValue::UNDEFINED,
+            &JsValue::from_str(&alg_str),
+            &key_id_js,
+            &data_js.into(),
+            &sig_js.into(),
+        );
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                let msg = e
+                    .as_string()
+                    .unwrap_or_else(|| "verification callback failed".to_string());
+                Err(CryptoError::Other(msg))
+            }
+        }
+    }
+}
+
+// Implement Send + Sync for WASM single-threaded context
+unsafe impl Send for JsSignatureVerifier {}
+unsafe impl Sync for JsSignatureVerifier {}
+
+/// JavaScript decryptor callback wrapper.
+///
+/// Calls a JavaScript function with signature:
+/// `function(algorithm: string, keyId: Uint8Array | null, nonce: Uint8Array, aad: Uint8Array, ciphertext: Uint8Array): Uint8Array`
+///
+/// Returns the decrypted plaintext.
+struct JsDecryptor {
+    callback: Function,
+}
+
+impl CoreDecryptor for JsDecryptor {
+    fn decrypt(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        nonce: &[u8],
+        aad: &[u8],
+        ciphertext: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        let alg_str = algorithm_to_string(algorithm);
+        let key_id_js: JsValue = match key_id {
+            Some(k) => Uint8Array::from(k).into(),
+            None => JsValue::NULL,
+        };
+        let nonce_js = Uint8Array::from(nonce);
+        let aad_js = Uint8Array::from(aad);
+        let ct_js = Uint8Array::from(ciphertext);
+
+        let result = self.callback.call5(
+            &JsValue::UNDEFINED,
+            &JsValue::from_str(&alg_str),
+            &key_id_js,
+            &nonce_js.into(),
+            &aad_js.into(),
+            &ct_js.into(),
+        );
+
+        match result {
+            Ok(val) => {
+                let arr = Uint8Array::from(val);
+                Ok(arr.to_vec())
+            }
+            Err(e) => {
+                let msg = e
+                    .as_string()
+                    .unwrap_or_else(|| "decryption callback failed".to_string());
+                Err(CryptoError::DecryptionFailed(msg))
+            }
+        }
+    }
+}
+
+unsafe impl Send for JsDecryptor {}
+unsafe impl Sync for JsDecryptor {}
+
+/// JavaScript signer callback wrapper.
+///
+/// Calls a JavaScript function with signature:
+/// `function(algorithm: string, keyId: Uint8Array | null, data: Uint8Array): Uint8Array`
+///
+/// Returns the signature bytes.
+struct JsSigner {
+    callback: Function,
+    key_id: Option<Vec<u8>>,
+}
+
+impl CoreSigner for JsSigner {
+    fn sign(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        data: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        let alg_str = algorithm_to_string(algorithm);
+        let key_id_js: JsValue = match key_id {
+            Some(k) => Uint8Array::from(k).into(),
+            None => JsValue::NULL,
+        };
+        let data_js = Uint8Array::from(data);
+
+        let result = self.callback.call3(
+            &JsValue::UNDEFINED,
+            &JsValue::from_str(&alg_str),
+            &key_id_js,
+            &data_js.into(),
+        );
+
+        match result {
+            Ok(val) => {
+                let arr = Uint8Array::from(val);
+                Ok(arr.to_vec())
+            }
+            Err(e) => {
+                let msg = e
+                    .as_string()
+                    .unwrap_or_else(|| "signer callback failed".to_string());
+                Err(CryptoError::SigningFailed(msg))
+            }
+        }
+    }
+
+    fn key_id(&self) -> Option<&[u8]> {
+        self.key_id.as_deref()
+    }
+}
+
+unsafe impl Send for JsSigner {}
+unsafe impl Sync for JsSigner {}
+
+/// JavaScript encryptor callback wrapper.
+///
+/// Calls a JavaScript function with signature:
+/// `function(algorithm: string, keyId: Uint8Array | null, nonce: Uint8Array, aad: Uint8Array, plaintext: Uint8Array): Uint8Array`
+///
+/// Returns the ciphertext with auth tag.
+struct JsEncryptor {
+    callback: Function,
+}
+
+impl CoreEncryptor for JsEncryptor {
+    fn encrypt(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        nonce: &[u8],
+        aad: &[u8],
+        plaintext: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        let alg_str = algorithm_to_string(algorithm);
+        let key_id_js: JsValue = match key_id {
+            Some(k) => Uint8Array::from(k).into(),
+            None => JsValue::NULL,
+        };
+        let nonce_js = Uint8Array::from(nonce);
+        let aad_js = Uint8Array::from(aad);
+        let pt_js = Uint8Array::from(plaintext);
+
+        let result = self.callback.call5(
+            &JsValue::UNDEFINED,
+            &JsValue::from_str(&alg_str),
+            &key_id_js,
+            &nonce_js.into(),
+            &aad_js.into(),
+            &pt_js.into(),
+        );
+
+        match result {
+            Ok(val) => {
+                let arr = Uint8Array::from(val);
+                Ok(arr.to_vec())
+            }
+            Err(e) => {
+                let msg = e
+                    .as_string()
+                    .unwrap_or_else(|| "encryptor callback failed".to_string());
+                Err(CryptoError::EncryptionFailed(msg))
+            }
+        }
+    }
+}
+
+unsafe impl Send for JsEncryptor {}
+unsafe impl Sync for JsEncryptor {}
 
 // ============================================================================
 // Data Structures
@@ -238,13 +484,14 @@ enum VerifyConfig {
     None,
     Ed25519(Vec<u8>),
     EcdsaP256(Vec<u8>),
+    Custom(JsSignatureVerifier),
     Unverified,
 }
 
 /// Internal state for decoder decryption configuration
-struct DecryptConfig {
-    key: Vec<u8>,
-    algorithm: DecryptAlgorithm,
+enum DecryptConfig {
+    Software { key: Vec<u8>, algorithm: DecryptAlgorithm },
+    Custom(JsDecryptor),
 }
 
 #[derive(Clone, Copy)]
@@ -315,7 +562,7 @@ impl WasmDecoder {
         if key.len() != 32 {
             return Err(JsError::new("AES-256 key must be 32 bytes"));
         }
-        self.decrypt_config = Some(DecryptConfig {
+        self.decrypt_config = Some(DecryptConfig::Software {
             key: key.to_vec(),
             algorithm: DecryptAlgorithm::Aes256Gcm,
         });
@@ -328,11 +575,41 @@ impl WasmDecoder {
         if key.len() != 16 {
             return Err(JsError::new("AES-128 key must be 16 bytes"));
         }
-        self.decrypt_config = Some(DecryptConfig {
+        self.decrypt_config = Some(DecryptConfig::Software {
             key: key.to_vec(),
             algorithm: DecryptAlgorithm::Aes128Gcm,
         });
         Ok(self)
+    }
+
+    /// Verify with a custom verifier callback.
+    ///
+    /// Use this for integration with external crypto providers (HSM, cloud KMS,
+    /// remote signing services, smart cards, TPMs, etc.).
+    ///
+    /// The callback signature is:
+    /// `function(algorithm: string, keyId: Uint8Array | null, data: Uint8Array, signature: Uint8Array): void`
+    ///
+    /// The callback should throw an error if verification fails.
+    #[wasm_bindgen(js_name = "verifyWith")]
+    pub fn verify_with(mut self, verifier: Function) -> WasmDecoder {
+        self.verify_config = VerifyConfig::Custom(JsSignatureVerifier { callback: verifier });
+        self
+    }
+
+    /// Decrypt with a custom decryptor callback.
+    ///
+    /// Use this for integration with external crypto providers (HSM, cloud KMS,
+    /// remote signing services, smart cards, TPMs, etc.).
+    ///
+    /// The callback signature is:
+    /// `function(algorithm: string, keyId: Uint8Array | null, nonce: Uint8Array, aad: Uint8Array, ciphertext: Uint8Array): Uint8Array`
+    ///
+    /// The callback should return the decrypted plaintext.
+    #[wasm_bindgen(js_name = "decryptWith")]
+    pub fn decrypt_with(mut self, decryptor: Function) -> WasmDecoder {
+        self.decrypt_config = Some(DecryptConfig::Custom(JsDecryptor { callback: decryptor }));
+        self
     }
 
     #[wasm_bindgen(js_name = "skipBiometrics")]
@@ -366,13 +643,16 @@ impl WasmDecoder {
 
         // Apply decryption configuration
         if let Some(decrypt_config) = self.decrypt_config {
-            decoder = match decrypt_config.algorithm {
-                DecryptAlgorithm::Aes256Gcm => decoder
-                    .decrypt_with_aes256(&decrypt_config.key)
-                    .map_err(|e| JsError::new(&e.to_string()))?,
-                DecryptAlgorithm::Aes128Gcm => decoder
-                    .decrypt_with_aes128(&decrypt_config.key)
-                    .map_err(|e| JsError::new(&e.to_string()))?,
+            decoder = match decrypt_config {
+                DecryptConfig::Software { key, algorithm } => match algorithm {
+                    DecryptAlgorithm::Aes256Gcm => decoder
+                        .decrypt_with_aes256(&key)
+                        .map_err(|e| JsError::new(&e.to_string()))?,
+                    DecryptAlgorithm::Aes128Gcm => decoder
+                        .decrypt_with_aes128(&key)
+                        .map_err(|e| JsError::new(&e.to_string()))?,
+                },
+                DecryptConfig::Custom(decryptor) => decoder.decrypt_with(decryptor),
             };
         }
 
@@ -380,7 +660,7 @@ impl WasmDecoder {
         decoder = match self.verify_config {
             VerifyConfig::None => {
                 return Err(JsError::new(
-                    "Must call verifyWithEd25519(), verifyWithEcdsaP256(), or allowUnverified() before decode()",
+                    "Must call verifyWithEd25519(), verifyWithEcdsaP256(), verifyWith(), or allowUnverified() before decode()",
                 ));
             }
             VerifyConfig::Ed25519(key) => decoder
@@ -389,6 +669,7 @@ impl WasmDecoder {
             VerifyConfig::EcdsaP256(key) => decoder
                 .verify_with_ecdsa_p256(&key)
                 .map_err(|e| JsError::new(&e.to_string()))?,
+            VerifyConfig::Custom(verifier) => decoder.verify_with(verifier),
             VerifyConfig::Unverified => decoder.allow_unverified(),
         };
 
@@ -527,13 +808,14 @@ enum SignConfig {
     None,
     Ed25519(Vec<u8>),
     EcdsaP256(Vec<u8>),
+    Custom { signer: JsSigner, algorithm: iana::Algorithm },
     Unsigned,
 }
 
 /// Internal state for encoder encryption configuration
-struct WasmEncryptConfig {
-    key: Vec<u8>,
-    algorithm: EncryptAlgorithm,
+enum WasmEncryptConfig {
+    Software { key: Vec<u8>, algorithm: EncryptAlgorithm },
+    Custom { encryptor: JsEncryptor, algorithm: iana::Algorithm },
 }
 
 #[derive(Clone, Copy)]
@@ -600,7 +882,7 @@ impl WasmEncoder {
         if key.len() != 32 {
             return Err(JsError::new("AES-256 key must be 32 bytes"));
         }
-        self.encrypt_config = Some(WasmEncryptConfig {
+        self.encrypt_config = Some(WasmEncryptConfig::Software {
             key: key.to_vec(),
             algorithm: EncryptAlgorithm::Aes256Gcm,
         });
@@ -613,9 +895,80 @@ impl WasmEncoder {
         if key.len() != 16 {
             return Err(JsError::new("AES-128 key must be 16 bytes"));
         }
-        self.encrypt_config = Some(WasmEncryptConfig {
+        self.encrypt_config = Some(WasmEncryptConfig::Software {
             key: key.to_vec(),
             algorithm: EncryptAlgorithm::Aes128Gcm,
+        });
+        Ok(self)
+    }
+
+    /// Sign with a custom signer callback.
+    ///
+    /// Use this for integration with external crypto providers (HSM, cloud KMS,
+    /// remote signing services, smart cards, TPMs, etc.).
+    ///
+    /// The callback signature is:
+    /// `function(algorithm: string, keyId: Uint8Array | null, data: Uint8Array): Uint8Array`
+    ///
+    /// The callback should return the signature bytes.
+    ///
+    /// @param signer - The signing callback function
+    /// @param algorithm - "EdDSA" or "ES256"
+    #[wasm_bindgen(js_name = "signWith")]
+    pub fn sign_with(
+        mut self,
+        signer: Function,
+        algorithm: &str,
+    ) -> Result<WasmEncoder, JsError> {
+        let alg = match algorithm {
+            "EdDSA" => iana::Algorithm::EdDSA,
+            "ES256" => iana::Algorithm::ES256,
+            _ => {
+                return Err(JsError::new(
+                    "Unsupported sign algorithm. Use 'EdDSA' or 'ES256'",
+                ))
+            }
+        };
+        self.sign_config = SignConfig::Custom {
+            signer: JsSigner {
+                callback: signer,
+                key_id: None,
+            },
+            algorithm: alg,
+        };
+        Ok(self)
+    }
+
+    /// Encrypt with a custom encryptor callback.
+    ///
+    /// Use this for integration with external crypto providers (HSM, cloud KMS,
+    /// remote signing services, smart cards, TPMs, etc.).
+    ///
+    /// The callback signature is:
+    /// `function(algorithm: string, keyId: Uint8Array | null, nonce: Uint8Array, aad: Uint8Array, plaintext: Uint8Array): Uint8Array`
+    ///
+    /// The callback should return the ciphertext with auth tag.
+    ///
+    /// @param encryptor - The encryption callback function
+    /// @param algorithm - "A256GCM" or "A128GCM"
+    #[wasm_bindgen(js_name = "encryptWith")]
+    pub fn encrypt_with(
+        mut self,
+        encryptor: Function,
+        algorithm: &str,
+    ) -> Result<WasmEncoder, JsError> {
+        let alg = match algorithm {
+            "A256GCM" => iana::Algorithm::A256GCM,
+            "A128GCM" => iana::Algorithm::A128GCM,
+            _ => {
+                return Err(JsError::new(
+                    "Unsupported encrypt algorithm. Use 'A256GCM' or 'A128GCM'",
+                ))
+            }
+        };
+        self.encrypt_config = Some(WasmEncryptConfig::Custom {
+            encryptor: JsEncryptor { callback: encryptor },
+            algorithm: alg,
         });
         Ok(self)
     }
@@ -646,7 +999,7 @@ impl WasmEncoder {
         encoder = match self.sign_config {
             SignConfig::None => {
                 return Err(JsError::new(
-                    "Must call signWithEd25519(), signWithEcdsaP256(), or allowUnsigned() before encode()",
+                    "Must call signWithEd25519(), signWithEcdsaP256(), signWith(), or allowUnsigned() before encode()",
                 ));
             }
             SignConfig::Ed25519(key) => encoder
@@ -655,18 +1008,24 @@ impl WasmEncoder {
             SignConfig::EcdsaP256(key) => encoder
                 .sign_with_ecdsa_p256(&key)
                 .map_err(|e| JsError::new(&e.to_string()))?,
+            SignConfig::Custom { signer, algorithm } => encoder.sign_with(signer, algorithm),
             SignConfig::Unsigned => encoder.allow_unsigned(),
         };
 
         // Apply encryption
         if let Some(encrypt_config) = self.encrypt_config {
-            encoder = match encrypt_config.algorithm {
-                EncryptAlgorithm::Aes256Gcm => encoder
-                    .encrypt_with_aes256(&encrypt_config.key)
-                    .map_err(|e| JsError::new(&e.to_string()))?,
-                EncryptAlgorithm::Aes128Gcm => encoder
-                    .encrypt_with_aes128(&encrypt_config.key)
-                    .map_err(|e| JsError::new(&e.to_string()))?,
+            encoder = match encrypt_config {
+                WasmEncryptConfig::Software { key, algorithm } => match algorithm {
+                    EncryptAlgorithm::Aes256Gcm => encoder
+                        .encrypt_with_aes256(&key)
+                        .map_err(|e| JsError::new(&e.to_string()))?,
+                    EncryptAlgorithm::Aes128Gcm => encoder
+                        .encrypt_with_aes128(&key)
+                        .map_err(|e| JsError::new(&e.to_string()))?,
+                },
+                WasmEncryptConfig::Custom { encryptor, algorithm } => {
+                    encoder.encrypt_with(encryptor, algorithm)
+                }
             };
         }
 

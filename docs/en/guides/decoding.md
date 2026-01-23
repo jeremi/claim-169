@@ -125,6 +125,126 @@ uncompressed_key = bytes.fromhex("04...")
 result = decode_with_ecdsa_p256(qr_data, compressed_key)
 ```
 
+### Custom Verifier (HSM/KMS)
+
+For production environments where keys are managed externally, use a custom verifier callback to integrate with Hardware Security Modules (HSM), cloud Key Management Services (AWS KMS, Google Cloud KMS, Azure Key Vault), smart cards, TPMs, or remote verification services.
+
+The callback receives:
+
+- `algorithm`: The COSE algorithm name (e.g., `"EdDSA"`, `"ES256"`)
+- `key_id`: Optional key identifier bytes (from COSE header, if present)
+- `data`: The signed data (COSE `Sig_structure`)
+- `signature`: The signature bytes to verify
+
+The callback must throw/raise an exception if verification fails. A successful return (no exception) indicates valid signature.
+
+=== "Rust"
+
+    ```rust
+    use claim169_core::{Decoder, SignatureVerifier};
+
+    struct HsmVerifier {
+        hsm_client: MyHsmClient,
+    }
+
+    impl SignatureVerifier for HsmVerifier {
+        fn verify(
+            &self,
+            algorithm: &str,
+            key_id: Option<&[u8]>,
+            data: &[u8],
+            signature: &[u8],
+        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            // Use key_id to locate the correct public key in your HSM
+            let key_name = key_id
+                .map(|id| String::from_utf8_lossy(id).to_string())
+                .unwrap_or_else(|| "default-key".to_string());
+
+            // Call your HSM to verify the signature
+            self.hsm_client.verify(&key_name, data, signature)?;
+            Ok(())
+        }
+    }
+
+    let verifier = HsmVerifier { hsm_client: my_hsm };
+
+    let result = Decoder::new(qr_data)
+        .verify_with(&verifier)?
+        .decode()?;
+    ```
+
+=== "Python"
+
+    ```python
+    from claim169 import decode_with_verifier
+
+    def my_verifier(algorithm: str, key_id: bytes | None, data: bytes, signature: bytes):
+        """
+        Custom verifier callback for HSM/KMS integration.
+
+        Args:
+            algorithm: COSE algorithm name ("EdDSA", "ES256", etc.)
+            key_id: Optional key identifier from COSE header
+            data: The signed data (COSE Sig_structure)
+            signature: The signature bytes to verify
+
+        Raises:
+            Exception: If signature verification fails
+        """
+        # Example: AWS KMS
+        # kms_client.verify(
+        #     KeyId='alias/my-verification-key',
+        #     Message=data,
+        #     Signature=signature,
+        #     SigningAlgorithm='ECDSA_SHA_256'
+        # )
+
+        # Example: PKCS#11 HSM
+        # Raises exception on failure, returns None on success
+        my_hsm.verify(key_id, data, signature)
+
+    result = decode_with_verifier(qr_data, my_verifier)
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    import { Decoder, VerifierCallback } from 'claim169';
+
+    const myVerifier: VerifierCallback = async (
+      algorithm: string,
+      keyId: Uint8Array | null,
+      data: Uint8Array,
+      signature: Uint8Array
+    ): Promise<void> => {
+      // Example: Google Cloud KMS
+      // const [verifyResponse] = await kmsClient.asymmetricVerify({
+      //   name: keyVersionName,
+      //   data: data,
+      //   signature: signature,
+      // });
+      // if (!verifyResponse.success) {
+      //   throw new Error('Signature verification failed');
+      // }
+
+      // Example: Azure Key Vault
+      // const result = await cryptoClient.verify("ES256", data, signature);
+      // if (!result.result) {
+      //   throw new Error('Signature verification failed');
+      // }
+
+      // Your HSM verification - throw on failure
+      myHsm.verify(keyId, data, signature);
+    };
+
+    const result = new Decoder(qrData)
+      .verifyWith(myVerifier)
+      .decode();
+    ```
+
+!!! tip "Key Lookup"
+    Use the `key_id` parameter to look up the correct public key in your key management system. This enables key rotation and multi-issuer scenarios where different credentials may be signed with different keys.
+
 ## Handling Encrypted Credentials
 
 Encrypted credentials must be decrypted before verification:

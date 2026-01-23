@@ -106,8 +106,10 @@ const result = new Decoder(qrText)
 |--------|-------------|
 | `verifyWithEd25519(publicKey)` | Verify with Ed25519 (32 bytes) |
 | `verifyWithEcdsaP256(publicKey)` | Verify with ECDSA P-256 (33 or 65 bytes) |
+| `verifyWith(callback)` | Verify with custom callback (HSM, cloud KMS, etc.) |
 | `decryptWithAes256(key)` | Decrypt with AES-256-GCM (32 bytes) |
 | `decryptWithAes128(key)` | Decrypt with AES-128-GCM (16 bytes) |
+| `decryptWith(callback)` | Decrypt with custom callback (HSM, cloud KMS, etc.) |
 | `allowUnverified()` | Skip verification (testing only) |
 | `skipBiometrics()` | Skip biometric data parsing |
 | `withTimestampValidation()` | Enable exp/nbf validation |
@@ -162,8 +164,10 @@ const qrData = new Encoder(claim169, cwtMeta)
 |--------|-------------|
 | `signWithEd25519(privateKey)` | Sign with Ed25519 |
 | `signWithEcdsaP256(privateKey)` | Sign with ECDSA P-256 |
+| `signWith(callback, algorithm)` | Sign with custom callback (HSM, cloud KMS, etc.) |
 | `encryptWithAes256(key)` | Encrypt with AES-256-GCM |
 | `encryptWithAes128(key)` | Encrypt with AES-128-GCM |
+| `encryptWith(callback, algorithm)` | Encrypt with custom callback (HSM, cloud KMS, etc.) |
 | `allowUnsigned()` | Allow unsigned (testing only) |
 | `skipBiometrics()` | Skip biometric fields |
 | `encode()` | Produce the QR string |
@@ -176,6 +180,130 @@ Generate a cryptographically secure random nonce for encryption:
 import { generateNonce } from 'claim169';
 
 const nonce = generateNonce();  // Returns 12-byte Uint8Array
+```
+
+## Custom Crypto Providers
+
+For integrating with external key management systems like HSMs, cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault), smart cards, TPMs, or remote signing services, use the custom callback methods.
+
+### Custom Signer
+
+```typescript
+import { Encoder, SignerCallback, Claim169Input, CwtMetaInput } from 'claim169';
+
+// Example: Sign with a cloud KMS
+const mySigner: SignerCallback = (algorithm, keyId, data) => {
+  // Call your crypto provider
+  // algorithm: "EdDSA" or "ES256"
+  // keyId: optional key identifier (Uint8Array or null)
+  // data: the COSE Sig_structure to sign (Uint8Array)
+  const signature = myKms.sign({ keyId, data, algorithm });
+  return signature;  // Uint8Array: 64 bytes for EdDSA, 64 bytes for ES256
+};
+
+const claim: Claim169Input = { id: "123", fullName: "John Doe" };
+const meta: CwtMetaInput = { issuer: "https://issuer.example" };
+
+const qrData = new Encoder(claim, meta)
+  .signWith(mySigner, "EdDSA")
+  .encode();
+```
+
+### Custom Verifier
+
+```typescript
+import { Decoder, VerifierCallback } from 'claim169';
+
+// Example: Verify with an HSM
+const myVerifier: VerifierCallback = (algorithm, keyId, data, signature) => {
+  // Call your crypto provider
+  // Throw an error if verification fails
+  const result = myHsm.verify({ keyId, data, signature, algorithm });
+  if (!result.valid) {
+    throw new Error("Signature verification failed");
+  }
+};
+
+const result = new Decoder(qrText)
+  .verifyWith(myVerifier)
+  .decode();
+```
+
+### Custom Encryptor
+
+```typescript
+import { Encoder, EncryptorCallback } from 'claim169';
+
+// Example: Encrypt with cloud KMS
+const myEncryptor: EncryptorCallback = (algorithm, keyId, nonce, aad, plaintext) => {
+  // algorithm: "A256GCM" or "A128GCM"
+  // nonce: 12-byte IV
+  // aad: additional authenticated data
+  // plaintext: data to encrypt
+  const ciphertext = myKms.encrypt({ keyId, nonce, aad, plaintext });
+  return ciphertext;  // Uint8Array: plaintext + 16-byte auth tag
+};
+
+const qrData = new Encoder(claim, meta)
+  .signWithEd25519(signingKey)
+  .encryptWith(myEncryptor, "A256GCM")
+  .encode();
+```
+
+### Custom Decryptor
+
+```typescript
+import { Decoder, DecryptorCallback } from 'claim169';
+
+// Example: Decrypt with cloud KMS
+const myDecryptor: DecryptorCallback = (algorithm, keyId, nonce, aad, ciphertext) => {
+  // algorithm: "A256GCM" or "A128GCM"
+  // ciphertext includes the auth tag
+  const plaintext = myKms.decrypt({ keyId, nonce, aad, ciphertext });
+  return plaintext;  // Uint8Array
+};
+
+const result = new Decoder(qrText)
+  .decryptWith(myDecryptor)
+  .verifyWithEd25519(publicKey)
+  .decode();
+```
+
+### Callback Type Definitions
+
+```typescript
+// Signer: (algorithm, keyId, data) => signature
+type SignerCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  data: Uint8Array
+) => Uint8Array;
+
+// Verifier: (algorithm, keyId, data, signature) => void (throw on failure)
+type VerifierCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  data: Uint8Array,
+  signature: Uint8Array
+) => void;
+
+// Encryptor: (algorithm, keyId, nonce, aad, plaintext) => ciphertext
+type EncryptorCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  nonce: Uint8Array,
+  aad: Uint8Array,
+  plaintext: Uint8Array
+) => Uint8Array;
+
+// Decryptor: (algorithm, keyId, nonce, aad, ciphertext) => plaintext
+type DecryptorCallback = (
+  algorithm: string,
+  keyId: Uint8Array | null,
+  nonce: Uint8Array,
+  aad: Uint8Array,
+  ciphertext: Uint8Array
+) => Uint8Array;
 ```
 
 ## Data Model
