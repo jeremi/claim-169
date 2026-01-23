@@ -72,6 +72,10 @@ El playground se ejecuta completamente en tu navegador:
 
 No se envía ningún dato a ningún servidor.
 
+## Captura de pantalla
+
+![Captura de pantalla del Playground](../assets/img/playground.png)
+
 ## Código fuente
 
 El código fuente del playground está disponible en:

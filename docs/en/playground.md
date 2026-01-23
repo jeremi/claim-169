@@ -72,31 +72,9 @@ The playground runs entirely in your browser using:
 
 No data is sent to any server.
 
-## Layout
+## Screenshot
 
-```
-┌─────────────────────────────────┬─────────────────────────────────┐
-│  IDENTITY                       │  QR CODE                        │
-│  ───────────────────────────    │  ─────────────────────────────  │
-│  ID: [________________]         │         ▄▄▄▄▄▄▄▄▄▄▄▄▄          │
-│  Full Name: [___________]       │         ██▀▀▀▀▀▀▀▀██          │
-│  DOB: [____]  Gender: [___]     │         ██ ▄▄▄▄▄ ██          │
-│                                 │         ██ █   █ ██          │
-│  ┌─ CREDENTIAL SETTINGS ─────┐  │         ██▄▄▄▄▄▄▄██          │
-│  │                           │  │                                 │
-│  │  ▸ Token Settings         │  │  [PNG]  [Scan]                  │
-│  │                           │  │                                 │
-│  │  Cryptography             │  │  ┌─────────────────────────┐    │
-│  │  ○ Ed25519  ○ ECDSA       │  │  │ ✓ Signature Verified    │    │
-│  │                           │  │  │   Algorithm: EdDSA      │    │
-│  │  Private Key: [________]  │  │  └─────────────────────────┘    │
-│  │  Public Key:  [________]  │  │                                 │
-│  │                           │  │  Base45 Data                    │
-│  │  Encryption: ○ None       │  │  6BF590B20FFWJWG...             │
-│  │              ○ AES-256    │  │                                 │
-│  └───────────────────────────┘  │  ▸ Pipeline Details             │
-└─────────────────────────────────┴─────────────────────────────────┘
-```
+![Playground Screenshot](../assets/img/playground.png)
 
 ## Source Code
 
