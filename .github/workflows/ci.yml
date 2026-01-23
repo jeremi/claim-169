@@ -303,7 +303,13 @@ jobs:
         run: |
           python -m venv test-venv
           source test-venv/bin/activate
-          pip install dist/*.whl
+          # Install exactly one wheel to avoid pip conflicts if multiple wheels exist.
+          WHEEL="$(ls -1 dist/*.whl | grep -m 1 -E 'manylinux' || true)"
+          if [ -z "$WHEEL" ]; then
+            WHEEL="$(ls -1 dist/*.whl | head -n 1)"
+          fi
+          echo "Installing wheel: $WHEEL"
+          pip install "$WHEEL"
           python -c "import claim169; print(f'Python SDK version: {claim169.version()}')"
           echo "Python wheel installs and imports successfully"
 
