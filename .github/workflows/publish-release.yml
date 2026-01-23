@@ -82,10 +82,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install wasm-pack
-        run: |
-          if ! command -v wasm-pack &> /dev/null || [ "$(wasm-pack --version)" != "wasm-pack 0.13.1" ]; then
-            cargo install wasm-pack@0.13.1 --locked
-          fi
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -227,11 +226,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Install git-cliff
-        run: cargo install git-cliff --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
 
       - name: Generate release notes
         run: |

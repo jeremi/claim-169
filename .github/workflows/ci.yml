@@ -126,17 +126,10 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
 
-      - name: Cache wasm-pack
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/wasm-pack
-          key: ${{ runner.os }}-wasm-pack-0.13.1
-
       - name: Install wasm-pack
-        run: |
-          if ! command -v wasm-pack &> /dev/null; then
-            cargo install wasm-pack@0.13.1 --locked
-          fi
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -181,17 +174,10 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
 
-      - name: Cache wasm-pack
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/wasm-pack
-          key: ${{ runner.os }}-wasm-pack-0.13.1
-
       - name: Install wasm-pack
-        run: |
-          if ! command -v wasm-pack &> /dev/null; then
-            cargo install wasm-pack@0.13.1 --locked
-          fi
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -262,17 +248,10 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
 
-      - name: Cache wasm-pack
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/wasm-pack
-          key: ${{ runner.os }}-wasm-pack-0.13.1
-
       - name: Install wasm-pack
-        run: |
-          if ! command -v wasm-pack &> /dev/null; then
-            cargo install wasm-pack@0.13.1 --locked
-          fi
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -357,17 +336,10 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Cache wasm-pack
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/wasm-pack
-          key: ${{ runner.os }}-wasm-pack-0.13.1
-
       - name: Install wasm-pack
-        run: |
-          if ! command -v wasm-pack &> /dev/null; then
-            cargo install wasm-pack@0.13.1 --locked
-          fi
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
 
       - name: Set up Python
         uses: actions/setup-python@v5
