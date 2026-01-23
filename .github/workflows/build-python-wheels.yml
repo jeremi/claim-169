@@ -1,11 +1,14 @@
 # Reusable workflow for building Python wheels across all platforms
 #
 # Builds wheels for:
-# - Linux x86_64 and aarch64 (manylinux_2_28)
+# - Linux x86_64
 # - macOS x86_64 and arm64
 # - Windows x86_64
 #
 # Also builds source distribution (sdist)
+#
+# Note: Linux aarch64 cross-compilation requires additional setup and is not
+# currently included. Users on Linux ARM can build from source using the sdist.
 
 name: Build Python Wheels
 
@@ -31,27 +34,18 @@ jobs:
           # Linux x86_64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            manylinux: auto
-
-          # Linux aarch64 (cross-compile)
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            manylinux: auto
 
           # macOS x86_64 (Intel)
           - os: macos-13
             target: x86_64-apple-darwin
-            manylinux: ""
 
           # macOS arm64 (Apple Silicon)
           - os: macos-14
             target: aarch64-apple-darwin
-            manylinux: ""
 
           # Windows x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            manylinux: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +66,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          manylinux: ${{ matrix.manylinux }}
+          manylinux: auto
           args: --release --out dist -m core/claim169-python/Cargo.toml
 
       # macOS builds
