@@ -5,73 +5,107 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-alpha] - 2026-01-23
 
-## [0.1.0-alpha] - 2025-01-23
+### Bug Fixes
 
-Initial alpha release of the MOSIP Claim 169 QR code library.
+- Address code review feedback for spec compliance
+- Resolve clippy lints in test files
+- Resolve clippy lints in Python and WASM bindings
+- Resolve clippy warnings in generate-vectors
+- **ci**: Add 'all' subcommand to generate-vectors
+- **ci**: Python virtualenv and WASM bigint type
+- **ci**: Correct Python and TypeScript test setup
+- **test**: Handle ed25519 weak key rejection in Python test
+- **ci**: Use wheel install for Conformance job Python SDK
+- **ci**: Use maturin develop instead of wheel install
+- **ci**: Disable timestamp validation in conformance tests
+- **ci**: Correct rust-toolchain action name
+- **ci**: Use valid vitest reporter (dot instead of basic)
+- **playground**: Update docs link to point to deployed docs
+- **ci**: Use ESM import for npm package test
+- **ci**: Include wasm files in npm package
+- **ci**: Verify npm package structure instead of runtime import
+- **docs**: Add hook to copy sitemap.xml to all page directories
+- **playground**: Prevent double camera initialization in React Strict Mode
+- **playground**: Show skipped status for COSE_Sign1 when unverified
+- **ci**: Remove non-existent release label from PR creation
 
-### Added
+### CI
 
-#### Core Library (Rust)
-- Full encoding and decoding of MOSIP Claim 169 credentials
-- Ed25519 and ECDSA P-256 signature support
-- AES-128-GCM and AES-256-GCM encryption support
-- Secure-by-default design (verification required unless explicitly disabled)
-- Decompression bomb protection with configurable limits
-- CBOR nesting depth limits to prevent stack overflow
-- Weak key rejection for Ed25519 and ECDSA
-- Builder pattern API for both Encoder and Decoder
+- Install maturin via uv dev deps
+- Install a single Python wheel in conformance
+- Avoid pip conflicts when multiple wheels exist
 
-#### Python SDK
-- Native extension via PyO3 for high performance
-- `decode_unverified()` for testing scenarios
-- `decode_with_ed25519()` and `decode_with_ecdsa_p256()` for verified decoding
-- `decode_with_verifier()` for custom/HSM verification
-- `decode_encrypted_aes()` for encrypted credentials
-- `encode_with_ed25519()` and `encode_with_ecdsa_p256()` for signing
-- `encode_signed_encrypted()` for signed and encrypted credentials
-- Full type hints and docstrings
+### CI/CD
 
-#### TypeScript/JavaScript SDK
-- WebAssembly-based implementation for browser and Node.js
-- `Decoder` class with fluent builder API
-- `verifyWithEd25519()` and `verifyWithEcdsaP256()` for signature verification
-- `decryptWithAes256()` and `decryptWithAes128()` for decryption
-- `Encoder` class for creating signed credentials
-- Full TypeScript type definitions
-- ESM module support with bundler configuration examples
+- Add release automation with multi-registry publishing
+- Fix conformance tests and optimize wasm-pack caching
+- Add code coverage with Codecov integration
+- Add workflow_dispatch trigger to coverage workflow
+- Merge coverage into CI workflow as conditional job
+- Add test-packaging job to validate packages before release
+- **docs**: Check internal links and anchors
+- **docs**: Fix codespell config and avoid FR/ES false positives
+- Add explicit permissions to workflows
+- Optimize caching and parallelize jobs
 
-#### Test Infrastructure
-- 17 test vectors covering valid, invalid, and edge cases
-- Fuzz testing targets for security testing
-- Conformance test suite
-- Integration tests across all SDKs
+### Conformance
 
-#### Documentation
-- Comprehensive README for each SDK
-- SECURITY.md with threat model and security considerations
-- MOSIP Claim 169 specification reference (claim_169.md)
-- JSON Schema for output validation
-- CHANGELOG.md for tracking version history
-- CONTRIBUTING.md with development guidelines
-- RELEASING.md with release process documentation
+- Allow unverified decode
 
-### Security
-- Signature verification is required by default (secure-by-default)
-- TypeScript `decode()` requires a verification key unless `allowUnverified: true` is set
-- Python `decode()` requires a verification key by default; unverified decoding requires `allow_unverified=True`
-- Python `decode_encrypted_aes()` / `decode_with_decryptor()` require a verifier unless `allow_unverified=True` is set
-- Weak key detection and rejection
-- Memory zeroization for sensitive key material
-- Configurable decompression limits (default: 64KB)
-- CBOR depth limits (max: 128)
+### Dependencies
 
-## Types of Changes
+- **deps**: Upgrade dependencies to latest versions
 
-- `Added` for new features
-- `Changed` for changes in existing functionality
-- `Deprecated` for soon-to-be removed features
-- `Removed` for now removed features
-- `Fixed` for any bug fixes
-- `Security` for vulnerability fixes
+### Docs
+
+- Align with verified-by-default decode APIs
+
+### Documentation
+
+- Add comprehensive documentation and examples
+- Add MkDocs documentation site with i18n support
+- Update Rust examples to use builder pattern
+- Improve multilingual documentation
+- Add i18n nav translations and docs quality gates
+- Add contributing guide and link from home
+- **en**: Simplify homepage layout
+- Add RELEASING.md with first-time setup and release process
+- Add playground screenshot to documentation
+- Move screenshot to top of playground pages
+- Consolidate unreleased changes into 0.1.0-alpha
+
+### Features
+
+- Initial implementation of Claim 169 QR code library
+- **core**: Add encoder support and fix codex review issues
+- **typescript**: Add signature verification and decryption to Decoder [**BREAKING**]
+- **python**: Rename decode() to decode_unverified() for explicit API [**BREAKING**]
+- Add interactive web playground
+- **playground**: Add sample data and decode examples
+- **core**: Add builder methods to Claim169
+- **python,typescript**: Add decode() convenience functions
+- **playground**: Add local language name support with Thai sample data
+- **playground**: Redesign UI with jwt.io-style layout
+- **playground**: Improve UX with key generation and credential settings grouping
+
+### Miscellaneous
+
+- Add MIT LICENSE file
+- Update package-lock.json with coverage dependency
+
+### Rustfmt
+
+- Fix blank lines
+
+### Styling
+
+- Format Rust code
+
+### Testing
+
+- **core**: Improve test coverage for low-coverage modules
+- **python,typescript**: Lock documented convenience APIs
+---
+*Generated by [git-cliff](https://git-cliff.org)*
