@@ -16,8 +16,13 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
   const [error, setError] = useState<string | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const isInitializedRef = useRef(false)
 
   useEffect(() => {
+    // Prevent double initialization in React Strict Mode
+    if (isInitializedRef.current) return
+    isInitializedRef.current = true
+
     const startScanner = async () => {
       if (!containerRef.current) return
 
