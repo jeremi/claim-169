@@ -5,6 +5,8 @@ repo_url: https://github.com/jeremi/claim-169
 repo_name: jeremi/claim-169
 edit_uri: edit/main/docs/
 
+docs_dir: docs
+
 theme:
   name: material
   palette:
@@ -25,6 +27,7 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.expand
     - navigation.top
     - navigation.footer
     - search.suggest
@@ -36,68 +39,8 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
-hooks:
-  - docs/hooks.py
-
 plugins:
   - search
-  - i18n:
-      docs_structure: folder
-      fallback_to_default: true
-      reconfigure_material: true
-      reconfigure_search: true
-      languages:
-        - locale: en
-          default: true
-          name: English
-          build: true
-          nav_translations:
-            Home: Home
-            Getting Started: Getting Started
-            Installation: Installation
-            Quick Start: Quick Start
-            Guides: Guides
-            Encoding Credentials: Encoding Credentials
-            Decoding & Verification: Decoding & Verification
-            Encryption: Encryption
-            Key Material & Formats: Key Material & Formats
-            Security & Validation: Security & Validation
-            Test Vectors & Conformance: Test Vectors & Conformance
-            Troubleshooting: Troubleshooting
-            Glossary: Glossary
-            Versioning: Versioning
-            Contributing: Contributing
-            API Reference: API Reference
-            Rust: Rust
-            Python: Python
-            TypeScript: TypeScript
-            Specification: Specification
-            Playground: Playground
-        - locale: fr
-          name: Français
-          build: true
-          nav_translations:
-            Home: Accueil
-            Getting Started: Bien démarrer
-            Installation: Installation
-            Quick Start: Démarrage rapide
-            Guides: Guides
-            Encoding Credentials: Encodage des identifiants
-            Decoding & Verification: Décodage et vérification
-            Encryption: Chiffrement
-            Key Material & Formats: Matériel de clés et formats
-            Security & Validation: Sécurité et validations
-            Test Vectors & Conformance: Vecteurs de test et conformité
-            Troubleshooting: Dépannage
-            Glossary: Glossaire
-            Versioning: Versioning
-            Contributing: Contribuer
-            API Reference: Référence API
-            Rust: Rust
-            Python: Python
-            TypeScript: TypeScript
-            Specification: Spécification
-            Playground: Playground
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -121,34 +64,54 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/jeremi/claim-169
-  alternate:
-    - name: English
-      link: /claim-169/docs/
-      lang: en
-    - name: Français
-      link: /claim-169/docs/fr/
-      lang: fr
   homepage: https://jeremi.github.io/claim-169/
+
+extra_css:
+  - assets/css/extra.css
+
+dev_addr: 127.0.0.1:8001
 
 nav:
   - Home: index.md
-  - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quick-start.md
-  - Guides:
-    - Encoding Credentials: guides/encoding.md
-    - Decoding & Verification: guides/decoding.md
-    - Encryption: guides/encryption.md
-    - Key Material & Formats: guides/keys.md
-    - Security & Validation: guides/security.md
-    - Test Vectors & Conformance: guides/test-vectors.md
-    - Troubleshooting: guides/troubleshooting.md
-    - Glossary: guides/glossary.md
-    - Versioning: guides/versioning.md
-    - Contributing: guides/contributing.md
-  - API Reference:
-    - Rust: api/rust.md
-    - Python: api/python.md
-    - TypeScript: api/typescript.md
-  - Specification: specification.md
   - Playground: playground.md
+  - Core Concepts:
+      - Specification: core/specification.md
+      - Encoding: core/concepts/encoding.md
+      - Decoding: core/concepts/decoding.md
+      - Encryption: core/concepts/encryption.md
+      - Key Management: core/concepts/keys.md
+      - Security: core/security.md
+      - Glossary: core/glossary.md
+      - Test Vectors: core/test-vectors.md
+  - Python SDK:
+      - Overview: sdk/python/index.md
+      - Installation: sdk/python/installation.md
+      - Quick Start: sdk/python/quick-start.md
+      - Encoding: sdk/python/encoding.md
+      - Decoding: sdk/python/decoding.md
+      - Encryption: sdk/python/encryption.md
+      - Custom Crypto: sdk/python/custom-crypto.md
+      - API Reference: sdk/python/api.md
+      - Troubleshooting: sdk/python/troubleshooting.md
+  - TypeScript SDK:
+      - Overview: sdk/typescript/index.md
+      - Installation: sdk/typescript/installation.md
+      - Quick Start: sdk/typescript/quick-start.md
+      - Encoding: sdk/typescript/encoding.md
+      - Decoding: sdk/typescript/decoding.md
+      - Encryption: sdk/typescript/encryption.md
+      - Custom Crypto: sdk/typescript/custom-crypto.md
+      - WASM Configuration: sdk/typescript/wasm.md
+      - API Reference: sdk/typescript/api.md
+      - Troubleshooting: sdk/typescript/troubleshooting.md
+  - Rust SDK:
+      - Overview: sdk/rust/index.md
+      - Installation: sdk/rust/installation.md
+      - Quick Start: sdk/rust/quick-start.md
+      - Encoding: sdk/rust/encoding.md
+      - Decoding: sdk/rust/decoding.md
+      - Encryption: sdk/rust/encryption.md
+      - Custom Crypto: sdk/rust/custom-crypto.md
+      - API Reference: sdk/rust/api.md
+      - Troubleshooting: sdk/rust/troubleshooting.md
+  - Contributing: contributing.md

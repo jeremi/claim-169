@@ -22,7 +22,7 @@ Claim 169 QR codes enable **offline verification** of identity credentials — n
 - **Healthcare credentials** — vaccination records, insurance cards, patient IDs
 - **Government benefits** — social protection programs, subsidy distribution
 - **Digital driver's licenses** — offline-verifiable mobile driving permits
-- **Event access** — tamper-proof tickets with identity binding
+- **Event access** — tamper-evident tickets with identity binding
 
 The format is designed for constrained environments: a typical credential fits in a single QR code scannable by any smartphone camera.
 
