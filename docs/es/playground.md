@@ -3,7 +3,8 @@
 Prueba la codificación y decodificación de credenciales Claim 169 directamente en tu navegador.
 
 <div class="playground-link" markdown>
-[:material-open-in-new: Abrir Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
+[Abrir Playground](https://jeremi.github.io/
+claim-169/){ .md-button .md-button--primary }
 </div>
 
 ## Funcionalidades
@@ -33,7 +34,7 @@ Verifica credenciales existentes:
 
 ### Codificar una credencial
 
-1. Abre el [Playground](https://jeremi.github.io/claim-169/)
+1. Abre el [Playground](../)
 2. Haz clic en **Load Sample** para cargar datos de prueba
 3. Ajusta los campos de identidad según necesites
 4. Haz clic en **Generate QR Code**

@@ -3,7 +3,8 @@
 Essayez l'encodage et le décodage des identifiants Claim 169 directement dans votre navigateur.
 
 <div class="playground-link" markdown>
-[:material-open-in-new: Ouvrir le Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
+[Ouvrir le Playground](https://jeremi.github.io/
+claim-169/){ .md-button .md-button--primary }
 </div>
 
 ## Fonctionnalités
@@ -32,7 +33,7 @@ Vérifiez les identifiants existants :
 
 ### Encoder un identifiant
 
-1. Ouvrez le [Playground](https://jeremi.github.io/claim-169/)
+1. Ouvrez le [Playground](../)
 2. Cliquez sur **Load Sample** pour charger des données de test
 3. Modifiez les champs d’identité si nécessaire
 4. Cliquez sur **Generate QR Code**

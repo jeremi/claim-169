@@ -3,7 +3,8 @@
 Try encoding and decoding Claim 169 credentials directly in your browser.
 
 <div class="playground-link" markdown>
-[:material-open-in-new: Open Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
+[Open Playground](https://jeremi.github.io/
+claim-169/){ .md-button .md-button--primary }
 </div>
 
 ## Features
@@ -33,7 +34,7 @@ Verify existing credentials:
 
 ### Encoding a Credential
 
-1. Open the [Playground](https://jeremi.github.io/claim-169/)
+1. Open the [Playground](../)
 2. Click **Load Sample** to populate test data
 3. Modify the identity fields as needed
 4. Click **Generate QR Code**
