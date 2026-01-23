@@ -311,6 +311,8 @@ jobs:
         working-directory: sdks/typescript
         run: |
           npm run build:wasm
+          # Create .npmignore to include wasm files (overrides wasm/.gitignore)
+          touch wasm/.npmignore
           npm ci
           npm run build:ts
           npm pack

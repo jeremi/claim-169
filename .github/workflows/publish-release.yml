@@ -106,7 +106,10 @@ jobs:
 
       - name: Build WASM
         working-directory: sdks/typescript
-        run: npm run build:wasm
+        run: |
+          npm run build:wasm
+          # Create .npmignore to include wasm files (overrides wasm/.gitignore)
+          touch wasm/.npmignore
 
       - name: Install dependencies
         working-directory: sdks/typescript

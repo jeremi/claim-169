@@ -1,0 +1,13 @@
+# Source files (dist is published, not src)
+src/
+tsconfig.json
+vitest.config.ts
+
+# Test files
+*.test.ts
+coverage/
+
+# Dev files
+.gitignore
+
+# Note: wasm/ is included (overrides wasm/.gitignore)
