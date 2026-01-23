@@ -336,7 +336,7 @@ export function UnifiedPlayground() {
         name: "COSE_Sign1",
         inputSize: decompressedSize,
         outputSize: decompressedSize - 84,
-        status: "success",
+        status: result.verificationStatus === "verified" ? "success" : "skipped",
         details: {
           verified: result.verificationStatus === "verified",
         },
