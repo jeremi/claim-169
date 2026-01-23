@@ -55,7 +55,7 @@ results = []
 for v in vectors:
     try:
         # Disable timestamp validation to match TypeScript defaults
-        result = claim169.decode(v['qr_data'], validate_timestamps=False)
+        result = claim169.decode(v['qr_data'], validate_timestamps=False, allow_unverified=True)
         results.append({
             'name': v['name'],
             'category': v['category'],
@@ -115,7 +115,7 @@ describe("conformance", () => {
 
     for (const v of vectors) {
       try {
-        const result = decode(v.qr_data);
+        const result = decode(v.qr_data, { allowUnverified: true });
         results.push({
           name: v.name,
           category: v.category,
