@@ -441,9 +441,7 @@ impl CoreSignatureVerifier for PySignatureVerifier {
     }
 }
 
-// SAFETY: PySignatureVerifier is only used in single-threaded Python context
-unsafe impl Send for PySignatureVerifier {}
-unsafe impl Sync for PySignatureVerifier {}
+
 
 /// Python-callable decryptor hook
 #[pyclass]
@@ -495,9 +493,7 @@ impl CoreDecryptor for PyDecryptor {
     }
 }
 
-// SAFETY: PyDecryptor is only used in single-threaded Python context
-unsafe impl Send for PyDecryptor {}
-unsafe impl Sync for PyDecryptor {}
+
 
 // ============================================================================
 // Public API Functions
