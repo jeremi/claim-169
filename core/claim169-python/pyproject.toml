@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "claim169"
-version = "0.1.0-alpha"
+version = "0.1.0-alpha.2"
 description = "MOSIP Claim 169 QR Code decoder library"
 readme = "README.md"
 license = { text = "MIT" }

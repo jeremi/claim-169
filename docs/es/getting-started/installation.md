@@ -8,7 +8,7 @@ Añade a tu `Cargo.toml`:
 
 ```toml
 [dependencies]
-claim169-core = "0.1.0-alpha"
+claim169-core = "0.1.0-alpha.2"
 ```
 
 O usa cargo:
@@ -29,7 +29,7 @@ Para integrar con HSM/KMS (firma/verificación/descifrado personalizados), desac
 
 ```toml
 [dependencies]
-claim169-core = { version = "0.1.0-alpha", default-features = false }
+claim169-core = { version = "0.1.0-alpha.2", default-features = false }
 ```
 
 ## Python

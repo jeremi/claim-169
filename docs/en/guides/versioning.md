@@ -15,7 +15,7 @@ Pin a crate version in `Cargo.toml`:
 
 ```toml
 [dependencies]
-claim169-core = "0.1.0-alpha"
+claim169-core = "0.1.0-alpha.2"
 ```
 
 ### Python
@@ -23,7 +23,7 @@ claim169-core = "0.1.0-alpha"
 Pin via pip:
 
 ```bash
-pip install "claim169==0.1.0-alpha"
+pip install "claim169==0.1.0-alpha.2"
 ```
 
 ### TypeScript
@@ -31,7 +31,7 @@ pip install "claim169==0.1.0-alpha"
 Pin via npm:
 
 ```bash
-npm install "claim169@0.1.0-alpha"
+npm install "claim169@0.1.0-alpha.2"
 ```
 
 ## When to update docs
