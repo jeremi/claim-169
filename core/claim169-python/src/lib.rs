@@ -45,6 +45,7 @@ fn to_py_err(e: Claim169Error) -> PyErr {
         Claim169Error::CborParse(_) => CoseParseError::new_err(e.to_string()),
         Claim169Error::CwtParse(_) => CwtParseError::new_err(e.to_string()),
         Claim169Error::Claim169NotFound => Claim169NotFoundError::new_err(e.to_string()),
+        Claim169Error::SignatureInvalid(_) => SignatureError::new_err(e.to_string()),
         Claim169Error::Crypto(_) => SignatureError::new_err(e.to_string()),
         Claim169Error::DecryptionFailed(_) => DecryptionError::new_err(e.to_string()),
         _ => Claim169Exception::new_err(e.to_string()),

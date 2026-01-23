@@ -39,15 +39,18 @@ export function EncodePanel() {
     const now = Math.floor(Date.now() / 1000)
     setClaim169({
       id: "ID-12345-DEMO",
-      fullName: "Jane Marie Smith",
-      firstName: "Jane",
-      lastName: "Smith",
+      fullName: "Siriwan Chaiyaporn",
+      firstName: "Siriwan",
+      lastName: "Chaiyaporn",
+      language: "eng",
+      secondaryFullName: "ศิริวรรณ ไชยพร",
+      secondaryLanguage: "tha",
       dateOfBirth: "1990-05-15",
       gender: 2,
-      email: "jane.smith@example.com",
-      phone: "+1 555 123 4567",
-      address: "123 Main Street\nNew York, NY 10001",
-      nationality: "US",
+      email: "siriwan.chaiyaporn@example.com",
+      phone: "+66 81 234 5678",
+      address: "123 Moo 5, Ban Nong Khai\nNong Khai District, Nong Khai 43000",
+      nationality: "TH",
       maritalStatus: 2,
     })
     setCwtMeta({
@@ -77,6 +80,9 @@ export function EncodePanel() {
       if (claim169.fullName) claimInput.fullName = claim169.fullName
       if (claim169.firstName) claimInput.firstName = claim169.firstName
       if (claim169.lastName) claimInput.lastName = claim169.lastName
+      if (claim169.language) claimInput.language = claim169.language
+      if (claim169.secondaryFullName) claimInput.secondaryFullName = claim169.secondaryFullName
+      if (claim169.secondaryLanguage) claimInput.secondaryLanguage = claim169.secondaryLanguage
       if (claim169.dateOfBirth) claimInput.dateOfBirth = claim169.dateOfBirth
       if (claim169.gender !== undefined && claim169.gender !== 0) claimInput.gender = claim169.gender
       if (claim169.email) claimInput.email = claim169.email
@@ -245,6 +251,33 @@ export function EncodePanel() {
                   id="lastName"
                   value={claim169.lastName || ""}
                   onChange={(e) => setClaim169({ ...claim169, lastName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="language">Primary Language (ISO 639-3)</Label>
+                <Input
+                  id="language"
+                  value={claim169.language || ""}
+                  onChange={(e) => setClaim169({ ...claim169, language: e.target.value })}
+                  placeholder="eng"
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="secondaryFullName">Name in Local Language</Label>
+                <Input
+                  id="secondaryFullName"
+                  value={claim169.secondaryFullName || ""}
+                  onChange={(e) => setClaim169({ ...claim169, secondaryFullName: e.target.value })}
+                  placeholder="ศิริวรรณ ไชยพร"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="secondaryLanguage">Secondary Language (ISO 639-3)</Label>
+                <Input
+                  id="secondaryLanguage"
+                  value={claim169.secondaryLanguage || ""}
+                  onChange={(e) => setClaim169({ ...claim169, secondaryLanguage: e.target.value })}
+                  placeholder="tha"
                 />
               </div>
               <div className="space-y-2">

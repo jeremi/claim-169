@@ -114,6 +114,24 @@ export function ResultViewer({ result, error }: ResultViewerProps) {
                 <dd>{claim169.lastName}</dd>
               </>
             )}
+            {claim169.language && (
+              <>
+                <dt className="text-muted-foreground">Primary Language</dt>
+                <dd>{claim169.language}</dd>
+              </>
+            )}
+            {claim169.secondaryFullName && (
+              <>
+                <dt className="text-muted-foreground">Name in Local Language</dt>
+                <dd>{claim169.secondaryFullName}</dd>
+              </>
+            )}
+            {claim169.secondaryLanguage && (
+              <>
+                <dt className="text-muted-foreground">Secondary Language</dt>
+                <dd>{claim169.secondaryLanguage}</dd>
+              </>
+            )}
             {claim169.dateOfBirth && (
               <>
                 <dt className="text-muted-foreground">Date of Birth</dt>
