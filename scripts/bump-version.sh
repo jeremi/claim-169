@@ -65,7 +65,10 @@ for lang in en es fr; do
     sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' "docs/$lang/getting-started/installation.md"
     rm -f "docs/$lang/getting-started/installation.md.bak"
 
+    # Update versioning.md - Rust, Python, and npm version examples
     sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' "docs/$lang/guides/versioning.md"
+    sed -i.bak 's/claim169==[^"]*"/claim169=='"$VERSION"'"/g' "docs/$lang/guides/versioning.md"
+    sed -i.bak 's/claim169@[^"]*"/claim169@'"$VERSION"'"/g' "docs/$lang/guides/versioning.md"
     rm -f "docs/$lang/guides/versioning.md.bak"
 done
 
