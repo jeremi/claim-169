@@ -283,17 +283,100 @@ impl std::fmt::Display for VerificationStatus {
 mod tests {
     use super::*;
 
+    // ========== Gender Tests ==========
     #[test]
     fn test_gender_conversion() {
         assert_eq!(i64::from(Gender::Male), 1);
+        assert_eq!(i64::from(Gender::Female), 2);
+        assert_eq!(i64::from(Gender::Other), 3);
+        assert_eq!(Gender::try_from(1).unwrap(), Gender::Male);
         assert_eq!(Gender::try_from(2).unwrap(), Gender::Female);
+        assert_eq!(Gender::try_from(3).unwrap(), Gender::Other);
+        assert!(Gender::try_from(0).is_err());
+        assert!(Gender::try_from(4).is_err());
         assert!(Gender::try_from(99).is_err());
     }
 
+    // ========== MaritalStatus Tests ==========
     #[test]
     fn test_marital_status_conversion() {
+        assert_eq!(i64::from(MaritalStatus::Unmarried), 1);
         assert_eq!(i64::from(MaritalStatus::Married), 2);
+        assert_eq!(i64::from(MaritalStatus::Divorced), 3);
+        assert_eq!(
+            MaritalStatus::try_from(1).unwrap(),
+            MaritalStatus::Unmarried
+        );
+        assert_eq!(MaritalStatus::try_from(2).unwrap(), MaritalStatus::Married);
         assert_eq!(MaritalStatus::try_from(3).unwrap(), MaritalStatus::Divorced);
+        assert!(MaritalStatus::try_from(0).is_err());
+        assert!(MaritalStatus::try_from(4).is_err());
+    }
+
+    // ========== PhotoFormat Tests ==========
+    #[test]
+    fn test_photo_format_conversion() {
+        assert_eq!(i64::from(PhotoFormat::Jpeg), 1);
+        assert_eq!(i64::from(PhotoFormat::Jpeg2000), 2);
+        assert_eq!(i64::from(PhotoFormat::Avif), 3);
+        assert_eq!(i64::from(PhotoFormat::Webp), 4);
+        assert_eq!(PhotoFormat::try_from(1).unwrap(), PhotoFormat::Jpeg);
+        assert_eq!(PhotoFormat::try_from(2).unwrap(), PhotoFormat::Jpeg2000);
+        assert_eq!(PhotoFormat::try_from(3).unwrap(), PhotoFormat::Avif);
+        assert_eq!(PhotoFormat::try_from(4).unwrap(), PhotoFormat::Webp);
+        assert!(PhotoFormat::try_from(0).is_err());
+        assert!(PhotoFormat::try_from(5).is_err());
+    }
+
+    // ========== BiometricFormat Tests ==========
+    #[test]
+    fn test_biometric_format_conversion() {
+        assert_eq!(i64::from(BiometricFormat::Image), 0);
+        assert_eq!(i64::from(BiometricFormat::Template), 1);
+        assert_eq!(i64::from(BiometricFormat::Sound), 2);
+        assert_eq!(i64::from(BiometricFormat::BioHash), 3);
+        assert_eq!(
+            BiometricFormat::try_from(0).unwrap(),
+            BiometricFormat::Image
+        );
+        assert_eq!(
+            BiometricFormat::try_from(1).unwrap(),
+            BiometricFormat::Template
+        );
+        assert_eq!(
+            BiometricFormat::try_from(2).unwrap(),
+            BiometricFormat::Sound
+        );
+        assert_eq!(
+            BiometricFormat::try_from(3).unwrap(),
+            BiometricFormat::BioHash
+        );
+        assert!(BiometricFormat::try_from(-1).is_err());
+        assert!(BiometricFormat::try_from(4).is_err());
+    }
+
+    // ========== ImageSubFormat Tests ==========
+    #[test]
+    fn test_image_subformat_all_variants() {
+        assert_eq!(i64::from(ImageSubFormat::Png), 0);
+        assert_eq!(i64::from(ImageSubFormat::Jpeg), 1);
+        assert_eq!(i64::from(ImageSubFormat::Jpeg2000), 2);
+        assert_eq!(i64::from(ImageSubFormat::Avif), 3);
+        assert_eq!(i64::from(ImageSubFormat::Webp), 4);
+        assert_eq!(i64::from(ImageSubFormat::Tiff), 5);
+        assert_eq!(i64::from(ImageSubFormat::Wsq), 6);
+        assert_eq!(i64::from(ImageSubFormat::VendorSpecific(150)), 150);
+
+        assert_eq!(ImageSubFormat::try_from(0).unwrap(), ImageSubFormat::Png);
+        assert_eq!(ImageSubFormat::try_from(1).unwrap(), ImageSubFormat::Jpeg);
+        assert_eq!(
+            ImageSubFormat::try_from(2).unwrap(),
+            ImageSubFormat::Jpeg2000
+        );
+        assert_eq!(ImageSubFormat::try_from(3).unwrap(), ImageSubFormat::Avif);
+        assert_eq!(ImageSubFormat::try_from(4).unwrap(), ImageSubFormat::Webp);
+        assert_eq!(ImageSubFormat::try_from(5).unwrap(), ImageSubFormat::Tiff);
+        assert_eq!(ImageSubFormat::try_from(6).unwrap(), ImageSubFormat::Wsq);
     }
 
     #[test]
@@ -301,20 +384,219 @@ mod tests {
         let vendor = ImageSubFormat::try_from(150).unwrap();
         assert!(matches!(vendor, ImageSubFormat::VendorSpecific(150)));
         assert_eq!(i64::from(vendor), 150);
+
+        // Test edge cases of vendor specific range
+        let vendor_100 = ImageSubFormat::try_from(100).unwrap();
+        assert!(matches!(vendor_100, ImageSubFormat::VendorSpecific(100)));
+
+        let vendor_200 = ImageSubFormat::try_from(200).unwrap();
+        assert!(matches!(vendor_200, ImageSubFormat::VendorSpecific(200)));
     }
 
     #[test]
+    fn test_image_subformat_invalid_values() {
+        // Values between standard formats and vendor range should fail
+        assert!(ImageSubFormat::try_from(7).is_err());
+        assert!(ImageSubFormat::try_from(50).is_err());
+        assert!(ImageSubFormat::try_from(99).is_err());
+        // Values outside vendor range should fail
+        assert!(ImageSubFormat::try_from(201).is_err());
+        assert!(ImageSubFormat::try_from(-1).is_err());
+    }
+
+    // ========== TemplateSubFormat Tests ==========
+    #[test]
+    fn test_template_subformat_all_variants() {
+        assert_eq!(i64::from(TemplateSubFormat::Ansi378), 0);
+        assert_eq!(i64::from(TemplateSubFormat::Iso19794_2), 1);
+        assert_eq!(i64::from(TemplateSubFormat::Nist), 2);
+        assert_eq!(i64::from(TemplateSubFormat::VendorSpecific(175)), 175);
+
+        assert_eq!(
+            TemplateSubFormat::try_from(0).unwrap(),
+            TemplateSubFormat::Ansi378
+        );
+        assert_eq!(
+            TemplateSubFormat::try_from(1).unwrap(),
+            TemplateSubFormat::Iso19794_2
+        );
+        assert_eq!(
+            TemplateSubFormat::try_from(2).unwrap(),
+            TemplateSubFormat::Nist
+        );
+    }
+
+    #[test]
+    fn test_template_subformat_vendor_specific() {
+        let vendor = TemplateSubFormat::try_from(100).unwrap();
+        assert!(matches!(vendor, TemplateSubFormat::VendorSpecific(100)));
+
+        let vendor = TemplateSubFormat::try_from(200).unwrap();
+        assert!(matches!(vendor, TemplateSubFormat::VendorSpecific(200)));
+    }
+
+    #[test]
+    fn test_template_subformat_invalid_values() {
+        assert!(TemplateSubFormat::try_from(3).is_err());
+        assert!(TemplateSubFormat::try_from(50).is_err());
+        assert!(TemplateSubFormat::try_from(99).is_err());
+        assert!(TemplateSubFormat::try_from(201).is_err());
+        assert!(TemplateSubFormat::try_from(-1).is_err());
+    }
+
+    // ========== SoundSubFormat Tests ==========
+    #[test]
+    fn test_sound_subformat_conversion() {
+        assert_eq!(i64::from(SoundSubFormat::Wav), 0);
+        assert_eq!(i64::from(SoundSubFormat::Mp3), 1);
+        assert_eq!(SoundSubFormat::try_from(0).unwrap(), SoundSubFormat::Wav);
+        assert_eq!(SoundSubFormat::try_from(1).unwrap(), SoundSubFormat::Mp3);
+        assert!(SoundSubFormat::try_from(2).is_err());
+        assert!(SoundSubFormat::try_from(-1).is_err());
+    }
+
+    // ========== BiometricSubFormat Tests ==========
+    #[test]
     fn test_biometric_subformat_from_format() {
+        // Image format
         let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Image, 6);
         assert!(matches!(
             sub,
             BiometricSubFormat::Image(ImageSubFormat::Wsq)
         ));
 
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Image, 0);
+        assert!(matches!(
+            sub,
+            BiometricSubFormat::Image(ImageSubFormat::Png)
+        ));
+
+        // Template format
         let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Template, 1);
         assert!(matches!(
             sub,
             BiometricSubFormat::Template(TemplateSubFormat::Iso19794_2)
         ));
+
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Template, 0);
+        assert!(matches!(
+            sub,
+            BiometricSubFormat::Template(TemplateSubFormat::Ansi378)
+        ));
+
+        // Sound format
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Sound, 0);
+        assert!(matches!(
+            sub,
+            BiometricSubFormat::Sound(SoundSubFormat::Wav)
+        ));
+
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Sound, 1);
+        assert!(matches!(
+            sub,
+            BiometricSubFormat::Sound(SoundSubFormat::Mp3)
+        ));
+
+        // BioHash format - always returns Raw
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::BioHash, 0);
+        assert!(matches!(sub, BiometricSubFormat::Raw(0)));
+
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::BioHash, 42);
+        assert!(matches!(sub, BiometricSubFormat::Raw(42)));
+    }
+
+    #[test]
+    fn test_biometric_subformat_invalid_returns_raw() {
+        // Invalid image sub-format returns Raw
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Image, 50);
+        assert!(matches!(sub, BiometricSubFormat::Raw(50)));
+
+        // Invalid template sub-format returns Raw
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Template, 50);
+        assert!(matches!(sub, BiometricSubFormat::Raw(50)));
+
+        // Invalid sound sub-format returns Raw
+        let sub = BiometricSubFormat::from_format_and_value(BiometricFormat::Sound, 99);
+        assert!(matches!(sub, BiometricSubFormat::Raw(99)));
+    }
+
+    #[test]
+    fn test_biometric_subformat_to_value() {
+        // Image
+        let sub = BiometricSubFormat::Image(ImageSubFormat::Jpeg);
+        assert_eq!(sub.to_value(), 1);
+
+        let sub = BiometricSubFormat::Image(ImageSubFormat::VendorSpecific(150));
+        assert_eq!(sub.to_value(), 150);
+
+        // Template
+        let sub = BiometricSubFormat::Template(TemplateSubFormat::Iso19794_2);
+        assert_eq!(sub.to_value(), 1);
+
+        let sub = BiometricSubFormat::Template(TemplateSubFormat::VendorSpecific(175));
+        assert_eq!(sub.to_value(), 175);
+
+        // Sound
+        let sub = BiometricSubFormat::Sound(SoundSubFormat::Mp3);
+        assert_eq!(sub.to_value(), 1);
+
+        // Raw
+        let sub = BiometricSubFormat::Raw(999);
+        assert_eq!(sub.to_value(), 999);
+    }
+
+    // ========== VerificationStatus Tests ==========
+    #[test]
+    fn test_verification_status_display() {
+        assert_eq!(format!("{}", VerificationStatus::Verified), "verified");
+        assert_eq!(format!("{}", VerificationStatus::Failed), "failed");
+        assert_eq!(format!("{}", VerificationStatus::Skipped), "skipped");
+    }
+
+    #[test]
+    fn test_verification_status_json_serialization() {
+        let verified = VerificationStatus::Verified;
+        let json = serde_json::to_string(&verified).unwrap();
+        assert_eq!(json, "\"verified\"");
+
+        let failed = VerificationStatus::Failed;
+        let json = serde_json::to_string(&failed).unwrap();
+        assert_eq!(json, "\"failed\"");
+
+        let skipped = VerificationStatus::Skipped;
+        let json = serde_json::to_string(&skipped).unwrap();
+        assert_eq!(json, "\"skipped\"");
+
+        // Deserialization
+        let parsed: VerificationStatus = serde_json::from_str("\"verified\"").unwrap();
+        assert_eq!(parsed, VerificationStatus::Verified);
+    }
+
+    // ========== Enum Copy/Debug/Eq Tests ==========
+    #[test]
+    fn test_gender_traits() {
+        let g1 = Gender::Male;
+        let g2 = g1; // Copy
+        assert_eq!(g1, g2);
+        assert_ne!(g1, Gender::Female);
+        // Debug
+        assert!(format!("{:?}", g1).contains("Male"));
+    }
+
+    #[test]
+    fn test_verification_status_traits() {
+        let v1 = VerificationStatus::Verified;
+        let v2 = v1; // Copy
+        assert_eq!(v1, v2);
+        assert_ne!(v1, VerificationStatus::Failed);
+        // Debug
+        assert!(format!("{:?}", v1).contains("Verified"));
+    }
+
+    #[test]
+    fn test_biometric_subformat_copy() {
+        let sub1 = BiometricSubFormat::Image(ImageSubFormat::Jpeg);
+        let sub2 = sub1; // Copy
+        assert_eq!(sub1, sub2);
     }
 }

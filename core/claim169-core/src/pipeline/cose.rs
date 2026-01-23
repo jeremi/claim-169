@@ -449,6 +449,52 @@ mod tests {
         }
     }
 
+    /// Mock KeyResolver for testing
+    struct MockKeyResolver {
+        verifier_passes: bool,
+    }
+
+    impl KeyResolver for MockKeyResolver {
+        fn resolve_verifier(
+            &self,
+            _key_id: Option<&[u8]>,
+            _algorithm: iana::Algorithm,
+        ) -> CryptoResult<Box<dyn SignatureVerifier>> {
+            Ok(Box::new(MockVerifier {
+                should_pass: self.verifier_passes,
+            }))
+        }
+
+        fn resolve_decryptor(
+            &self,
+            _key_id: Option<&[u8]>,
+            _algorithm: iana::Algorithm,
+        ) -> CryptoResult<Box<dyn Decryptor>> {
+            Ok(Box::new(MockDecryptor::returning(vec![1, 2, 3])))
+        }
+    }
+
+    /// Mock KeyResolver that fails to resolve
+    struct FailingKeyResolver;
+
+    impl KeyResolver for FailingKeyResolver {
+        fn resolve_verifier(
+            &self,
+            _key_id: Option<&[u8]>,
+            _algorithm: iana::Algorithm,
+        ) -> CryptoResult<Box<dyn SignatureVerifier>> {
+            Err(CryptoError::UnsupportedAlgorithm("test".to_string()))
+        }
+
+        fn resolve_decryptor(
+            &self,
+            _key_id: Option<&[u8]>,
+            _algorithm: iana::Algorithm,
+        ) -> CryptoResult<Box<dyn Decryptor>> {
+            Err(CryptoError::UnsupportedAlgorithm("test".to_string()))
+        }
+    }
+
     #[test]
     fn test_create_sign1() {
         let payload = b"test payload";
@@ -607,5 +653,478 @@ mod tests {
         let res = result.unwrap();
         assert_eq!(res.payload, expected_plaintext);
         assert_eq!(res.algorithm, Some(iana::Algorithm::A256GCM));
+    }
+
+    // ========== Untagged COSE Tests ==========
+    #[test]
+    fn test_sign1_untagged_parsing() {
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"untagged payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        // Use untagged serialization
+        let untagged = sign1.to_vec().unwrap();
+
+        let result = parse_and_verify(&untagged, None, None);
+        assert!(result.is_ok());
+        let res = result.unwrap();
+        assert_eq!(res.payload, b"untagged payload");
+    }
+
+    #[test]
+    fn test_encrypt0_untagged_parsing() {
+        let encrypt0 = coset::CoseEncrypt0Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::A256GCM)
+                    .build(),
+            )
+            .unprotected(coset::HeaderBuilder::new().iv(vec![0u8; 12]).build())
+            .ciphertext(vec![0u8; 32])
+            .build();
+
+        // Use untagged serialization
+        let untagged = encrypt0.to_vec().unwrap();
+        let decryptor = MockDecryptor::returning(b"untagged decrypt".to_vec());
+
+        let result = parse_and_verify(&untagged, None, Some(&decryptor));
+        assert!(result.is_ok());
+        let res = result.unwrap();
+        assert_eq!(res.payload, b"untagged decrypt");
+    }
+
+    // ========== Key ID Tests ==========
+    #[test]
+    fn test_sign1_key_id_from_protected_header() {
+        let key_id = b"protected-key-id".to_vec();
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .key_id(key_id.clone())
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        assert_eq!(result.key_id, Some(key_id));
+    }
+
+    #[test]
+    fn test_sign1_key_id_from_unprotected_header() {
+        let key_id = b"unprotected-key-id".to_vec();
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .unprotected(coset::HeaderBuilder::new().key_id(key_id.clone()).build())
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        assert_eq!(result.key_id, Some(key_id));
+    }
+
+    #[test]
+    fn test_sign1_key_id_protected_takes_precedence() {
+        let protected_kid = b"protected-kid".to_vec();
+        let unprotected_kid = b"unprotected-kid".to_vec();
+
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .key_id(protected_kid.clone())
+                    .build(),
+            )
+            .unprotected(
+                coset::HeaderBuilder::new()
+                    .key_id(unprotected_kid.clone())
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        // Protected header key_id should take precedence
+        assert_eq!(result.key_id, Some(protected_kid));
+    }
+
+    // ========== IV Tests ==========
+    #[test]
+    fn test_encrypt0_iv_from_protected_header() {
+        let iv = vec![1u8; 12];
+        let encrypt0 = coset::CoseEncrypt0Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::A256GCM)
+                    .iv(iv.clone())
+                    .build(),
+            )
+            .ciphertext(vec![0u8; 32])
+            .build();
+
+        let tagged = encrypt0.to_tagged_vec().unwrap();
+        let decryptor = MockDecryptor::returning(b"decrypted".to_vec());
+
+        let result = parse_and_verify(&tagged, None, Some(&decryptor));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_encrypt0_missing_iv_returns_error() {
+        let encrypt0 = coset::CoseEncrypt0Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::A256GCM)
+                    .build(),
+            )
+            .ciphertext(vec![0u8; 32])
+            .build();
+
+        let tagged = encrypt0.to_tagged_vec().unwrap();
+        let decryptor = MockDecryptor::returning(b"decrypted".to_vec());
+
+        let result = parse_and_verify(&tagged, None, Some(&decryptor));
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::DecryptionFailed(msg) => {
+                assert!(msg.contains("IV"), "Error should mention IV: {}", msg);
+            }
+            e => panic!("Expected DecryptionFailed error, got: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_encrypt0_missing_ciphertext_returns_error() {
+        let encrypt0 = coset::CoseEncrypt0Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::A256GCM)
+                    .build(),
+            )
+            .unprotected(coset::HeaderBuilder::new().iv(vec![0u8; 12]).build())
+            // No ciphertext!
+            .build();
+
+        let tagged = encrypt0.to_tagged_vec().unwrap();
+        let decryptor = MockDecryptor::returning(b"decrypted".to_vec());
+
+        let result = parse_and_verify(&tagged, None, Some(&decryptor));
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::DecryptionFailed(msg) => {
+                assert!(
+                    msg.contains("ciphertext"),
+                    "Error should mention ciphertext: {}",
+                    msg
+                );
+            }
+            e => panic!("Expected DecryptionFailed error, got: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_encrypt0_no_decryptor_returns_error() {
+        let encrypt0 = coset::CoseEncrypt0Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::A256GCM)
+                    .build(),
+            )
+            .unprotected(coset::HeaderBuilder::new().iv(vec![0u8; 12]).build())
+            .ciphertext(vec![0u8; 32])
+            .build();
+
+        let tagged = encrypt0.to_tagged_vec().unwrap();
+
+        // No decryptor provided
+        let result = parse_and_verify(&tagged, None, None);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::DecryptionFailed(msg) => {
+                assert!(
+                    msg.contains("decryptor"),
+                    "Error should mention decryptor: {}",
+                    msg
+                );
+            }
+            e => panic!("Expected DecryptionFailed error, got: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_sign1_missing_payload_returns_error() {
+        // Create COSE_Sign1 without payload using a workaround
+        // We can't really create one without payload using the builder,
+        // so we construct manually or test the edge case via integration
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .signature(vec![0u8; 64])
+            // Note: not setting payload creates a None payload
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None);
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::CoseParse(msg) => {
+                assert!(
+                    msg.contains("payload"),
+                    "Error should mention payload: {}",
+                    msg
+                );
+            }
+            e => panic!("Expected CoseParse error, got: {:?}", e),
+        }
+    }
+
+    // ========== KeyResolver Tests ==========
+    #[test]
+    fn test_parse_with_resolver_sign1() {
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let resolver = MockKeyResolver {
+            verifier_passes: true,
+        };
+
+        let result = parse_with_resolver(&tagged, &resolver);
+        assert!(result.is_ok());
+        let res = result.unwrap();
+        assert_eq!(res.verification_status, VerificationStatus::Verified);
+    }
+
+    #[test]
+    fn test_parse_with_resolver_sign1_verification_fails() {
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let resolver = MockKeyResolver {
+            verifier_passes: false,
+        };
+
+        let result = parse_with_resolver(&tagged, &resolver);
+        assert!(result.is_ok());
+        let res = result.unwrap();
+        assert_eq!(res.verification_status, VerificationStatus::Failed);
+    }
+
+    #[test]
+    fn test_parse_with_resolver_sign1_untagged() {
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"untagged payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let untagged = sign1.to_vec().unwrap();
+        let resolver = MockKeyResolver {
+            verifier_passes: true,
+        };
+
+        let result = parse_with_resolver(&untagged, &resolver);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_with_resolver_sign1_missing_algorithm() {
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(coset::HeaderBuilder::new().build())
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let resolver = MockKeyResolver {
+            verifier_passes: true,
+        };
+
+        let result = parse_with_resolver(&tagged, &resolver);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_with_resolver_sign1_resolver_fails() {
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let resolver = FailingKeyResolver;
+
+        let result = parse_with_resolver(&tagged, &resolver);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_with_resolver_invalid_data() {
+        let invalid = b"not valid COSE data";
+        let resolver = MockKeyResolver {
+            verifier_passes: true,
+        };
+
+        let result = parse_with_resolver(invalid, &resolver);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), Claim169Error::CoseParse(_)));
+    }
+
+    // ========== Encrypt0 with Nested Sign1 Tests ==========
+    #[test]
+    fn test_encrypt0_with_nested_sign1_verifies() {
+        // Create inner COSE_Sign1
+        let inner_sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"nested payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let inner_bytes = inner_sign1.to_tagged_vec().unwrap();
+
+        // Create outer COSE_Encrypt0 that decrypts to the inner Sign1
+        let encrypt0 = coset::CoseEncrypt0Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::A256GCM)
+                    .build(),
+            )
+            .unprotected(coset::HeaderBuilder::new().iv(vec![0u8; 12]).build())
+            .ciphertext(vec![0u8; 32])
+            .build();
+
+        let tagged = encrypt0.to_tagged_vec().unwrap();
+        let decryptor = MockDecryptor::returning(inner_bytes);
+        let verifier = MockVerifier::passing();
+
+        let result = parse_and_verify(&tagged, Some(&verifier), Some(&decryptor));
+        assert!(result.is_ok());
+        let res = result.unwrap();
+        assert_eq!(res.payload, b"nested payload");
+        assert_eq!(res.verification_status, VerificationStatus::Verified);
+    }
+
+    #[test]
+    fn test_encrypt0_with_nested_sign1_verification_fails() {
+        // Create inner COSE_Sign1
+        let inner_sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"nested payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let inner_bytes = inner_sign1.to_tagged_vec().unwrap();
+
+        // Create outer COSE_Encrypt0
+        let encrypt0 = coset::CoseEncrypt0Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::A256GCM)
+                    .build(),
+            )
+            .unprotected(coset::HeaderBuilder::new().iv(vec![0u8; 12]).build())
+            .ciphertext(vec![0u8; 32])
+            .build();
+
+        let tagged = encrypt0.to_tagged_vec().unwrap();
+        let decryptor = MockDecryptor::returning(inner_bytes);
+        let verifier = MockVerifier::failing();
+
+        let result = parse_and_verify(&tagged, Some(&verifier), Some(&decryptor));
+        assert!(result.is_ok());
+        let res = result.unwrap();
+        assert_eq!(res.verification_status, VerificationStatus::Failed);
+    }
+
+    // ========== CoseType Tests ==========
+    #[test]
+    fn test_cose_type_enum() {
+        let sign1 = CoseType::Sign1;
+        let encrypt0 = CoseType::Encrypt0;
+
+        assert_eq!(sign1, CoseType::Sign1);
+        assert_eq!(encrypt0, CoseType::Encrypt0);
+        assert_ne!(sign1, encrypt0);
+
+        // Test Debug
+        assert!(format!("{:?}", sign1).contains("Sign1"));
+        assert!(format!("{:?}", encrypt0).contains("Encrypt0"));
+
+        // Test Copy
+        let sign1_copy = sign1;
+        let sign1_copy2 = sign1;
+        assert_eq!(sign1, sign1_copy);
+        assert_eq!(sign1, sign1_copy2);
+    }
+
+    // ========== CoseResult Tests ==========
+    #[test]
+    fn test_cose_result_debug() {
+        let result = CoseResult {
+            payload: vec![1, 2, 3],
+            verification_status: VerificationStatus::Verified,
+            algorithm: Some(iana::Algorithm::EdDSA),
+            key_id: Some(vec![4, 5, 6]),
+        };
+
+        let debug_str = format!("{:?}", result);
+        assert!(debug_str.contains("payload"));
+        assert!(debug_str.contains("verification_status"));
     }
 }

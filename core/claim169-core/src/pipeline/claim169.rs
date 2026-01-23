@@ -546,4 +546,524 @@ mod tests {
         // All values filtered out, so should be None
         assert!(claim.best_quality_fingers.is_none());
     }
+
+    // ========== Non-integer Key Tests ==========
+    #[test]
+    fn test_transform_non_integer_key_returns_error() {
+        let cbor = Value::Map(vec![(
+            Value::Text("id".to_string()), // String key instead of integer
+            Value::Text("12345".to_string()),
+        )]);
+
+        let result = transform(cbor, false);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::Claim169Invalid(msg) => {
+                assert!(
+                    msg.contains("integer"),
+                    "Error should mention integer keys: {}",
+                    msg
+                );
+            }
+            e => panic!("Expected Claim169Invalid error, got: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_transform_bytes_key_returns_error() {
+        let cbor = Value::Map(vec![(
+            Value::Bytes(vec![1, 2, 3]), // Bytes key instead of integer
+            Value::Text("12345".to_string()),
+        )]);
+
+        let result = transform(cbor, false);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            Claim169Error::Claim169Invalid(_)
+        ));
+    }
+
+    // ========== Photo from Hex String Test ==========
+    #[test]
+    fn test_transform_photo_from_hex_string() {
+        let hex_photo = "48656c6c6f"; // "Hello" in hex
+
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (
+                Value::Integer(16.into()),
+                Value::Text(hex_photo.to_string()),
+            ),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert_eq!(claim.photo, Some(b"Hello".to_vec()));
+    }
+
+    #[test]
+    fn test_transform_photo_from_bytes() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (
+                Value::Integer(16.into()),
+                Value::Bytes(b"Photo data".to_vec()),
+            ),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert_eq!(claim.photo, Some(b"Photo data".to_vec()));
+    }
+
+    // ========== Single Biometric as Map Test ==========
+    #[test]
+    fn test_transform_single_biometric_as_map() {
+        // Some implementations may encode a single biometric as a map directly
+        // instead of an array containing a map
+        let bio_map = Value::Map(vec![
+            (Value::Integer(0.into()), Value::Bytes(vec![1, 2, 3, 4])),
+            (Value::Integer(1.into()), Value::Integer(0.into())), // Image
+        ]);
+
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(62.into()), bio_map), // Single map, not array
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert!(claim.face.is_some());
+        let face = claim.face.unwrap();
+        assert_eq!(face.len(), 1);
+        assert_eq!(face[0].data, vec![1, 2, 3, 4]);
+    }
+
+    // ========== Biometric with Issuer Field Test ==========
+    #[test]
+    fn test_transform_biometric_with_issuer() {
+        let bio_map = Value::Map(vec![
+            (Value::Integer(0.into()), Value::Bytes(vec![1, 2, 3, 4])),
+            (Value::Integer(1.into()), Value::Integer(0.into())), // Image
+            (Value::Integer(2.into()), Value::Integer(1.into())), // JPEG
+            (Value::Integer(3.into()), Value::Text("MOSIP".to_string())), // Issuer
+        ]);
+
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(62.into()), Value::Array(vec![bio_map])),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        let face = claim.face.unwrap();
+        assert_eq!(face[0].issuer, Some("MOSIP".to_string()));
+    }
+
+    // ========== cbor_to_json Tests ==========
+    #[test]
+    fn test_cbor_to_json_bool() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(42.into()), Value::Bool(true)),
+            (Value::Integer(43.into()), Value::Bool(false)),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert_eq!(
+            claim.unknown_fields.get(&42),
+            Some(&serde_json::Value::Bool(true))
+        );
+        assert_eq!(
+            claim.unknown_fields.get(&43),
+            Some(&serde_json::Value::Bool(false))
+        );
+    }
+
+    #[test]
+    fn test_cbor_to_json_null() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(42.into()), Value::Null),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert_eq!(
+            claim.unknown_fields.get(&42),
+            Some(&serde_json::Value::Null)
+        );
+    }
+
+    #[test]
+    fn test_cbor_to_json_float() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(42.into()), Value::Float(2.5)),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        let val = claim.unknown_fields.get(&42).unwrap();
+        assert!(val.is_number());
+        assert!((val.as_f64().unwrap() - 2.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_cbor_to_json_bytes() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(42.into()), Value::Bytes(b"test".to_vec())),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        // Bytes are base64 encoded
+        let val = claim.unknown_fields.get(&42).unwrap();
+        assert!(val.is_string());
+        assert_eq!(val.as_str().unwrap(), "dGVzdA=="); // base64 of "test"
+    }
+
+    #[test]
+    fn test_cbor_to_json_array() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (
+                Value::Integer(42.into()),
+                Value::Array(vec![
+                    Value::Integer(1.into()),
+                    Value::Text("two".to_string()),
+                    Value::Bool(true),
+                ]),
+            ),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        let val = claim.unknown_fields.get(&42).unwrap();
+        assert!(val.is_array());
+        let arr = val.as_array().unwrap();
+        assert_eq!(arr.len(), 3);
+        assert_eq!(arr[0], serde_json::json!(1));
+        assert_eq!(arr[1], serde_json::json!("two"));
+        assert_eq!(arr[2], serde_json::json!(true));
+    }
+
+    #[test]
+    fn test_cbor_to_json_nested_map() {
+        let inner_map = Value::Map(vec![
+            (
+                Value::Text("name".to_string()),
+                Value::Text("inner".to_string()),
+            ),
+            (Value::Integer(123.into()), Value::Integer(456.into())),
+        ]);
+
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(42.into()), inner_map),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        let val = claim.unknown_fields.get(&42).unwrap();
+        assert!(val.is_object());
+        let obj = val.as_object().unwrap();
+        assert_eq!(obj.get("name"), Some(&serde_json::json!("inner")));
+        assert_eq!(obj.get("123"), Some(&serde_json::json!(456)));
+    }
+
+    // ========== All Demographic Fields Test ==========
+    #[test]
+    fn test_transform_all_demographic_fields() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("id123".to_string())),
+            (Value::Integer(2.into()), Value::Text("1.0".to_string())),
+            (Value::Integer(3.into()), Value::Text("eng".to_string())),
+            (
+                Value::Integer(4.into()),
+                Value::Text("Full Name".to_string()),
+            ),
+            (Value::Integer(5.into()), Value::Text("First".to_string())),
+            (Value::Integer(6.into()), Value::Text("Middle".to_string())),
+            (Value::Integer(7.into()), Value::Text("Last".to_string())),
+            (
+                Value::Integer(8.into()),
+                Value::Text("19900101".to_string()),
+            ),
+            (Value::Integer(9.into()), Value::Integer(2.into())), // Female
+            (
+                Value::Integer(10.into()),
+                Value::Text("123 Main St".to_string()),
+            ),
+            (
+                Value::Integer(11.into()),
+                Value::Text("test@example.com".to_string()),
+            ),
+            (
+                Value::Integer(12.into()),
+                Value::Text("+1234567890".to_string()),
+            ),
+            (Value::Integer(13.into()), Value::Text("USA".to_string())),
+            (Value::Integer(14.into()), Value::Integer(2.into())), // Married
+            (
+                Value::Integer(15.into()),
+                Value::Text("Guardian Name".to_string()),
+            ),
+            (Value::Integer(16.into()), Value::Bytes(vec![0xFF, 0xD8])),
+            (Value::Integer(17.into()), Value::Integer(1.into())), // JPEG
+            (
+                Value::Integer(19.into()),
+                Value::Text("Secondary Name".to_string()),
+            ),
+            (Value::Integer(20.into()), Value::Text("hin".to_string())),
+            (Value::Integer(21.into()), Value::Text("US-NY".to_string())),
+            (
+                Value::Integer(22.into()),
+                Value::Text("citizen".to_string()),
+            ),
+            (Value::Integer(23.into()), Value::Text("IN".to_string())),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+
+        assert_eq!(claim.id, Some("id123".to_string()));
+        assert_eq!(claim.version, Some("1.0".to_string()));
+        assert_eq!(claim.language, Some("eng".to_string()));
+        assert_eq!(claim.full_name, Some("Full Name".to_string()));
+        assert_eq!(claim.first_name, Some("First".to_string()));
+        assert_eq!(claim.middle_name, Some("Middle".to_string()));
+        assert_eq!(claim.last_name, Some("Last".to_string()));
+        assert_eq!(claim.date_of_birth, Some("19900101".to_string()));
+        assert_eq!(claim.gender, Some(Gender::Female));
+        assert_eq!(claim.address, Some("123 Main St".to_string()));
+        assert_eq!(claim.email, Some("test@example.com".to_string()));
+        assert_eq!(claim.phone, Some("+1234567890".to_string()));
+        assert_eq!(claim.nationality, Some("USA".to_string()));
+        assert_eq!(claim.marital_status, Some(MaritalStatus::Married));
+        assert_eq!(claim.guardian, Some("Guardian Name".to_string()));
+        assert_eq!(claim.photo, Some(vec![0xFF, 0xD8]));
+        assert_eq!(claim.photo_format, Some(PhotoFormat::Jpeg));
+        assert_eq!(
+            claim.secondary_full_name,
+            Some("Secondary Name".to_string())
+        );
+        assert_eq!(claim.secondary_language, Some("hin".to_string()));
+        assert_eq!(claim.location_code, Some("US-NY".to_string()));
+        assert_eq!(claim.legal_status, Some("citizen".to_string()));
+        assert_eq!(claim.country_of_issuance, Some("IN".to_string()));
+    }
+
+    // ========== All Biometric Fields Test ==========
+    #[test]
+    fn test_transform_all_biometric_fields() {
+        let bio = |data: u8| Value::Map(vec![(Value::Integer(0.into()), Value::Bytes(vec![data]))]);
+
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(50.into()), Value::Array(vec![bio(50)])), // right_thumb
+            (Value::Integer(51.into()), Value::Array(vec![bio(51)])), // right_pointer_finger
+            (Value::Integer(52.into()), Value::Array(vec![bio(52)])), // right_middle_finger
+            (Value::Integer(53.into()), Value::Array(vec![bio(53)])), // right_ring_finger
+            (Value::Integer(54.into()), Value::Array(vec![bio(54)])), // right_little_finger
+            (Value::Integer(55.into()), Value::Array(vec![bio(55)])), // left_thumb
+            (Value::Integer(56.into()), Value::Array(vec![bio(56)])), // left_pointer_finger
+            (Value::Integer(57.into()), Value::Array(vec![bio(57)])), // left_middle_finger
+            (Value::Integer(58.into()), Value::Array(vec![bio(58)])), // left_ring_finger
+            (Value::Integer(59.into()), Value::Array(vec![bio(59)])), // left_little_finger
+            (Value::Integer(60.into()), Value::Array(vec![bio(60)])), // right_iris
+            (Value::Integer(61.into()), Value::Array(vec![bio(61)])), // left_iris
+            (Value::Integer(62.into()), Value::Array(vec![bio(62)])), // face
+            (Value::Integer(63.into()), Value::Array(vec![bio(63)])), // right_palm
+            (Value::Integer(64.into()), Value::Array(vec![bio(64)])), // left_palm
+            (Value::Integer(65.into()), Value::Array(vec![bio(65)])), // voice
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+
+        assert!(claim.right_thumb.is_some());
+        assert!(claim.right_pointer_finger.is_some());
+        assert!(claim.right_middle_finger.is_some());
+        assert!(claim.right_ring_finger.is_some());
+        assert!(claim.right_little_finger.is_some());
+        assert!(claim.left_thumb.is_some());
+        assert!(claim.left_pointer_finger.is_some());
+        assert!(claim.left_middle_finger.is_some());
+        assert!(claim.left_ring_finger.is_some());
+        assert!(claim.left_little_finger.is_some());
+        assert!(claim.right_iris.is_some());
+        assert!(claim.left_iris.is_some());
+        assert!(claim.face.is_some());
+        assert!(claim.right_palm.is_some());
+        assert!(claim.left_palm.is_some());
+        assert!(claim.voice.is_some());
+
+        assert_eq!(claim.biometric_count(), 16);
+    }
+
+    // ========== Skip All Biometric Fields Test ==========
+    #[test]
+    fn test_transform_skip_all_biometric_fields() {
+        let bio = |data: u8| Value::Map(vec![(Value::Integer(0.into()), Value::Bytes(vec![data]))]);
+
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(50.into()), Value::Array(vec![bio(50)])),
+            (Value::Integer(55.into()), Value::Array(vec![bio(55)])),
+            (Value::Integer(60.into()), Value::Array(vec![bio(60)])),
+            (Value::Integer(62.into()), Value::Array(vec![bio(62)])),
+            (Value::Integer(65.into()), Value::Array(vec![bio(65)])),
+        ]);
+
+        let claim = transform(cbor, true).unwrap(); // skip_biometrics = true
+
+        assert!(claim.right_thumb.is_none());
+        assert!(claim.left_thumb.is_none());
+        assert!(claim.right_iris.is_none());
+        assert!(claim.face.is_none());
+        assert!(claim.voice.is_none());
+        assert_eq!(claim.biometric_count(), 0);
+        assert_eq!(claim.id, Some("12345".to_string())); // Demographics preserved
+    }
+
+    // ========== Invalid Value Types Silently Ignored ==========
+    #[test]
+    fn test_transform_invalid_gender_returns_none() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(9.into()), Value::Integer(99.into())), // Invalid gender
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert!(claim.gender.is_none());
+    }
+
+    #[test]
+    fn test_transform_invalid_marital_status_returns_none() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(14.into()), Value::Integer(99.into())), // Invalid marital status
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert!(claim.marital_status.is_none());
+    }
+
+    #[test]
+    fn test_transform_invalid_photo_format_returns_none() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(17.into()), Value::Integer(99.into())), // Invalid photo format
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert!(claim.photo_format.is_none());
+    }
+
+    // ========== to_cbor Roundtrip Tests ==========
+    #[test]
+    fn test_to_cbor_with_all_demographics() {
+        let original = Claim169 {
+            id: Some("id123".to_string()),
+            version: Some("1.0".to_string()),
+            language: Some("eng".to_string()),
+            full_name: Some("Full Name".to_string()),
+            first_name: Some("First".to_string()),
+            middle_name: Some("Middle".to_string()),
+            last_name: Some("Last".to_string()),
+            date_of_birth: Some("19900101".to_string()),
+            gender: Some(Gender::Female),
+            address: Some("123 Main St".to_string()),
+            email: Some("test@example.com".to_string()),
+            phone: Some("+1234567890".to_string()),
+            nationality: Some("USA".to_string()),
+            marital_status: Some(MaritalStatus::Married),
+            guardian: Some("Guardian".to_string()),
+            photo: Some(vec![0xFF, 0xD8]),
+            photo_format: Some(PhotoFormat::Jpeg),
+            best_quality_fingers: Some(vec![1, 2, 3]),
+            secondary_full_name: Some("Secondary".to_string()),
+            secondary_language: Some("hin".to_string()),
+            location_code: Some("US-NY".to_string()),
+            legal_status: Some("citizen".to_string()),
+            country_of_issuance: Some("IN".to_string()),
+            ..Default::default()
+        };
+
+        let cbor = to_cbor(&original);
+        let parsed = transform(cbor, false).unwrap();
+
+        assert_eq!(parsed.id, original.id);
+        assert_eq!(parsed.version, original.version);
+        assert_eq!(parsed.language, original.language);
+        assert_eq!(parsed.full_name, original.full_name);
+        assert_eq!(parsed.first_name, original.first_name);
+        assert_eq!(parsed.middle_name, original.middle_name);
+        assert_eq!(parsed.last_name, original.last_name);
+        assert_eq!(parsed.date_of_birth, original.date_of_birth);
+        assert_eq!(parsed.gender, original.gender);
+        assert_eq!(parsed.address, original.address);
+        assert_eq!(parsed.email, original.email);
+        assert_eq!(parsed.phone, original.phone);
+        assert_eq!(parsed.nationality, original.nationality);
+        assert_eq!(parsed.marital_status, original.marital_status);
+        assert_eq!(parsed.guardian, original.guardian);
+        assert_eq!(parsed.photo, original.photo);
+        assert_eq!(parsed.photo_format, original.photo_format);
+        assert_eq!(parsed.best_quality_fingers, original.best_quality_fingers);
+        assert_eq!(parsed.secondary_full_name, original.secondary_full_name);
+        assert_eq!(parsed.secondary_language, original.secondary_language);
+        assert_eq!(parsed.location_code, original.location_code);
+        assert_eq!(parsed.legal_status, original.legal_status);
+        assert_eq!(parsed.country_of_issuance, original.country_of_issuance);
+    }
+
+    #[test]
+    fn test_to_cbor_with_biometrics() {
+        use crate::model::BiometricSubFormat;
+        use crate::model::ImageSubFormat;
+
+        let original = Claim169 {
+            id: Some("12345".to_string()),
+            right_thumb: Some(vec![Biometric::new(vec![1, 2, 3])
+                .with_format(BiometricFormat::Image)
+                .with_sub_format(BiometricSubFormat::Image(ImageSubFormat::Jpeg))
+                .with_issuer("Test Issuer")]),
+            face: Some(vec![Biometric::new(vec![4, 5, 6])]),
+            ..Default::default()
+        };
+
+        let cbor = to_cbor(&original);
+        let parsed = transform(cbor, false).unwrap();
+
+        assert_eq!(parsed.id, original.id);
+        assert!(parsed.right_thumb.is_some());
+        assert!(parsed.face.is_some());
+
+        let thumb = &parsed.right_thumb.unwrap()[0];
+        assert_eq!(thumb.data, vec![1, 2, 3]);
+        assert_eq!(thumb.format, Some(BiometricFormat::Image));
+        assert_eq!(thumb.issuer, Some("Test Issuer".to_string()));
+    }
+
+    // ========== Biometric Empty Array Test ==========
+    #[test]
+    fn test_transform_empty_biometric_array() {
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(62.into()), Value::Array(vec![])), // Empty array
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert!(claim.face.is_none()); // Empty array becomes None
+    }
+
+    // ========== Biometric Missing Data Returns None ==========
+    #[test]
+    fn test_transform_biometric_missing_data() {
+        // Biometric map without the required data field (key 0)
+        let bio_map = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Integer(0.into())), // Only format, no data
+        ]);
+
+        let cbor = Value::Map(vec![
+            (Value::Integer(1.into()), Value::Text("12345".to_string())),
+            (Value::Integer(62.into()), Value::Array(vec![bio_map])),
+        ]);
+
+        let claim = transform(cbor, false).unwrap();
+        assert!(claim.face.is_none()); // Biometric without data is skipped
+    }
 }

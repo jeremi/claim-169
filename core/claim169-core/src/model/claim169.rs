@@ -689,9 +689,7 @@ mod tests {
     fn test_builder_with_owned_strings() {
         // Verify builder works with both &str and String
         let name = String::from("Owned Name");
-        let claim = Claim169::new()
-            .with_id("literal-id")
-            .with_full_name(name);
+        let claim = Claim169::new().with_id("literal-id").with_full_name(name);
 
         assert_eq!(claim.id, Some("literal-id".to_string()));
         assert_eq!(claim.full_name, Some("Owned Name".to_string()));
@@ -750,5 +748,374 @@ mod tests {
         assert!(claim.unknown_fields.contains_key(&42));
         assert!(claim.unknown_fields.contains_key(&99));
         assert_eq!(claim.unknown_fields.len(), 2);
+    }
+
+    // ========== Additional Builder Tests ==========
+    #[test]
+    fn test_builder_version_and_language() {
+        let claim = Claim169::new().with_version("1.0").with_language("eng");
+
+        assert_eq!(claim.version, Some("1.0".to_string()));
+        assert_eq!(claim.language, Some("eng".to_string()));
+    }
+
+    #[test]
+    fn test_builder_guardian() {
+        let claim = Claim169::new().with_guardian("John Smith Sr.");
+
+        assert_eq!(claim.guardian, Some("John Smith Sr.".to_string()));
+    }
+
+    #[test]
+    fn test_builder_photo_and_format() {
+        let photo_data = vec![0xFF, 0xD8, 0xFF, 0xE0];
+        let claim = Claim169::new()
+            .with_photo(photo_data.clone())
+            .with_photo_format(PhotoFormat::Jpeg);
+
+        assert_eq!(claim.photo, Some(photo_data));
+        assert_eq!(claim.photo_format, Some(PhotoFormat::Jpeg));
+    }
+
+    #[test]
+    fn test_builder_best_quality_fingers() {
+        let fingers = vec![1, 6, 2, 7];
+        let claim = Claim169::new().with_best_quality_fingers(fingers.clone());
+
+        assert_eq!(claim.best_quality_fingers, Some(fingers));
+    }
+
+    #[test]
+    fn test_builder_secondary_name_and_language() {
+        let claim = Claim169::new()
+            .with_secondary_full_name("मरियम जोसेफ")
+            .with_secondary_language("hin");
+
+        assert_eq!(claim.secondary_full_name, Some("मरियम जोसेफ".to_string()));
+        assert_eq!(claim.secondary_language, Some("hin".to_string()));
+    }
+
+    #[test]
+    fn test_builder_location_and_legal_status() {
+        let claim = Claim169::new()
+            .with_location_code("US-NY-NYC")
+            .with_legal_status("citizen");
+
+        assert_eq!(claim.location_code, Some("US-NY-NYC".to_string()));
+        assert_eq!(claim.legal_status, Some("citizen".to_string()));
+    }
+
+    #[test]
+    fn test_builder_country_of_issuance() {
+        let claim = Claim169::new().with_country_of_issuance("IN");
+
+        assert_eq!(claim.country_of_issuance, Some("IN".to_string()));
+    }
+
+    // ========== Biometric Builder Tests ==========
+    #[test]
+    fn test_builder_right_hand_fingers() {
+        let bio = vec![Biometric::new(vec![1, 2, 3])];
+        let claim = Claim169::new()
+            .with_right_thumb(bio.clone())
+            .with_right_pointer_finger(bio.clone())
+            .with_right_middle_finger(bio.clone())
+            .with_right_ring_finger(bio.clone())
+            .with_right_little_finger(bio.clone());
+
+        assert!(claim.right_thumb.is_some());
+        assert!(claim.right_pointer_finger.is_some());
+        assert!(claim.right_middle_finger.is_some());
+        assert!(claim.right_ring_finger.is_some());
+        assert!(claim.right_little_finger.is_some());
+        assert_eq!(claim.biometric_count(), 5);
+    }
+
+    #[test]
+    fn test_builder_left_hand_fingers() {
+        let bio = vec![Biometric::new(vec![1, 2, 3])];
+        let claim = Claim169::new()
+            .with_left_thumb(bio.clone())
+            .with_left_pointer_finger(bio.clone())
+            .with_left_middle_finger(bio.clone())
+            .with_left_ring_finger(bio.clone())
+            .with_left_little_finger(bio.clone());
+
+        assert!(claim.left_thumb.is_some());
+        assert!(claim.left_pointer_finger.is_some());
+        assert!(claim.left_middle_finger.is_some());
+        assert!(claim.left_ring_finger.is_some());
+        assert!(claim.left_little_finger.is_some());
+        assert_eq!(claim.biometric_count(), 5);
+    }
+
+    #[test]
+    fn test_builder_iris() {
+        let bio = vec![Biometric::new(vec![1, 2, 3])];
+        let claim = Claim169::new()
+            .with_right_iris(bio.clone())
+            .with_left_iris(bio.clone());
+
+        assert!(claim.right_iris.is_some());
+        assert!(claim.left_iris.is_some());
+        assert_eq!(claim.biometric_count(), 2);
+    }
+
+    #[test]
+    fn test_builder_face() {
+        let bio = vec![Biometric::new(vec![1, 2, 3])];
+        let claim = Claim169::new().with_face(bio.clone());
+
+        assert!(claim.face.is_some());
+        assert_eq!(claim.biometric_count(), 1);
+    }
+
+    #[test]
+    fn test_builder_palms() {
+        let bio = vec![Biometric::new(vec![1, 2, 3])];
+        let claim = Claim169::new()
+            .with_right_palm(bio.clone())
+            .with_left_palm(bio.clone());
+
+        assert!(claim.right_palm.is_some());
+        assert!(claim.left_palm.is_some());
+        assert_eq!(claim.biometric_count(), 2);
+    }
+
+    #[test]
+    fn test_builder_voice() {
+        let bio = vec![Biometric::new(vec![1, 2, 3])];
+        let claim = Claim169::new().with_voice(bio.clone());
+
+        assert!(claim.voice.is_some());
+        assert_eq!(claim.biometric_count(), 1);
+    }
+
+    // ========== without_biometrics Tests ==========
+    #[test]
+    fn test_without_biometrics() {
+        let original = Claim169::new()
+            .with_id("12345")
+            .with_full_name("Test User")
+            .with_face(vec![Biometric::new(vec![1, 2, 3])])
+            .with_right_thumb(vec![Biometric::new(vec![4, 5, 6])])
+            .with_left_iris(vec![Biometric::new(vec![7, 8, 9])]);
+
+        assert!(original.has_biometrics());
+        assert_eq!(original.biometric_count(), 3);
+
+        let without_bio = original.without_biometrics();
+
+        // Demographics preserved
+        assert_eq!(without_bio.id, original.id);
+        assert_eq!(without_bio.full_name, original.full_name);
+
+        // Biometrics removed
+        assert!(!without_bio.has_biometrics());
+        assert_eq!(without_bio.biometric_count(), 0);
+        assert!(without_bio.face.is_none());
+        assert!(without_bio.right_thumb.is_none());
+        assert!(without_bio.left_iris.is_none());
+    }
+
+    #[test]
+    fn test_without_biometrics_preserves_all_demographics() {
+        let original = Claim169::new()
+            .with_id("12345")
+            .with_version("1.0")
+            .with_language("eng")
+            .with_full_name("Test User")
+            .with_first_name("Test")
+            .with_middle_name("Middle")
+            .with_last_name("User")
+            .with_date_of_birth("19900101")
+            .with_gender(Gender::Male)
+            .with_address("123 Main St")
+            .with_email("test@example.com")
+            .with_phone("+1 555 1234")
+            .with_nationality("USA")
+            .with_marital_status(MaritalStatus::Married)
+            .with_guardian("Parent Name")
+            .with_photo(vec![0xFF, 0xD8])
+            .with_photo_format(PhotoFormat::Jpeg)
+            .with_best_quality_fingers(vec![1, 2, 3])
+            .with_secondary_full_name("Secondary Name")
+            .with_secondary_language("hin")
+            .with_location_code("US-NY")
+            .with_legal_status("citizen")
+            .with_country_of_issuance("USA")
+            .with_face(vec![Biometric::new(vec![1, 2, 3])]);
+
+        let without_bio = original.without_biometrics();
+
+        assert_eq!(without_bio.id, original.id);
+        assert_eq!(without_bio.version, original.version);
+        assert_eq!(without_bio.language, original.language);
+        assert_eq!(without_bio.full_name, original.full_name);
+        assert_eq!(without_bio.first_name, original.first_name);
+        assert_eq!(without_bio.middle_name, original.middle_name);
+        assert_eq!(without_bio.last_name, original.last_name);
+        assert_eq!(without_bio.date_of_birth, original.date_of_birth);
+        assert_eq!(without_bio.gender, original.gender);
+        assert_eq!(without_bio.address, original.address);
+        assert_eq!(without_bio.email, original.email);
+        assert_eq!(without_bio.phone, original.phone);
+        assert_eq!(without_bio.nationality, original.nationality);
+        assert_eq!(without_bio.marital_status, original.marital_status);
+        assert_eq!(without_bio.guardian, original.guardian);
+        assert_eq!(without_bio.photo, original.photo);
+        assert_eq!(without_bio.photo_format, original.photo_format);
+        assert_eq!(
+            without_bio.best_quality_fingers,
+            original.best_quality_fingers
+        );
+        assert_eq!(
+            without_bio.secondary_full_name,
+            original.secondary_full_name
+        );
+        assert_eq!(without_bio.secondary_language, original.secondary_language);
+        assert_eq!(without_bio.location_code, original.location_code);
+        assert_eq!(without_bio.legal_status, original.legal_status);
+        assert_eq!(
+            without_bio.country_of_issuance,
+            original.country_of_issuance
+        );
+    }
+
+    #[test]
+    fn test_without_biometrics_preserves_unknown_fields() {
+        let mut original = Claim169::new();
+        original
+            .unknown_fields
+            .insert(42, serde_json::json!("test"));
+
+        let without_bio = original.without_biometrics();
+
+        assert_eq!(without_bio.unknown_fields.len(), 1);
+        assert!(without_bio.unknown_fields.contains_key(&42));
+    }
+
+    // ========== Biometric Detection Edge Cases ==========
+    #[test]
+    fn test_has_biometrics_all_types() {
+        // Test each biometric type individually triggers has_biometrics
+        let bio = vec![Biometric::new(vec![1])];
+
+        let test_cases = vec![
+            Claim169::new().with_right_thumb(bio.clone()),
+            Claim169::new().with_right_pointer_finger(bio.clone()),
+            Claim169::new().with_right_middle_finger(bio.clone()),
+            Claim169::new().with_right_ring_finger(bio.clone()),
+            Claim169::new().with_right_little_finger(bio.clone()),
+            Claim169::new().with_left_thumb(bio.clone()),
+            Claim169::new().with_left_pointer_finger(bio.clone()),
+            Claim169::new().with_left_middle_finger(bio.clone()),
+            Claim169::new().with_left_ring_finger(bio.clone()),
+            Claim169::new().with_left_little_finger(bio.clone()),
+            Claim169::new().with_right_iris(bio.clone()),
+            Claim169::new().with_left_iris(bio.clone()),
+            Claim169::new().with_face(bio.clone()),
+            Claim169::new().with_right_palm(bio.clone()),
+            Claim169::new().with_left_palm(bio.clone()),
+            Claim169::new().with_voice(bio.clone()),
+        ];
+
+        for (i, claim) in test_cases.iter().enumerate() {
+            assert!(
+                claim.has_biometrics(),
+                "Test case {} should have biometrics",
+                i
+            );
+            assert_eq!(
+                claim.biometric_count(),
+                1,
+                "Test case {} should have 1 biometric",
+                i
+            );
+        }
+    }
+
+    // ========== JSON Deserialization Tests ==========
+    #[test]
+    fn test_json_deserialization_with_base64_photo() {
+        let json = r#"{
+            "id": "12345",
+            "fullName": "Test User",
+            "photo": "SGVsbG8gV29ybGQ="
+        }"#;
+
+        let claim: Claim169 = serde_json::from_str(json).unwrap();
+        assert_eq!(claim.id, Some("12345".to_string()));
+        assert_eq!(claim.full_name, Some("Test User".to_string()));
+        assert_eq!(claim.photo, Some(b"Hello World".to_vec()));
+    }
+
+    #[test]
+    fn test_json_deserialization_with_null_photo() {
+        // The photo field with custom deserializer handles null values
+        let json = r#"{
+            "id": "12345",
+            "fullName": "Test User",
+            "photo": null
+        }"#;
+
+        let claim: Claim169 = serde_json::from_str(json).unwrap();
+        assert_eq!(claim.id, Some("12345".to_string()));
+        assert!(claim.photo.is_none());
+    }
+
+    #[test]
+    fn test_json_serialization_without_photo() {
+        let claim = Claim169::new().with_id("12345").with_full_name("Test User");
+
+        let json = serde_json::to_string(&claim).unwrap();
+        assert!(!json.contains("photo"));
+    }
+
+    #[test]
+    fn test_json_roundtrip_complete() {
+        let original = Claim169::new()
+            .with_id("12345")
+            .with_full_name("Test User")
+            .with_gender(Gender::Female)
+            .with_marital_status(MaritalStatus::Unmarried)
+            .with_photo(vec![1, 2, 3, 4, 5])
+            .with_photo_format(PhotoFormat::Jpeg2000);
+
+        let json = serde_json::to_string(&original).unwrap();
+        let parsed: Claim169 = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed.id, original.id);
+        assert_eq!(parsed.full_name, original.full_name);
+        assert_eq!(parsed.gender, original.gender);
+        assert_eq!(parsed.marital_status, original.marital_status);
+        assert_eq!(parsed.photo, original.photo);
+        assert_eq!(parsed.photo_format, original.photo_format);
+    }
+
+    // ========== Default and New Tests ==========
+    #[test]
+    fn test_new_equals_default() {
+        let new = Claim169::new();
+        let default = Claim169::default();
+
+        assert_eq!(new, default);
+    }
+
+    #[test]
+    fn test_clone_and_partialeq() {
+        let original = Claim169::new().with_id("12345").with_full_name("Test User");
+
+        let cloned = original.clone();
+
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_debug() {
+        let claim = Claim169::new().with_id("12345");
+        let debug_str = format!("{:?}", claim);
+        assert!(debug_str.contains("12345"));
+        assert!(debug_str.contains("Claim169"));
     }
 }

@@ -196,3 +196,159 @@ impl<T: Decryptor + ?Sized> Decryptor for Box<T> {
             .decrypt(algorithm, key_id, nonce, aad, ciphertext)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::CryptoError;
+
+    /// Mock verifier for testing blanket implementations
+    struct MockVerifier {
+        expected_result: bool,
+    }
+
+    impl SignatureVerifier for MockVerifier {
+        fn verify(
+            &self,
+            _algorithm: iana::Algorithm,
+            _key_id: Option<&[u8]>,
+            _data: &[u8],
+            _signature: &[u8],
+        ) -> CryptoResult<()> {
+            if self.expected_result {
+                Ok(())
+            } else {
+                Err(CryptoError::VerificationFailed)
+            }
+        }
+    }
+
+    /// Mock decryptor for testing blanket implementations
+    struct MockDecryptor {
+        plaintext: Vec<u8>,
+    }
+
+    impl Decryptor for MockDecryptor {
+        fn decrypt(
+            &self,
+            _algorithm: iana::Algorithm,
+            _key_id: Option<&[u8]>,
+            _nonce: &[u8],
+            _aad: &[u8],
+            _ciphertext: &[u8],
+        ) -> CryptoResult<Vec<u8>> {
+            Ok(self.plaintext.clone())
+        }
+    }
+
+    /// Mock signer for testing default key_id implementation
+    struct MockSigner;
+
+    impl Signer for MockSigner {
+        fn sign(
+            &self,
+            _algorithm: iana::Algorithm,
+            _key_id: Option<&[u8]>,
+            _data: &[u8],
+        ) -> CryptoResult<Vec<u8>> {
+            Ok(vec![1, 2, 3, 4])
+        }
+        // Uses default key_id() implementation
+    }
+
+    #[test]
+    fn test_signature_verifier_ref_blanket_impl() {
+        let verifier = MockVerifier {
+            expected_result: true,
+        };
+        let verifier_ref: &dyn SignatureVerifier = &verifier;
+
+        let result = verifier_ref.verify(iana::Algorithm::EdDSA, None, b"data", b"sig");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_signature_verifier_box_blanket_impl() {
+        let verifier = MockVerifier {
+            expected_result: true,
+        };
+        let boxed: Box<dyn SignatureVerifier> = Box::new(verifier);
+
+        let result = boxed.verify(iana::Algorithm::EdDSA, None, b"data", b"sig");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_signature_verifier_box_failure() {
+        let verifier = MockVerifier {
+            expected_result: false,
+        };
+        let boxed: Box<dyn SignatureVerifier> = Box::new(verifier);
+
+        let result = boxed.verify(iana::Algorithm::EdDSA, None, b"data", b"sig");
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            CryptoError::VerificationFailed
+        ));
+    }
+
+    #[test]
+    fn test_decryptor_ref_blanket_impl() {
+        let decryptor = MockDecryptor {
+            plaintext: vec![1, 2, 3],
+        };
+        let decryptor_ref: &dyn Decryptor = &decryptor;
+
+        let result = decryptor_ref.decrypt(iana::Algorithm::A256GCM, None, b"nonce", b"aad", b"ct");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_decryptor_box_blanket_impl() {
+        let decryptor = MockDecryptor {
+            plaintext: vec![4, 5, 6],
+        };
+        let boxed: Box<dyn Decryptor> = Box::new(decryptor);
+
+        let result = boxed.decrypt(iana::Algorithm::A256GCM, None, b"nonce", b"aad", b"ct");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), vec![4, 5, 6]);
+    }
+
+    #[test]
+    fn test_signer_default_key_id() {
+        let signer = MockSigner;
+        assert!(signer.key_id().is_none());
+    }
+
+    #[test]
+    fn test_signature_verifier_with_key_id() {
+        let verifier = MockVerifier {
+            expected_result: true,
+        };
+        let key_id = b"test-key-id";
+
+        let result = verifier.verify(iana::Algorithm::EdDSA, Some(key_id), b"data", b"sig");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_decryptor_with_key_id() {
+        let decryptor = MockDecryptor {
+            plaintext: vec![7, 8, 9],
+        };
+        let key_id = b"decrypt-key-id";
+
+        let result = decryptor.decrypt(
+            iana::Algorithm::A256GCM,
+            Some(key_id),
+            b"nonce",
+            b"aad",
+            b"ciphertext",
+        );
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), vec![7, 8, 9]);
+    }
+}
