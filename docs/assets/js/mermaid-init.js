@@ -32,7 +32,8 @@
   };
 
   const restoreSource = (el) => {
-    el.innerHTML = el.dataset.mermaidSource || el.textContent;
+    // Avoid interpreting diagram source as HTML (XSS risk); Mermaid expects plain text.
+    el.textContent = el.dataset.mermaidSource ?? el.textContent ?? "";
   };
 
   const render = async () => {
