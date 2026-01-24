@@ -84,7 +84,7 @@ claim-169/
 
 ```toml
 [dependencies]
-claim169-core = "0.1.0-alpha.2"
+claim169-core = "0.1.0-alpha.3"
 ```
 
 ```rust

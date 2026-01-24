@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.3] - 2026-01-24
+
+### Bug Fixes
+
+- **ci**: Satisfy clippy warnings
+- **docs**: Avoid innerHTML in mermaid init
+- **release**: Remove non-existent doc paths from bump-version script
+
+### Documentation
+
+- Consolidate docs and clarify security model
+
+### Features
+
+- Add custom crypto provider support for HSM and cloud KMS integration
+- Add FR docs, mermaid homepage, and crypto API tweaks
+
+### Miscellaneous
+
+- Add pre-commit hooks
+- Normalize whitespace
+
+### Performance
+
+- **ci**: Use pre-built binaries for git-cliff and wasm-pack
 ## [0.1.0-alpha.2] - 2026-01-23
 
 ### Bug Fixes
