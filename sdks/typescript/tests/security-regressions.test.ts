@@ -24,7 +24,7 @@ function loadTestVector(category: string, name: string): TestVector {
   return JSON.parse(content);
 }
 
-describe("redteam", () => {
+describe("security regressions", () => {
   test("timestamp validation is host-side and enabled by default", () => {
     const vector = loadTestVector("valid", "ed25519-signed");
     if (!vector.signing_key?.private_key_hex) {
@@ -36,8 +36,8 @@ describe("redteam", () => {
 
     // Definitely expired (independent of system clock, as long as now > 1).
     const qrData = new Encoder(
-      { id: "REDTEAM-EXPIRED", fullName: "Expired Credential" },
-      { issuer: "https://redteam.example", issuedAt: 0, expiresAt: 1 }
+      { id: "SECURITY-EXPIRED", fullName: "Expired Credential" },
+      { issuer: "https://security.example", issuedAt: 0, expiresAt: 1 }
     )
       .signWithEd25519(privateKey)
       .encode();

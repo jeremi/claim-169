@@ -1,4 +1,4 @@
-//! Red-team tests for claim169-core
+//! Security regression tests for claim169-core
 //!
 //! These tests focus on ambiguous / underspecified encodings that can lead to
 //! cross-implementation inconsistencies or surprising validation outcomes.
@@ -50,7 +50,7 @@ fn create_signed_qr(cwt_bytes: Vec<u8>) -> (String, [u8; 32]) {
 }
 
 #[test]
-fn redteam_duplicate_cwt_claim_keys_rejected() {
+fn security_duplicate_cwt_claim_keys_rejected() {
     // Two `exp` claims: first is already expired, second is far future.
     // Duplicate keys are ambiguous across implementations; reject (fail closed).
     let claim_169 = create_claim169_map(vec![
@@ -79,7 +79,7 @@ fn redteam_duplicate_cwt_claim_keys_rejected() {
 }
 
 #[test]
-fn redteam_duplicate_claim169_keys_rejected() {
+fn security_duplicate_claim169_keys_rejected() {
     // Duplicate Claim169 field keys are ambiguous; reject (fail closed).
     let claim_169 = Value::Map(vec![
         (Value::Integer(1.into()), Value::Text("ID-DUP-169".to_string())),
@@ -106,7 +106,7 @@ fn redteam_duplicate_claim169_keys_rejected() {
 }
 
 #[test]
-fn redteam_out_of_range_nbf_rejected() {
+fn security_out_of_range_nbf_rejected() {
     // `nbf` is a CWT NumericDate and can exceed i64 range when encoded as CBOR integer.
     // Out-of-range timestamps are rejected (fail closed).
 
