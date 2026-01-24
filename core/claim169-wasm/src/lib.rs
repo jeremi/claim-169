@@ -491,7 +491,10 @@ enum VerifyConfig {
 
 /// Internal state for decoder decryption configuration
 enum DecryptConfig {
-    Software { key: Vec<u8>, algorithm: DecryptAlgorithm },
+    Software {
+        key: Vec<u8>,
+        algorithm: DecryptAlgorithm,
+    },
     Custom(JsDecryptor),
 }
 
@@ -609,7 +612,9 @@ impl WasmDecoder {
     /// The callback should return the decrypted plaintext.
     #[wasm_bindgen(js_name = "decryptWith")]
     pub fn decrypt_with(mut self, decryptor: Function) -> WasmDecoder {
-        self.decrypt_config = Some(DecryptConfig::Custom(JsDecryptor { callback: decryptor }));
+        self.decrypt_config = Some(DecryptConfig::Custom(JsDecryptor {
+            callback: decryptor,
+        }));
         self
     }
 
@@ -813,14 +818,23 @@ enum SignConfig {
     None,
     Ed25519(Vec<u8>),
     EcdsaP256(Vec<u8>),
-    Custom { signer: JsSigner, algorithm: iana::Algorithm },
+    Custom {
+        signer: JsSigner,
+        algorithm: iana::Algorithm,
+    },
     Unsigned,
 }
 
 /// Internal state for encoder encryption configuration
 enum WasmEncryptConfig {
-    Software { key: Vec<u8>, algorithm: EncryptAlgorithm },
-    Custom { encryptor: JsEncryptor, algorithm: iana::Algorithm },
+    Software {
+        key: Vec<u8>,
+        algorithm: EncryptAlgorithm,
+    },
+    Custom {
+        encryptor: JsEncryptor,
+        algorithm: iana::Algorithm,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -974,7 +988,9 @@ impl WasmEncoder {
             }
         };
         self.encrypt_config = Some(WasmEncryptConfig::Custom {
-            encryptor: JsEncryptor { callback: encryptor },
+            encryptor: JsEncryptor {
+                callback: encryptor,
+            },
             algorithm: alg,
         });
         Ok(self)
@@ -1030,9 +1046,10 @@ impl WasmEncoder {
                         .encrypt_with_aes128(&key)
                         .map_err(|e| JsError::new(&e.to_string()))?,
                 },
-                WasmEncryptConfig::Custom { encryptor, algorithm } => {
-                    encoder.encrypt_with(encryptor, algorithm)
-                }
+                WasmEncryptConfig::Custom {
+                    encryptor,
+                    algorithm,
+                } => encoder.encrypt_with(encryptor, algorithm),
             };
         }
 

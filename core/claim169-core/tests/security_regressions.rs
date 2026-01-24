@@ -30,7 +30,9 @@ fn create_signed_qr(cwt_bytes: Vec<u8>) -> (String, [u8; 32]) {
     let signer = Ed25519Signer::generate();
     let public_key: [u8; 32] = signer.public_key_bytes().try_into().unwrap();
 
-    let protected = HeaderBuilder::new().algorithm(iana::Algorithm::EdDSA).build();
+    let protected = HeaderBuilder::new()
+        .algorithm(iana::Algorithm::EdDSA)
+        .build();
     let mut sign1 = CoseSign1Builder::new()
         .protected(protected)
         .payload(cwt_bytes)
@@ -82,7 +84,10 @@ fn security_duplicate_cwt_claim_keys_rejected() {
 fn security_duplicate_claim169_keys_rejected() {
     // Duplicate Claim169 field keys are ambiguous; reject (fail closed).
     let claim_169 = Value::Map(vec![
-        (Value::Integer(1.into()), Value::Text("ID-DUP-169".to_string())),
+        (
+            Value::Integer(1.into()),
+            Value::Text("ID-DUP-169".to_string()),
+        ),
         (
             Value::Integer(4.into()),
             Value::Text("First Name Value".to_string()),

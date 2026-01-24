@@ -14,8 +14,8 @@ use pyo3::types::{PyBytes, PyDict};
 
 use claim169_core::crypto::software::AesGcmDecryptor;
 use claim169_core::crypto::traits::{
-    Decryptor as CoreDecryptor, Encryptor as CoreEncryptor, SignatureVerifier as CoreSignatureVerifier,
-    Signer as CoreSigner,
+    Decryptor as CoreDecryptor, Encryptor as CoreEncryptor,
+    SignatureVerifier as CoreSignatureVerifier, Signer as CoreSigner,
 };
 use claim169_core::error::{Claim169Error, CryptoError, CryptoResult};
 use claim169_core::model::{
@@ -531,7 +531,9 @@ impl CoreSigner for PySigner {
             let key_id_bytes: Option<Bound<'_, PyBytes>> = key_id.map(|k| PyBytes::new(py, k));
             let data_bytes = PyBytes::new(py, data);
 
-            let result = self.callback.call1(py, (alg_name, key_id_bytes, data_bytes));
+            let result = self
+                .callback
+                .call1(py, (alg_name, key_id_bytes, data_bytes));
 
             match result {
                 Ok(obj) => {
