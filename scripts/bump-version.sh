@@ -59,18 +59,8 @@ sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' core/cla
 sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' core/claim169-core/README.md
 rm -f core/claim169-core/README.md.bak
 
-echo "  Updating docs (en/es/fr)..."
-for lang in en es fr; do
-    sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' "docs/$lang/getting-started/installation.md"
-    sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' "docs/$lang/getting-started/installation.md"
-    rm -f "docs/$lang/getting-started/installation.md.bak"
-
-    # Update versioning.md - Rust, Python, and npm version examples
-    sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' "docs/$lang/guides/versioning.md"
-    sed -i.bak 's/claim169==[^"]*"/claim169=='"$VERSION"'"/g' "docs/$lang/guides/versioning.md"
-    sed -i.bak 's/claim169@[^"]*"/claim169@'"$VERSION"'"/g' "docs/$lang/guides/versioning.md"
-    rm -f "docs/$lang/guides/versioning.md.bak"
-done
+# Note: Documentation uses partial versions (e.g., "0.1") rather than full versions,
+# so no version updates are needed in docs files.
 
 # 5. Update Cargo.lock
 echo "  Updating Cargo.lock..."
