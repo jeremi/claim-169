@@ -22,7 +22,7 @@ Claim 169 QR codes enable **offline verification** of identity credentials — n
 - **Healthcare credentials** — vaccination records, insurance cards, patient IDs
 - **Government benefits** — social protection programs, subsidy distribution
 - **Digital driver's licenses** — offline-verifiable mobile driving permits
-- **Event access** — tamper-proof tickets with identity binding
+- **Event access** — tamper-evident tickets with identity binding
 
 The format is designed for constrained environments: a typical credential fits in a single QR code scannable by any smartphone camera.
 
@@ -43,7 +43,7 @@ All SDKs share the same Rust core via native bindings (Python) or WebAssembly (T
 - **Encode and decode** identity credentials to/from QR codes
 - **Sign and verify** with Ed25519 or ECDSA P-256
 - **Encrypt and decrypt** with AES-GCM (128 or 256 bit)
-- **Pluggable crypto backends** for HSM integration
+- **Pluggable crypto backends** for HSM, cloud KMS, smart cards, and TPM integration
 - **Comprehensive security** including weak key rejection, decompression limits, and timestamp validation
 
 ### Encoding Pipeline

@@ -303,40 +303,38 @@ fn process_encrypt0(
         .decrypt(alg, key_id.as_deref(), &nonce, &aad, &ciphertext)
         .map_err(|e| Claim169Error::DecryptionFailed(e.to_string()))?;
 
-    // The decrypted payload might be a signed CWT, try to verify
-    if let Some(v) = verifier {
-        // Check if the decrypted payload is a COSE_Sign1 structure
-        let is_cose_sign1 = CoseSign1::from_tagged_slice(&plaintext).is_ok()
-            || CoseSign1::from_slice(&plaintext).is_ok();
+    // Check if the decrypted payload is a COSE_Sign1 structure
+    let is_cose_sign1 = CoseSign1::from_tagged_slice(&plaintext).is_ok()
+        || CoseSign1::from_slice(&plaintext).is_ok();
 
-        if is_cose_sign1 {
-            // Inner content is signed - verification result matters
-            match parse_and_verify(&plaintext, Some(v), None) {
-                Ok(inner_result) => return Ok(inner_result),
-                Err(Claim169Error::SignatureInvalid(_)) => {
-                    // Inner signature verification explicitly failed
-                    // Extract the signature algorithm from the inner COSE_Sign1
-                    let inner_alg = CoseSign1::from_tagged_slice(&plaintext)
-                        .or_else(|_| CoseSign1::from_slice(&plaintext))
-                        .ok()
-                        .and_then(|sign1| get_algorithm(&sign1.protected.header));
-                    let inner_kid = CoseSign1::from_tagged_slice(&plaintext)
-                        .or_else(|_| CoseSign1::from_slice(&plaintext))
-                        .ok()
-                        .and_then(|sign1| get_key_id(&sign1.protected.header, &sign1.unprotected));
-                    return Ok(CoseResult {
-                        payload: plaintext,
-                        verification_status: VerificationStatus::Failed,
-                        algorithm: inner_alg,
-                        key_id: inner_kid,
-                    });
-                }
-                Err(e) => return Err(e), // Other errors propagate
+    if is_cose_sign1 {
+        // The decrypted payload is a signed CWT - recursively process it
+        // This extracts the inner CWT payload, with or without verification
+        match parse_and_verify(&plaintext, verifier, None) {
+            Ok(inner_result) => return Ok(inner_result),
+            Err(Claim169Error::SignatureInvalid(_)) => {
+                // Inner signature verification explicitly failed
+                // Extract the signature algorithm from the inner COSE_Sign1
+                let inner_alg = CoseSign1::from_tagged_slice(&plaintext)
+                    .or_else(|_| CoseSign1::from_slice(&plaintext))
+                    .ok()
+                    .and_then(|sign1| get_algorithm(&sign1.protected.header));
+                let inner_kid = CoseSign1::from_tagged_slice(&plaintext)
+                    .or_else(|_| CoseSign1::from_slice(&plaintext))
+                    .ok()
+                    .and_then(|sign1| get_key_id(&sign1.protected.header, &sign1.unprotected));
+                return Ok(CoseResult {
+                    payload: plaintext,
+                    verification_status: VerificationStatus::Failed,
+                    algorithm: inner_alg,
+                    key_id: inner_kid,
+                });
             }
+            Err(e) => return Err(e), // Other errors propagate
         }
     }
 
-    // Return decrypted payload as-is (not a COSE_Sign1 or no verifier provided)
+    // Return decrypted payload as-is (not a COSE_Sign1)
     Ok(CoseResult {
         payload: plaintext,
         verification_status: VerificationStatus::Skipped,

@@ -1,80 +1,80 @@
 # Playground interactif
 
-Essayez l'encodage et le décodage des identifiants Claim 169 directement dans votre navigateur.
+Essayez d’encoder et de décoder des identifiants Claim 169 directement dans votre navigateur.
 
 <div class="playground-link" markdown>
 [Ouvrir le Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
-![Capture d'écran du Playground](../assets/img/playground.png)
+![Capture d’écran du Playground](../assets/img/playground.png)
 
 ## Fonctionnalités
 
-Le playground utilise une disposition unifiée à deux panneaux inspirée de [jwt.io](https://jwt.io), avec une synchronisation bidirectionnelle en temps réel.
+Le playground utilise une interface unifiée à deux panneaux inspirée de [jwt.io](https://jwt.io), avec une synchronisation bidirectionnelle en temps réel entre les panneaux.
 
-### Panneau gauche - Identité et paramètres
+### Panneau gauche — Identité & paramètres
 
-- **Champs d'identité** - Remplissez les données démographiques (nom, date de naissance, email, adresse, etc.)
-- **Paramètres du credential** - Configuration groupée pour :
-    - **Paramètres du jeton** - Émetteur, sujet et horodatages (repliable)
-    - **Cryptographie** - Options de signature et de chiffrement
-- **Clés auto-générées** - Nouvelles clés cryptographiques générées lors du changement de méthode
-- **Charger des exemples** - Données de test pré-remplies et codes QR d'exemple
+- **Champs d’identité** — Renseignez les données démographiques (nom, date de naissance, email, adresse, etc.)
+- **Paramètres de l’identifiant** — Configuration groupée pour :
+    - **Paramètres du jeton** — Émetteur, sujet et horodatages (repliables)
+    - **Cryptographie** — Options de signature et de chiffrement
+- **Clés auto-générées** — Nouvelles clés cryptographiques générées lors d’un changement de méthode
+- **Charger des exemples** — Données de test pré-remplies et exemples de QR codes
 
-### Panneau droit - QR Code et vérification
+### Panneau droit — QR code & vérification
 
-- **Affichage du QR Code** - Code QR mis à jour en temps réel lors de l'édition
-- **Badge de vérification** - Affiche le statut de la signature (vérifié, non vérifié, invalide)
-- **Données Base45** - Données encodées brutes avec bouton de copie
-- **Scanner QR** - Utilisez votre caméra pour scanner des codes QR existants
-- **Détails du pipeline** - Vue extensible des étapes d'encodage
+- **Affichage du QR code** — QR code mis à jour en direct lorsque vous modifiez les champs
+- **Badge de vérification** — Indique l’état de la signature (vérifiée, non vérifiée, invalide)
+- **Données Base45** — Données encodées brutes avec un bouton de copie
+- **Scanner QR** — Utilisez votre caméra pour scanner des QR codes existants
+- **Détails du pipeline** — Vue extensible des étapes d’encodage
 
-## Synchronisation en temps réel
+## Synchronisation en direct
 
-Les modifications se propagent automatiquement dans les deux sens :
+Les changements se propagent automatiquement dans les deux sens :
 
-- **Modifier les champs d'identité** → Le QR code se régénère instantanément
-- **Coller/scanner des données QR** → Les champs d'identité se remplissent automatiquement
+- **Modifier les champs d’identité** → le QR code se régénère instantanément
+- **Coller/scanner les données QR** → les champs d’identité se remplissent automatiquement
 
-Pas besoin de boutons « Générer » ou « Décoder ».
+Aucun bouton « Generate » ou « Decode » n’est nécessaire.
 
 ## Démarrage rapide
 
-### Créer un credential
+### Créer un identifiant
 
-1. Ouvrez le [Playground](../)
-2. Sélectionnez **Charger un exemple → Identité démo** pour charger des données de test
-3. Modifiez les champs d'identité selon vos besoins
+1. Ouvrez le [Playground](https://jeremi.github.io/claim-169/)
+2. Sélectionnez **Load example → Demo Identity** pour pré-remplir des données de test
+3. Modifiez les champs d’identité si besoin
 4. Le QR code se met à jour automatiquement
 5. Téléchargez le PNG ou copiez les données Base45
 
-### Vérifier un credential
+### Vérifier un identifiant
 
-1. Cliquez sur **Scanner** pour scanner un QR code, ou collez des données Base45
-2. Les champs d'identité se remplissent automatiquement
+1. Cliquez sur **Scan** pour scanner un QR code, ou collez les données Base45
+2. Les champs d’identité se remplissent automatiquement
 3. Pour vérifier la signature :
-    - Collez la clé publique de l'émetteur dans le champ **Clé publique**
-    - Sélectionnez l'algorithme correct (Ed25519 ou ECDSA P-256)
+    - Collez la clé publique de l’émetteur dans le champ **Public Key**
+    - Sélectionnez l’algorithme correct (Ed25519 ou ECDSA P-256)
 4. Le badge de vérification affiche le résultat
 
 ### Gestion des clés
 
-- **Bouton Générer** - Crée de nouvelles clés pour l'algorithme sélectionné
-- **Clé publique** - Dérivée automatiquement lors de l'encodage, modifiable pour la vérification
-- Les clés sont générées par session pour la sécurité (ne jamais réutiliser les clés du playground)
+- **Bouton Generate** — Crée de nouvelles clés pour l’algorithme sélectionné
+- **Clé publique** — Dérivée automatiquement à l’encodage, modifiable pour la vérification
+- Les clés sont générées par session pour la sécurité (ne réutilisez jamais les clés du playground)
 
 ## Technologie
 
-Le playground s'exécute entièrement dans votre navigateur :
+Le playground s’exécute entièrement dans votre navigateur grâce à :
 
-- **WebAssembly** - SDK claim169 compilé en WASM
-- **React** - Framework UI moderne
-- **Web Crypto API** - Génération de clés (Ed25519, ECDSA P-256, AES)
-- **html5-qrcode** - Scan QR via caméra
+- **WebAssembly** — SDK claim169 compilé en WASM
+- **React** — Framework UI moderne
+- **Web Crypto API** — Génération de clés (Ed25519, ECDSA P-256, AES)
+- **html5-qrcode** — Scan QR via la caméra
 
-Aucune donnée n'est envoyée à un serveur.
+Aucune donnée n’est envoyée à un serveur.
 
 ## Code source
 
-Le code source du playground est disponible sur :
+Le code source du playground est disponible ici :
 [github.com/jeremi/claim-169/tree/main/playground](https://github.com/jeremi/claim-169/tree/main/playground)

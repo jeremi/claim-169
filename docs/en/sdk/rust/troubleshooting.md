@@ -1,0 +1,433 @@
+# Troubleshooting
+
+Common errors and solutions when using the `claim169-core` crate.
+
+## Configuration Errors
+
+### "verification required but no verifier provided"
+
+**Error:**
+```
+Claim169Error::DecodingConfig("verification required but no verifier provided - use allow_unverified() to skip")
+```
+
+**Cause:** You called `decode()` without providing a verifier or allowing unverified decoding.
+
+**Solution:** Either provide a verifier or explicitly allow unverified decoding:
+
+```rust
+// Option 1: Provide a verifier
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+
+// Option 2: Allow unverified (testing only)
+let result = Decoder::new(qr_content)
+    .allow_unverified()
+    .decode()?;
+```
+
+### "either call sign_with_*() or allow_unsigned()"
+
+**Error:**
+```
+Claim169Error::EncodingConfig("either call sign_with_*() or allow_unsigned() before encode()")
+```
+
+**Cause:** You called `encode()` without providing a signer or allowing unsigned encoding.
+
+**Solution:** Either provide a signer or explicitly allow unsigned encoding:
+
+```rust
+// Option 1: Sign the credential
+let qr_data = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .encode()?;
+
+// Option 2: Allow unsigned (testing only)
+let qr_data = Encoder::new(claim169, cwt_meta)
+    .allow_unsigned()
+    .encode()?;
+```
+
+## Key Errors
+
+### "invalid key format"
+
+**Error:**
+```
+Claim169Error::Crypto("invalid key format: ...")
+```
+
+**Causes:**
+- Wrong key size (e.g., 31 bytes instead of 32 for Ed25519)
+- Wrong key format (e.g., DER instead of raw bytes)
+- Corrupted key data
+
+**Solutions:**
+
+```rust
+// Ed25519 keys must be exactly 32 bytes
+let ed25519_private_key: [u8; 32] = /* ... */;
+let ed25519_public_key: [u8; 32] = /* ... */;
+
+// ECDSA P-256 private keys are 32 bytes
+let p256_private_key: [u8; 32] = /* ... */;
+
+// ECDSA P-256 public keys are 33 bytes (compressed) or 65 bytes (uncompressed)
+let p256_public_key_compressed: [u8; 33] = /* ... */;
+let p256_public_key_uncompressed: [u8; 65] = /* ... */;
+
+// AES-256 keys must be 32 bytes
+let aes256_key: [u8; 32] = /* ... */;
+
+// AES-128 keys must be 16 bytes
+let aes128_key: [u8; 16] = /* ... */;
+```
+
+### "key not found"
+
+**Error:**
+```
+CryptoError::KeyNotFound
+```
+
+**Cause:** The credential specifies a key ID that your verifier/decryptor cannot find.
+
+**Solution:** Check the key ID in the COSE header and ensure your key resolver can find it:
+
+```rust
+impl SignatureVerifier for MyVerifier {
+    fn verify(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        data: &[u8],
+        signature: &[u8],
+    ) -> CryptoResult<()> {
+        // Log the key ID for debugging
+        if let Some(kid) = key_id {
+            println!("Looking for key: {:?}", String::from_utf8_lossy(kid));
+        }
+        // ... rest of verification
+    }
+}
+```
+
+## Signature Errors
+
+### "signature verification failed"
+
+**Error:**
+```
+Claim169Error::SignatureInvalid("signature verification failed")
+```
+
+**Causes:**
+- Wrong public key
+- Credential was modified after signing
+- Algorithm mismatch
+
+**Debugging:**
+
+```rust
+// Verify you're using the correct key pair
+let signer = Ed25519Signer::generate();
+let public_key = signer.public_key_bytes();
+
+// Encode
+let qr_data = Encoder::new(claim169, cwt_meta)
+    .sign_with(signer, iana::Algorithm::EdDSA)
+    .encode()?;
+
+// Decode with the SAME public key
+let result = Decoder::new(&qr_data)
+    .verify_with_ed25519(&public_key)?  // Use the matching key
+    .decode()?;
+```
+
+### "unsupported algorithm"
+
+**Error:**
+```
+Claim169Error::UnsupportedAlgorithm("algorithm_name")
+```
+
+**Cause:** The credential uses an algorithm your verifier doesn't support.
+
+**Supported algorithms:**
+- EdDSA (Ed25519)
+- ES256 (ECDSA P-256)
+- A256GCM (AES-256-GCM)
+- A128GCM (AES-128-GCM)
+
+## Decryption Errors
+
+### "decryption failed"
+
+**Error:**
+```
+Claim169Error::DecryptionFailed("...")
+```
+
+**Causes:**
+- Wrong decryption key
+- Data was corrupted or tampered with
+- Algorithm mismatch
+
+**Debugging:**
+
+```rust
+// Ensure same key is used for encryption and decryption
+let aes_key: [u8; 32] = /* ... */;
+
+// Encoding
+let qr_data = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&signing_key)?
+    .encrypt_with_aes256(&aes_key)?  // This key
+    .encode()?;
+
+// Decoding
+let result = Decoder::new(&qr_data)
+    .decrypt_with_aes256(&aes_key)?  // Must match!
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+```
+
+## Format Errors
+
+### "invalid Base45 encoding"
+
+**Error:**
+```
+Claim169Error::Base45Decode("...")
+```
+
+**Causes:**
+- QR code was not scanned correctly
+- String was truncated
+- Invalid characters in input
+
+**Solutions:**
+- Ensure the full QR code content was captured
+- Check for whitespace or newlines that shouldn't be there
+- Verify the QR code was generated by a Claim 169 encoder
+
+```rust
+// Trim whitespace from scanned content
+let qr_content = scanned_content.trim();
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+```
+
+### "decompression failed"
+
+**Error:**
+```
+Claim169Error::Decompress("...")
+```
+
+**Cause:** The zlib-compressed data is corrupted or invalid.
+
+**Solution:** This usually indicates a corrupted QR code. Re-scan or re-generate.
+
+### "decompression limit exceeded"
+
+**Error:**
+```
+Claim169Error::DecompressLimitExceeded { max_bytes: 65536 }
+```
+
+**Cause:** The decompressed data is larger than the safety limit (default 64KB).
+
+**Solutions:**
+
+```rust
+// Option 1: Increase the limit if you expect large credentials
+let result = Decoder::new(qr_content)
+    .max_decompressed_bytes(131072)  // 128KB
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+
+// Option 2: Skip biometrics to reduce size
+let result = Decoder::new(qr_content)
+    .skip_biometrics()
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+```
+
+### "invalid COSE structure"
+
+**Error:**
+```
+Claim169Error::CoseParse("...")
+```
+
+**Cause:** The CBOR data doesn't conform to COSE_Sign1 or COSE_Encrypt0 structure.
+
+**Solution:** This usually indicates a malformed credential. Check the encoder.
+
+## Timestamp Errors
+
+### "credential expired"
+
+**Error:**
+```
+Claim169Error::Expired(timestamp)
+```
+
+**Cause:** The credential's `exp` (expiration) claim is in the past.
+
+**Solutions:**
+
+```rust
+// Option 1: Allow clock skew
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .clock_skew_tolerance(300)  // 5 minutes
+    .decode()?;
+
+// Option 2: Disable timestamp validation (not recommended)
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .without_timestamp_validation()
+    .decode()?;
+```
+
+### "credential not valid until"
+
+**Error:**
+```
+Claim169Error::NotYetValid(timestamp)
+```
+
+**Cause:** The credential's `nbf` (not before) claim is in the future.
+
+**Solutions:** Same as expired - use `clock_skew_tolerance()` or `without_timestamp_validation()`.
+
+## Missing Data Errors
+
+### "claim 169 not found"
+
+**Error:**
+```
+Claim169Error::Claim169NotFound
+```
+
+**Cause:** The CWT payload doesn't contain the claim 169 key.
+
+**Solution:** Verify the credential was encoded correctly with Claim 169 data.
+
+## Compilation Errors
+
+### "cannot find function verify_with_ed25519"
+
+**Cause:** The `software-crypto` feature is not enabled.
+
+**Solution:** Enable the feature in `Cargo.toml`:
+
+```toml
+[dependencies]
+claim169-core = { version = "0.1", features = ["software-crypto"] }
+```
+
+Or use the default features:
+
+```toml
+[dependencies]
+claim169-core = "0.1"
+```
+
+### "trait Signer is not implemented"
+
+**Cause:** Your custom type doesn't implement the required trait.
+
+**Solution:** Implement the trait:
+
+```rust
+use claim169_core::{Signer, CryptoResult};
+use coset::iana;
+
+impl Signer for MyCustomSigner {
+    fn sign(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        data: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        // Your implementation
+    }
+}
+```
+
+### "Send + Sync not satisfied"
+
+**Cause:** Your custom crypto type isn't thread-safe.
+
+**Solution:** Wrap non-thread-safe state in `Arc<Mutex<T>>`:
+
+```rust
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+pub struct ThreadSafeSigner {
+    inner: Arc<Mutex<UnsafeSigner>>,
+}
+
+impl Signer for ThreadSafeSigner {
+    fn sign(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        data: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let inner = self.inner.lock().await;
+            inner.sign(algorithm, key_id, data)
+        })
+    }
+}
+```
+
+## Performance Issues
+
+### Large QR codes take too long to encode/decode
+
+**Solutions:**
+
+1. Skip biometrics if not needed:
+   ```rust
+   Encoder::new(claim169, cwt_meta)
+       .skip_biometrics()
+       .sign_with_ed25519(&key)?
+       .encode()?
+   ```
+
+2. Use smaller photos (compress before encoding)
+
+3. Consider using the `without_biometrics()` method on claims:
+   ```rust
+   let smaller_claim = claim169.without_biometrics();
+   ```
+
+### Memory usage is high
+
+**Solutions:**
+
+1. Process credentials one at a time (don't batch in memory)
+2. Use `skip_biometrics()` when biometric data isn't needed
+3. Set a reasonable `max_decompressed_bytes()` limit
+
+## Getting Help
+
+If you encounter issues not covered here:
+
+1. Check the [API Reference](./api.md) for correct usage
+2. Enable debug logging to see detailed error information
+3. Open an issue on GitHub with:
+   - Rust version (`rustc --version`)
+   - `claim169-core` version
+   - Minimal reproduction code
+   - Full error message

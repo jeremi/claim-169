@@ -98,7 +98,7 @@ class TestDecodeValidVectors:
         assert result.claim169.location_code == expected.get("locationCode")
         assert result.claim169.legal_status == expected.get("legalStatus")
         assert result.claim169.country_of_issuance == expected.get("countryOfIssuance")
-        
+
         # Check face biometric is present
         assert result.claim169.face is not None
         assert len(result.claim169.face) > 0

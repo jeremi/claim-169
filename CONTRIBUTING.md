@@ -82,6 +82,18 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
 ```
 
+### Pre-commit (recommended)
+
+This repo includes a `.pre-commit-config.yaml` with quick checks that match CI (formatting, docs checks).
+
+```bash
+uv sync --group dev
+uv run pre-commit install
+
+# Run manually
+uv run pre-commit run --all-files
+```
+
 ### 4. Commit Your Changes
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):
@@ -199,7 +211,7 @@ When contributing, please consider:
 
 This repo uses MkDocs Material + `mkdocs-static-i18n`:
 
-- Source: `docs/<locale>/...` (currently `en`, `fr`, `es`)
+- Source: `docs/<locale>/...` (currently `en`, `fr`)
 - Config: `mkdocs.yml`
 
 Preview docs locally:

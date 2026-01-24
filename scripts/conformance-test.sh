@@ -54,7 +54,7 @@ with open(sys.argv[1]) as f:
 results = []
 for v in vectors:
     try:
-        # Disable timestamp validation to match TypeScript defaults
+        # Disable timestamp validation to avoid time-dependent differences in conformance runs.
         result = claim169.decode(v['qr_data'], validate_timestamps=False, allow_unverified=True)
         results.append({
             'name': v['name'],
@@ -115,7 +115,11 @@ describe("conformance", () => {
 
     for (const v of vectors) {
       try {
-        const result = decode(v.qr_data, { allowUnverified: true });
+        // Disable timestamp validation to avoid time-dependent differences in conformance runs.
+        const result = decode(v.qr_data, {
+          allowUnverified: true,
+          validateTimestamps: false,
+        });
         results.push({
           name: v.name,
           category: v.category,

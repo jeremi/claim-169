@@ -1,136 +1,156 @@
 # Claim 169
 
-Encode and verify digital identity credentials with the [MOSIP Claim 169](https://github.com/mosip/id-claim-169) QR code specification.
-
-[Get started](getting-started/installation.md){ .md-button .md-button--primary }
-[Try the playground](playground.md){ .md-button }
+<div class="hero-section" markdown>
+<h1 class="hero-title">MOSIP Claim 169 QR Code Library</h1>
+<p>Encode and verify offline-verifiable digital identity credentials</p>
+<div class="cta-group">
+<a href="playground/" class="cta-button">Try the Playground</a>
+<a href="core/specification/" class="cta-button cta-button-secondary">Read the Specification</a>
+</div>
+</div>
 
 ## What is Claim 169?
 
-MOSIP Claim 169 defines a compact, secure format for encoding identity data in QR codes, optimized for offline verification. This repository provides:
+Claim 169 is an [IANA-registered](https://www.iana.org/assignments/cwt/cwt.xhtml) CBOR Web Token (CWT) claim for encoding identity credentials in QR codes. It enables **offline verification** of identity documents without network connectivity.
 
-- **Rust core library** (encoding, decoding, verification, encryption)
-- **Python SDK** (server-side integration)
-- **TypeScript/JavaScript SDK** (WASM for browser and Node.js)
-- **Interactive playground** (try vectors and build QR payloads)
+<div class="diagram" markdown>
 
-<div class="grid cards" markdown>
-
--   ### Rust Core
-    High-performance encoding/decoding with signature verification and optional encryption.
-
-    [Rust API](api/rust.md){ .md-button }
-
--   ### Python SDK
-    Simple functions for verification, decryption, and decoding pipelines in Python services.
-
-    [Python API](api/python.md){ .md-button }
-
--   ### TypeScript / JavaScript
-    WebAssembly-powered SDK for browser and Node.js.
-
-    [TypeScript API](api/typescript.md){ .md-button }
-
--   ### Playground
-    Encode, decode, decrypt, and verify without installing anything.
-
-    [Open playground](playground.md){ .md-button }
+```mermaid
+flowchart LR
+  A[Identity Data] --> B[CBOR] --> C[CWT] --> D[COSE Sign] --> E[zlib] --> F[Base45] --> G[QR Code]
+```
 
 </div>
 
-## Encoding Pipeline
+## Choose Your SDK
 
-```text
-Identity Data → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → Base45 → QR Code
-```
+<div class="sdk-grid" markdown>
 
-## Supported Algorithms
+<div class="sdk-card" markdown>
+<h3>Python</h3>
+<p>Native bindings with full type hints</p>
+<a href="sdk/python/" class="md-button">Get Started</a>
+<code>pip install claim169</code>
+</div>
 
-| Operation | Algorithms |
-|-----------|------------|
-| Signing | Ed25519, ECDSA P-256 (ES256) |
-| Encryption | AES-128-GCM, AES-256-GCM |
-| Compression | zlib (DEFLATE) |
-| Encoding | Base45 |
+<div class="sdk-card" markdown>
+<h3>Rust</h3>
+<p>Core library with zero-copy parsing</p>
+<a href="sdk/rust/" class="md-button">Get Started</a>
+<code>cargo add claim169-core</code>
+</div>
+
+<div class="sdk-card" markdown>
+<h3>TypeScript</h3>
+<p>Browser & Node.js via WebAssembly</p>
+<a href="sdk/typescript/" class="md-button">Get Started</a>
+<code>npm install claim169</code>
+</div>
+
+</div>
+
+## Key Features
+
+<div class="feature-grid" markdown>
+
+<div class="feature-card" markdown>
+### Offline Verification
+Verify credentials without network access using embedded cryptographic signatures.
+</div>
+
+<div class="feature-card" markdown>
+### Compact Encoding
+Optimized for QR codes using CBOR, zlib compression, and Base45 encoding.
+</div>
+
+<div class="feature-card" markdown>
+### Strong Cryptography
+Ed25519 and ECDSA P-256 signatures with optional AES-GCM encryption.
+</div>
+
+<div class="feature-card" markdown>
+### HSM/KMS Ready
+Bring your own crypto provider for hardware security modules or cloud KMS.
+</div>
+
+</div>
 
 ## Quick Example
+
+=== "Python"
+
+    ```python
+    from claim169 import Decoder
+
+    qr_data = "..."  # Base45 from QR code
+    public_key = bytes.fromhex("...")  # Issuer's Ed25519 public key
+
+    result = (
+        Decoder(qr_data)
+        .verify_with_ed25519(public_key)
+        .decode()
+    )
+
+    print(f"Name: {result.claim169.full_name}")
+    print(f"ID: {result.claim169.id}")
+    print(f"Verified: {result.verification_status}")
+    ```
 
 === "Rust"
 
     ```rust
     use claim169_core::Decoder;
 
-    let result = Decoder::new(qr_content)
+    let qr_data = "...";  // Base45 from QR code
+    let public_key = hex::decode("...")?;  // Issuer's Ed25519 public key
+
+    let result = Decoder::new(qr_data)
         .verify_with_ed25519(&public_key)?
         .decode()?;
 
     println!("Name: {:?}", result.claim169.full_name);
-    ```
-
-=== "Python"
-
-    ```python
-    from claim169 import decode_with_ed25519
-
-    result = decode_with_ed25519(qr_text, public_key_bytes)
-    print(f"Name: {result.claim169.full_name}")
+    println!("ID: {:?}", result.claim169.id);
+    println!("Verified: {}", result.verification_status);
     ```
 
 === "TypeScript"
 
     ```typescript
-    import { Decoder } from "claim169";
+    import { Decoder } from 'claim169';
 
-    const result = new Decoder(qrText)
+    const qrData = "...";  // Base45 from QR code
+    const publicKey = new Uint8Array([...]);  // Issuer's Ed25519 public key
+
+    const result = new Decoder(qrData)
       .verifyWithEd25519(publicKey)
       .decode();
 
     console.log(`Name: ${result.claim169.fullName}`);
+    console.log(`ID: ${result.claim169.id}`);
+    console.log(`Verified: ${result.verificationStatus}`);
     ```
 
-## Quick Links
+## Try It Now
 
-<div class="grid cards" markdown>
+Test encoding and decoding in your browser with the [Interactive Playground](playground.md).
 
--   ### Installation
-    Install the SDK for your language.
+## Learn More
 
-    [Install](getting-started/installation.md){ .md-button }
+<div class="quick-links">
 
--   ### Quick Start
-    Encode and decode your first credential.
+<a href="core/specification/" class="quick-link">
+<strong>Specification</strong>
+Wire format, CBOR keys, field tables
+</a>
 
-    [Quick start](getting-started/quick-start.md){ .md-button }
+<a href="core/security/" class="quick-link">
+<strong>Security</strong>
+Threat model, safe defaults, validation
+</a>
 
--   ### Keys
-    Key formats and how to provide them.
-
-    [Keys](guides/keys.md){ .md-button }
-
--   ### Security & Validation
-    Safe defaults and policy knobs.
-
-    [Security](guides/security.md){ .md-button }
-
--   ### Specification
-    The wire format and structures.
-
-    [Specification](specification.md){ .md-button }
-
--   ### Troubleshooting
-    Common errors and fixes.
-
-    [Troubleshooting](guides/troubleshooting.md){ .md-button }
+<a href="core/glossary/" class="quick-link">
+<strong>Glossary</strong>
+CBOR, COSE, CWT terminology
+</a>
 
 </div>
-
-## Next Steps
-
-- [Quick Start](getting-started/quick-start.md) — encode and decode your first credential
-- [Key Material & Formats](guides/keys.md) — key formats and PEM support
-- [Security & Validation](guides/security.md) — safe defaults and policy knobs
-- [Glossary](guides/glossary.md) — CBOR, COSE, CWT, etc.
-- [Versioning](guides/versioning.md) — how docs relate to releases
-- [Troubleshooting](guides/troubleshooting.md) — common errors and fixes
-
-**Need help?** Start with [Troubleshooting](guides/troubleshooting.md) or see [Contributing](guides/contributing.md) for how to improve the docs.

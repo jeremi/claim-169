@@ -49,6 +49,28 @@
   opacity: 0.95;
 }
 
+.hero-section .cta-button {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--md-primary-fg-color);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+.hero-section .cta-button:hover {
+  background: white;
+  color: var(--md-primary-fg-color);
+}
+
+.hero-section .cta-button-secondary {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+.hero-section .cta-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
 /* Enhanced code blocks */
 .md-typeset pre {
   border-radius: 0.5rem;
@@ -67,6 +89,59 @@
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
   margin: 2rem 0;
+}
+
+.sdk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.sdk-card {
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sdk-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sdk-card h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--md-primary-fg-color);
+}
+
+.sdk-card p {
+  margin-top: 0;
+}
+
+.sdk-card code {
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+
+.sdk-card .md-button {
+  background: var(--md-primary-fg-color);
+  border-color: var(--md-primary-fg-color);
+  color: white !important;
+  margin-top: 0.5rem;
+}
+
+.sdk-card .md-button:hover {
+  filter: brightness(0.95);
+  color: white !important;
+}
+
+.sdk-card .md-button:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
 }
 
 .feature-card {
@@ -115,6 +190,26 @@
   font-size: 1.2rem;
 }
 
+/* Mermaid diagrams */
+.diagram {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0.5rem;
+}
+
+.mermaid {
+  display: flex;
+  justify-content: center;
+}
+
+.mermaid svg {
+  width: min(900px, 100%);
+  max-width: 100%;
+  height: auto;
+}
+
 /* Algorithm table enhancements */
 .md-typeset table:not([class]) {
   border-radius: 0.5rem;
@@ -153,6 +248,10 @@
 
 .cta-button-secondary {
   background: var(--md-accent-fg-color);
+}
+
+.cta-group {
+  margin-top: 1.5rem;
 }
 
 /* Badge styling */
@@ -219,16 +318,20 @@
 }
 
 .quick-link {
+  display: block;
   padding: 1rem;
-  background: var(--md-default-bg-color--light);
+  background: var(--md-default-bg-color);
   border-radius: 0.5rem;
   text-decoration: none;
   transition: background 0.2s;
   border-left: 3px solid var(--md-primary-fg-color);
+  border: 1px solid var(--md-default-fg-color--lighter);
+  color: var(--md-default-fg-color);
 }
 
 .quick-link:hover {
-  background: var(--md-default-bg-color);
+  background: var(--md-default-bg-color--light);
+  color: var(--md-default-fg-color);
 }
 
 .quick-link strong {
@@ -268,15 +371,15 @@
   .hero-section {
     padding: 2rem 1rem;
   }
-  
+
   .feature-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .pipeline {
     flex-direction: column;
   }
-  
+
   .pipeline-arrow {
     transform: rotate(90deg);
   }
@@ -289,7 +392,7 @@
     color: black;
     border: 2px solid black;
   }
-  
+
   .feature-card {
     break-inside: avoid;
   }

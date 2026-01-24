@@ -78,22 +78,28 @@
  *
  * ## Notes
  *
- * - **Timestamp validation**: Disabled by default because WASM doesn't have
- *   reliable access to system time. Enable with `.withTimestampValidation()`.
+ * - **Timestamp validation**: Enabled by default in JS (host-side). Disable with
+ *   `.withoutTimestampValidation()` if you intentionally want to skip time checks.
  *
  * @module claim169
  */
 
 export type {
+  Algorithm,
+  AlgorithmName,
   Biometric,
   Claim169,
   Claim169Input,
   CwtMeta,
   CwtMetaInput,
   DecodeResult,
+  DecryptorCallback,
+  EncryptorCallback,
   IDecoder,
   IEncoder,
+  SignerCallback,
   VerificationStatus,
+  VerifierCallback,
 } from "./types.js";
 
 export { Claim169Error } from "./types.js";
@@ -102,8 +108,12 @@ import type {
   Claim169Input,
   CwtMetaInput,
   DecodeResult,
+  DecryptorCallback,
+  EncryptorCallback,
   IDecoder,
   IEncoder,
+  SignerCallback,
+  VerifierCallback,
 } from "./types.js";
 import { Claim169Error } from "./types.js";
 
@@ -258,6 +268,26 @@ function transformBiometrics(
   }));
 }
 
+function validateTimestampsHost(
+  cwtMeta: { expiresAt?: number; notBefore?: number },
+  clockSkewToleranceSeconds: number
+): void {
+  const skew = Math.max(0, Math.floor(clockSkewToleranceSeconds));
+  const now = Math.floor(Date.now() / 1000);
+
+  if (cwtMeta.expiresAt !== undefined && now > cwtMeta.expiresAt + skew) {
+    throw new Claim169Error(
+      `Credential expired at timestamp ${cwtMeta.expiresAt} (now ${now})`
+    );
+  }
+
+  if (cwtMeta.notBefore !== undefined && now + skew < cwtMeta.notBefore) {
+    throw new Claim169Error(
+      `Credential not valid until timestamp ${cwtMeta.notBefore} (now ${now})`
+    );
+  }
+}
+
 /**
  * Builder-pattern decoder for Claim 169 QR codes.
  *
@@ -287,6 +317,8 @@ function transformBiometrics(
  */
 export class Decoder implements IDecoder {
   private wasmDecoder: wasm.WasmDecoder;
+  private validateTimestamps = true;
+  private clockSkewToleranceSeconds = 0;
 
   /**
    * Create a new Decoder instance.
@@ -391,23 +423,32 @@ export class Decoder implements IDecoder {
   /**
    * Enable timestamp validation.
    * When enabled, expired or not-yet-valid credentials will throw an error.
-   * Disabled by default because WASM doesn't have reliable access to system time.
+   * Implemented in the host (JavaScript) to avoid WASM runtime time limitations.
    * @returns The decoder instance for chaining
    */
   withTimestampValidation(): Decoder {
-    this.wasmDecoder = this.wasmDecoder.withTimestampValidation();
+    this.validateTimestamps = true;
+    return this;
+  }
+
+  /**
+   * Disable timestamp validation.
+   * @returns The decoder instance for chaining
+   */
+  withoutTimestampValidation(): Decoder {
+    this.validateTimestamps = false;
     return this;
   }
 
   /**
    * Set clock skew tolerance in seconds.
    * Allows credentials to be accepted when clocks are slightly out of sync.
-   * Only applies when timestamp validation is enabled.
+   * Applies when timestamp validation is enabled.
    * @param seconds - The tolerance in seconds
    * @returns The decoder instance for chaining
    */
   clockSkewTolerance(seconds: number): Decoder {
-    this.wasmDecoder = this.wasmDecoder.clockSkewTolerance(seconds);
+    this.clockSkewToleranceSeconds = Math.max(0, Math.floor(seconds));
     return this;
   }
 
@@ -423,6 +464,64 @@ export class Decoder implements IDecoder {
   }
 
   /**
+   * Verify signature with a custom verifier callback.
+   * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+   *
+   * @param verifier - Function that verifies signatures
+   * @returns The decoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const result = new Decoder(qrText)
+   *   .verifyWith((algorithm, keyId, data, signature) => {
+   *     // Call your crypto provider here
+   *     myKms.verify(keyId, data, signature);
+   *   })
+   *   .decode();
+   * ```
+   */
+  verifyWith(verifier: VerifierCallback): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.verifyWith(verifier);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Decrypt with a custom decryptor callback.
+   * Use for external crypto providers (HSM, cloud KMS, etc.)
+   *
+   * @param decryptor - Function that decrypts ciphertext
+   * @returns The decoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const result = new Decoder(qrText)
+   *   .decryptWith((algorithm, keyId, nonce, aad, ciphertext) => {
+   *     // Call your crypto provider here
+   *     return myKms.decrypt(keyId, ciphertext, { nonce, aad });
+   *   })
+   *   .decode();
+   * ```
+   */
+  decryptWith(decryptor: DecryptorCallback): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.decryptWith(decryptor);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
    * Decode the QR code with the configured options.
    * Requires either a verifier (verifyWithEd25519/verifyWithEcdsaP256) or
    * explicit allowUnverified() to be called first.
@@ -432,7 +531,14 @@ export class Decoder implements IDecoder {
   decode(): DecodeResult {
     try {
       const result = this.wasmDecoder.decode();
-      return transformResult(result);
+      const transformed = transformResult(result);
+      if (this.validateTimestamps) {
+        validateTimestampsHost(
+          transformed.cwtMeta,
+          this.clockSkewToleranceSeconds
+        );
+      }
+      return transformed;
     } catch (error) {
       if (error instanceof Error) {
         throw new Claim169Error(error.message);
@@ -447,7 +553,7 @@ export class Decoder implements IDecoder {
  *
  * Notes:
  * - If you don't provide a verification key, you must explicitly set `allowUnverified: true` (testing only).
- * - Timestamp validation is disabled by default in WASM; set `validateTimestamps: true` to enable it.
+ * - Timestamp validation is enabled by default in JS (host-side). Set `validateTimestamps: false` to disable.
  */
 export interface DecodeOptions {
   verifyWithEd25519?: Uint8Array;
@@ -482,8 +588,8 @@ export function decode(qrText: string, options: DecodeOptions = {}): DecodeResul
     decoder = decoder.skipBiometrics();
   }
 
-  if (options.validateTimestamps) {
-    decoder = decoder.withTimestampValidation();
+  if (options.validateTimestamps === false) {
+    decoder = decoder.withoutTimestampValidation();
   }
 
   if (options.clockSkewToleranceSeconds !== undefined) {
@@ -637,6 +743,78 @@ export class Encoder implements IEncoder {
   skipBiometrics(): Encoder {
     this.wasmEncoder = this.wasmEncoder.skipBiometrics();
     return this;
+  }
+
+  /**
+   * Sign with a custom signer callback.
+   * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
+   *
+   * @param signer - Function that signs data
+   * @param algorithm - Signature algorithm: "EdDSA" or "ES256"
+   * @param keyId - Optional key identifier passed to the signer callback
+   * @returns The encoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const qrData = new Encoder(claim169, cwtMeta)
+   *   .signWith((algorithm, keyId, data) => {
+   *     return myKms.sign({ keyId, data });
+   *   }, "EdDSA")
+   *   .encode();
+   * ```
+   */
+  signWith(
+    signer: SignerCallback,
+    algorithm: "EdDSA" | "ES256",
+    keyId?: Uint8Array | null
+  ): Encoder {
+    try {
+      // Wrap the callback so callers can optionally provide a keyId even if the
+      // underlying WASM bindings don't expose key-id configuration yet.
+      const signerWithKeyId: SignerCallback = (alg, wasmKeyId, data) =>
+        signer(alg, keyId ?? wasmKeyId, data);
+
+      this.wasmEncoder = this.wasmEncoder.signWith(signerWithKeyId, algorithm);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Encrypt with a custom encryptor callback.
+   * Use for external crypto providers (HSM, cloud KMS, etc.)
+   *
+   * @param encryptor - Function that encrypts data
+   * @param algorithm - Encryption algorithm: "A256GCM" or "A128GCM"
+   * @returns The encoder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * const qrData = new Encoder(claim169, cwtMeta)
+   *   .signWithEd25519(signKey)
+   *   .encryptWith((algorithm, keyId, nonce, aad, plaintext) => {
+   *     return myKms.encrypt({ keyId, nonce, aad, plaintext });
+   *   }, "A256GCM")
+   *   .encode();
+   * ```
+   */
+  encryptWith(
+    encryptor: EncryptorCallback,
+    algorithm: "A256GCM" | "A128GCM"
+  ): Encoder {
+    try {
+      this.wasmEncoder = this.wasmEncoder.encryptWith(encryptor, algorithm);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
   }
 
   /**

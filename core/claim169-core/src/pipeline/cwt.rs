@@ -1,4 +1,5 @@
 use ciborium::Value;
+use std::collections::HashSet;
 
 use crate::error::{Claim169Error, Result};
 use crate::model::CwtMeta;
@@ -26,22 +27,26 @@ pub struct CwtParseResult {
     pub claim_169: Value,
 }
 
-/// Parse a CBOR integer to i64, returning None for values outside i64 range.
-/// This prevents integer overflow attacks where very large values could bypass
-/// timestamp validation by wrapping to 0.
-fn parse_timestamp(val: &Value) -> Option<i64> {
+/// Parse a CBOR timestamp claim (NumericDate) to i64.
+///
+/// Strict parsing: if a timestamp claim is present but invalid (wrong type or
+/// outside i64 range), fail closed.
+fn parse_timestamp_strict(val: &Value, field: &str) -> Result<i64> {
     match val {
         Value::Integer(i) => {
             let i128_val = i128::from(*i);
             // Only accept values within i64 range
             if i128_val >= i64::MIN as i128 && i128_val <= i64::MAX as i128 {
-                Some(i128_val as i64)
+                Ok(i128_val as i64)
             } else {
-                // Out of range - skip this field rather than using dangerous default
-                None
+                Err(Claim169Error::CwtParse(format!(
+                    "{field} timestamp out of range: {i128_val}"
+                )))
             }
         }
-        _ => None,
+        _ => Err(Claim169Error::CwtParse(format!(
+            "{field} timestamp must be an integer"
+        ))),
     }
 }
 
@@ -84,6 +89,7 @@ pub fn parse(payload: &[u8]) -> Result<CwtParseResult> {
 
     let mut meta = CwtMeta::default();
     let mut claim_169: Option<Value> = None;
+    let mut seen_int_keys: HashSet<i64> = HashSet::new();
 
     for (key, val) in map {
         // Keys should be integers
@@ -103,25 +109,41 @@ pub fn parse(payload: &[u8]) -> Result<CwtParseResult> {
             _ => continue, // Skip non-integer keys
         };
 
+        if !seen_int_keys.insert(key_int) {
+            return Err(Claim169Error::CwtParse(format!(
+                "duplicate CWT key: {key_int}"
+            )));
+        }
+
         match key_int {
             CWT_ISS => {
-                if let Value::Text(s) = val {
-                    meta.issuer = Some(s);
-                }
+                meta.issuer = match val {
+                    Value::Text(s) => Some(s),
+                    _ => {
+                        return Err(Claim169Error::CwtParse(
+                            "iss claim must be a text string".to_string(),
+                        ))
+                    }
+                };
             }
             CWT_SUB => {
-                if let Value::Text(s) = val {
-                    meta.subject = Some(s);
-                }
+                meta.subject = match val {
+                    Value::Text(s) => Some(s),
+                    _ => {
+                        return Err(Claim169Error::CwtParse(
+                            "sub claim must be a text string".to_string(),
+                        ))
+                    }
+                };
             }
             CWT_EXP => {
-                meta.expires_at = parse_timestamp(&val);
+                meta.expires_at = Some(parse_timestamp_strict(&val, "exp")?);
             }
             CWT_NBF => {
-                meta.not_before = parse_timestamp(&val);
+                meta.not_before = Some(parse_timestamp_strict(&val, "nbf")?);
             }
             CWT_IAT => {
-                meta.issued_at = parse_timestamp(&val);
+                meta.issued_at = Some(parse_timestamp_strict(&val, "iat")?);
             }
             _ if key_int == CLAIM_169_KEY => {
                 claim_169 = Some(val);
@@ -295,8 +317,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_timestamp_non_integer_skipped() {
-        // Timestamp that is not an integer should be skipped (None)
+    fn test_parse_timestamp_non_integer_rejected() {
+        // Timestamp that is not an integer should be rejected (fail closed)
         let cwt = Value::Map(vec![
             (
                 Value::Integer(CWT_EXP.into()),
@@ -314,9 +336,41 @@ mod tests {
         let mut bytes = Vec::new();
         ciborium::into_writer(&cwt, &mut bytes).unwrap();
 
-        let result = parse(&bytes).unwrap();
-        // Should be None for wrong type
-        assert_eq!(result.meta.expires_at, None);
+        let result = parse(&bytes);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), Claim169Error::CwtParse(_)));
+    }
+
+    #[test]
+    fn test_rejects_duplicate_integer_keys() {
+        // Duplicate keys are ambiguous; fail closed.
+        let cwt = Value::Map(vec![
+            (
+                Value::Integer(CWT_EXP.into()),
+                Value::Integer(1700000000i64.into()),
+            ),
+            (
+                Value::Integer(CWT_EXP.into()),
+                Value::Integer(2000000000i64.into()),
+            ),
+            (
+                Value::Integer(CLAIM_169_KEY.into()),
+                Value::Map(vec![(
+                    Value::Integer(1.into()),
+                    Value::Text("id".to_string()),
+                )]),
+            ),
+        ]);
+
+        let mut bytes = Vec::new();
+        ciborium::into_writer(&cwt, &mut bytes).unwrap();
+
+        let result = parse(&bytes);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::CwtParse(msg) => assert!(msg.contains("duplicate")),
+            e => panic!("Expected CwtParse duplicate error, got: {:?}", e),
+        }
     }
 
     #[test]

@@ -2,12 +2,18 @@
 //!
 //! These traits define the interface between the Claim 169 decoder and
 //! cryptographic operations. Implement these traits to integrate with
-//! custom backends like HSMs, cloud KMS, or hardware security modules.
+//! external crypto providers such as:
+//!
+//! - Hardware Security Modules (HSMs)
+//! - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
+//! - Remote signing services
+//! - Smart cards and TPMs
+//! - Custom software keystores
 //!
 //! # Verification vs Signing
 //!
 //! - [`SignatureVerifier`] and [`Decryptor`]: Used during credential verification
-//! - [`Signer`] and [`Encryptor`]: Used for credential issuance and test vector generation
+//! - [`Signer`] and [`Encryptor`]: Used for credential issuance
 //!
 //! # Thread Safety
 //!
@@ -19,8 +25,8 @@ use crate::error::CryptoResult;
 
 /// Trait for signature verification.
 ///
-/// Implement this trait to provide custom signature verification,
-/// such as delegating to an HSM or other hardware security module.
+/// Implement this trait to provide custom signature verification
+/// using external crypto providers (HSM, cloud KMS, etc.).
 pub trait SignatureVerifier: Send + Sync {
     /// Verify a signature over the given data
     ///
@@ -43,10 +49,10 @@ pub trait SignatureVerifier: Send + Sync {
     ) -> CryptoResult<()>;
 }
 
-/// Trait for decryption
+/// Trait for decryption.
 ///
-/// Implement this trait to provide custom decryption,
-/// such as delegating to an HSM or other hardware security module.
+/// Implement this trait to provide custom decryption
+/// using external crypto providers (HSM, cloud KMS, etc.).
 pub trait Decryptor: Send + Sync {
     /// Decrypt ciphertext using AEAD
     ///
@@ -70,10 +76,10 @@ pub trait Decryptor: Send + Sync {
     ) -> CryptoResult<Vec<u8>>;
 }
 
-/// Trait for signing (used in test vector generation)
+/// Trait for signing.
 ///
-/// Implement this trait to provide custom signing,
-/// such as delegating to an HSM for key protection.
+/// Implement this trait to provide custom signing
+/// using external crypto providers (HSM, cloud KMS, etc.).
 pub trait Signer: Send + Sync {
     /// Sign data
     ///
@@ -97,9 +103,10 @@ pub trait Signer: Send + Sync {
     }
 }
 
-/// Trait for encryption (used in test vector generation)
+/// Trait for encryption.
 ///
-/// Implement this trait to provide custom encryption.
+/// Implement this trait to provide custom encryption
+/// using external crypto providers (HSM, cloud KMS, etc.).
 pub trait Encryptor: Send + Sync {
     /// Encrypt plaintext using AEAD
     ///
@@ -122,10 +129,10 @@ pub trait Encryptor: Send + Sync {
     ) -> CryptoResult<Vec<u8>>;
 }
 
-/// Key resolver trait for looking up keys by key ID
+/// Key resolver trait for looking up keys by key ID.
 ///
-/// Implement this trait to provide key lookup functionality,
-/// which can delegate to key management systems, HSMs, or local storage.
+/// Implement this trait to provide key lookup functionality
+/// using external key management systems (HSM, cloud KMS, etc.).
 pub trait KeyResolver: Send + Sync {
     /// Resolve a verifier for the given key ID and algorithm
     fn resolve_verifier(

@@ -5,7 +5,8 @@
 //! Python bindings for MOSIP Claim 169 QR decoder
 //!
 //! This module provides Python bindings using PyO3 for the claim169-core library.
-//! It supports custom crypto hooks for HSM integration.
+//! It supports custom crypto hooks for external crypto providers (HSM, cloud KMS,
+//! remote signing services, smart cards, TPMs, etc.).
 
 use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
@@ -13,7 +14,8 @@ use pyo3::types::{PyBytes, PyDict};
 
 use claim169_core::crypto::software::AesGcmDecryptor;
 use claim169_core::crypto::traits::{
-    Decryptor as CoreDecryptor, SignatureVerifier as CoreSignatureVerifier,
+    Decryptor as CoreDecryptor, Encryptor as CoreEncryptor,
+    SignatureVerifier as CoreSignatureVerifier, Signer as CoreSigner,
 };
 use claim169_core::error::{Claim169Error, CryptoError, CryptoResult};
 use claim169_core::model::{
@@ -35,6 +37,7 @@ pyo3::create_exception!(claim169, CwtParseError, Claim169Exception);
 pyo3::create_exception!(claim169, Claim169NotFoundError, Claim169Exception);
 pyo3::create_exception!(claim169, SignatureError, Claim169Exception);
 pyo3::create_exception!(claim169, DecryptionError, Claim169Exception);
+pyo3::create_exception!(claim169, EncryptionError, Claim169Exception);
 
 fn to_py_err(e: Claim169Error) -> PyErr {
     match e {
@@ -46,8 +49,10 @@ fn to_py_err(e: Claim169Error) -> PyErr {
         Claim169Error::CwtParse(_) => CwtParseError::new_err(e.to_string()),
         Claim169Error::Claim169NotFound => Claim169NotFoundError::new_err(e.to_string()),
         Claim169Error::SignatureInvalid(_) => SignatureError::new_err(e.to_string()),
+        Claim169Error::SignatureFailed(_) => SignatureError::new_err(e.to_string()),
         Claim169Error::Crypto(_) => SignatureError::new_err(e.to_string()),
         Claim169Error::DecryptionFailed(_) => DecryptionError::new_err(e.to_string()),
+        Claim169Error::EncryptionFailed(_) => EncryptionError::new_err(e.to_string()),
         _ => Claim169Exception::new_err(e.to_string()),
     }
 }
@@ -492,6 +497,116 @@ impl CoreDecryptor for PyDecryptor {
     }
 }
 
+/// Python-callable signer hook for custom crypto providers
+///
+/// Use this to integrate with external key management systems like:
+/// - Hardware Security Modules (HSMs)
+/// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
+/// - Remote signing services
+/// - Smart cards and TPMs
+#[pyclass]
+pub struct PySigner {
+    callback: Py<PyAny>,
+    key_id: Option<Vec<u8>>,
+}
+
+#[pymethods]
+impl PySigner {
+    #[new]
+    #[pyo3(signature = (callback, key_id=None))]
+    fn new(callback: Py<PyAny>, key_id: Option<Vec<u8>>) -> Self {
+        PySigner { callback, key_id }
+    }
+}
+
+impl CoreSigner for PySigner {
+    fn sign(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        data: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        Python::attach(|py| {
+            let alg_name = format!("{:?}", algorithm);
+            let key_id_bytes: Option<Bound<'_, PyBytes>> = key_id.map(|k| PyBytes::new(py, k));
+            let data_bytes = PyBytes::new(py, data);
+
+            let result = self
+                .callback
+                .call1(py, (alg_name, key_id_bytes, data_bytes));
+
+            match result {
+                Ok(obj) => {
+                    let bytes: Vec<u8> = obj.extract(py).map_err(|_| {
+                        CryptoError::SigningFailed("signer callback must return bytes".to_string())
+                    })?;
+                    Ok(bytes)
+                }
+                Err(e) => Err(CryptoError::SigningFailed(e.to_string())),
+            }
+        })
+    }
+
+    fn key_id(&self) -> Option<&[u8]> {
+        self.key_id.as_deref()
+    }
+}
+
+/// Python-callable encryptor hook for custom crypto providers
+///
+/// Use this to integrate with external key management systems like:
+/// - Hardware Security Modules (HSMs)
+/// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
+/// - Custom software keystores
+#[pyclass]
+pub struct PyEncryptor {
+    callback: Py<PyAny>,
+}
+
+#[pymethods]
+impl PyEncryptor {
+    #[new]
+    fn new(callback: Py<PyAny>) -> Self {
+        PyEncryptor { callback }
+    }
+}
+
+impl CoreEncryptor for PyEncryptor {
+    fn encrypt(
+        &self,
+        algorithm: iana::Algorithm,
+        key_id: Option<&[u8]>,
+        nonce: &[u8],
+        aad: &[u8],
+        plaintext: &[u8],
+    ) -> CryptoResult<Vec<u8>> {
+        Python::attach(|py| {
+            let alg_name = format!("{:?}", algorithm);
+            let key_id_bytes: Option<Bound<'_, PyBytes>> = key_id.map(|k| PyBytes::new(py, k));
+            let nonce_bytes = PyBytes::new(py, nonce);
+            let aad_bytes = PyBytes::new(py, aad);
+            let pt_bytes = PyBytes::new(py, plaintext);
+
+            let result = self.callback.call1(
+                py,
+                (alg_name, key_id_bytes, nonce_bytes, aad_bytes, pt_bytes),
+            );
+
+            match result {
+                Ok(obj) => {
+                    let bytes: Vec<u8> = obj.extract(py).map_err(|_| {
+                        CryptoError::EncryptionFailed(
+                            "encryptor callback must return bytes".to_string(),
+                        )
+                    })?;
+                    Ok(bytes)
+                }
+                Err(e) => Err(CryptoError::EncryptionFailed(e.to_string())),
+            }
+        })
+    }
+}
+
 // ============================================================================
 // Public API Functions
 // ============================================================================
@@ -639,9 +754,13 @@ fn decode_with_ecdsa_p256(
     })
 }
 
-/// Decode a Claim 169 QR code with a custom verifier hook
+/// Decode a Claim 169 QR code with a custom verifier callback
 ///
-/// This allows integration with HSMs or other hardware security modules.
+/// Use this for integration with external crypto providers such as:
+/// - Hardware Security Modules (HSMs)
+/// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
+/// - Remote signing services
+/// - Smart cards and TPMs
 ///
 /// Args:
 ///     qr_text: The QR code text content
@@ -649,11 +768,11 @@ fn decode_with_ecdsa_p256(
 ///               and raises an exception if verification fails
 ///
 /// Example:
-///     def my_hsm_verify(algorithm, key_id, data, signature):
-///         # Call your HSM here
-///         hsm.verify(key_id, data, signature)
+///     def my_verify(algorithm, key_id, data, signature):
+///         # Call your crypto provider here
+///         crypto_provider.verify(key_id, data, signature)
 ///
-///     result = decode_with_verifier(qr_text, my_hsm_verify)
+///     result = decode_with_verifier(qr_text, my_verify)
 #[pyfunction]
 #[pyo3(name = "decode_with_verifier")]
 fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<DecodeResult> {
@@ -670,7 +789,9 @@ fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<Decod
     })
 }
 
-/// Decode an encrypted Claim 169 QR code
+/// Decode an encrypted Claim 169 QR code with AES-GCM
+///
+/// Supports both AES-128 and AES-256 based on key length.
 ///
 /// Args:
 ///     qr_text: The QR code text content
@@ -716,7 +837,64 @@ fn decode_encrypted_aes(
     })
 }
 
-/// Decode an encrypted Claim 169 QR code with a custom decryptor hook
+/// Decode an encrypted Claim 169 QR code with AES-256-GCM
+///
+/// Args:
+///     qr_text: The QR code text content
+///     key: AES-256 key bytes (32 bytes)
+///     verifier: Optional verifier callable for nested signature verification
+///     allow_unverified: If True, allow decoding without signature verification (INSECURE)
+///
+/// Returns:
+///     DecodeResult containing the decrypted and decoded claim
+#[pyfunction]
+#[pyo3(signature = (qr_text, key, verifier=None, allow_unverified=false))]
+fn decode_encrypted_aes256(
+    qr_text: &str,
+    key: &[u8],
+    verifier: Option<Py<PyAny>>,
+    allow_unverified: bool,
+) -> PyResult<DecodeResult> {
+    if key.len() != 32 {
+        return Err(PyValueError::new_err(
+            "AES-256 key must be exactly 32 bytes",
+        ));
+    }
+    decode_encrypted_aes(qr_text, key, verifier, allow_unverified)
+}
+
+/// Decode an encrypted Claim 169 QR code with AES-128-GCM
+///
+/// Args:
+///     qr_text: The QR code text content
+///     key: AES-128 key bytes (16 bytes)
+///     verifier: Optional verifier callable for nested signature verification
+///     allow_unverified: If True, allow decoding without signature verification (INSECURE)
+///
+/// Returns:
+///     DecodeResult containing the decrypted and decoded claim
+#[pyfunction]
+#[pyo3(signature = (qr_text, key, verifier=None, allow_unverified=false))]
+fn decode_encrypted_aes128(
+    qr_text: &str,
+    key: &[u8],
+    verifier: Option<Py<PyAny>>,
+    allow_unverified: bool,
+) -> PyResult<DecodeResult> {
+    if key.len() != 16 {
+        return Err(PyValueError::new_err(
+            "AES-128 key must be exactly 16 bytes",
+        ));
+    }
+    decode_encrypted_aes(qr_text, key, verifier, allow_unverified)
+}
+
+/// Decode an encrypted Claim 169 QR code with a custom decryptor callback
+///
+/// Use this for integration with external crypto providers such as:
+/// - Hardware Security Modules (HSMs)
+/// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
+/// - Custom software keystores
 ///
 /// Args:
 ///     qr_text: The QR code text content
@@ -726,10 +904,10 @@ fn decode_encrypted_aes(
 ///     allow_unverified: If True, allow decoding without signature verification (INSECURE)
 ///
 /// Example:
-///     def my_hsm_decrypt(algorithm, key_id, nonce, aad, ciphertext):
-///         return hsm.decrypt(key_id, nonce, aad, ciphertext)
+///     def my_decrypt(algorithm, key_id, nonce, aad, ciphertext):
+///         return crypto_provider.decrypt(key_id, nonce, aad, ciphertext)
 ///
-///     result = decode_with_decryptor(qr_text, my_hsm_decrypt)
+///     result = decode_with_decryptor(qr_text, my_decrypt)
 #[pyfunction]
 #[pyo3(signature = (qr_text, decryptor, verifier=None, allow_unverified=false))]
 fn decode_with_decryptor(
@@ -966,23 +1144,30 @@ impl From<&CwtMetaInput> for CoreCwtMeta {
 ///     claim169: Claim169Input containing the identity data
 ///     cwt_meta: CwtMetaInput containing token metadata
 ///     private_key: Ed25519 private key bytes (32 bytes)
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
 ///
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
+#[pyo3(signature = (claim169, cwt_meta, private_key, skip_biometrics=false))]
 fn encode_with_ed25519(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
     private_key: &[u8],
+    skip_biometrics: bool,
 ) -> PyResult<String> {
     let core_claim: CoreClaim169 = claim169.into();
     let core_meta: CoreCwtMeta = cwt_meta.into();
 
-    CoreEncoder::new(core_claim, core_meta)
+    let mut encoder = CoreEncoder::new(core_claim, core_meta)
         .sign_with_ed25519(private_key)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .encode()
-        .map_err(to_py_err)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential with ECDSA P-256 signature
@@ -991,23 +1176,30 @@ fn encode_with_ed25519(
 ///     claim169: Claim169Input containing the identity data
 ///     cwt_meta: CwtMetaInput containing token metadata
 ///     private_key: ECDSA P-256 private key bytes (32 bytes)
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
 ///
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
+#[pyo3(signature = (claim169, cwt_meta, private_key, skip_biometrics=false))]
 fn encode_with_ecdsa_p256(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
     private_key: &[u8],
+    skip_biometrics: bool,
 ) -> PyResult<String> {
     let core_claim: CoreClaim169 = claim169.into();
     let core_meta: CoreCwtMeta = cwt_meta.into();
 
-    CoreEncoder::new(core_claim, core_meta)
+    let mut encoder = CoreEncoder::new(core_claim, core_meta)
         .sign_with_ecdsa_p256(private_key)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .encode()
-        .map_err(to_py_err)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential with Ed25519 signature and AES-256-GCM encryption
@@ -1017,26 +1209,69 @@ fn encode_with_ecdsa_p256(
 ///     cwt_meta: CwtMetaInput containing token metadata
 ///     sign_key: Ed25519 private key bytes (32 bytes)
 ///     encrypt_key: AES-256 key bytes (32 bytes)
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
 ///
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
+#[pyo3(signature = (claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=false))]
 fn encode_signed_encrypted(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
     sign_key: &[u8],
     encrypt_key: &[u8],
+    skip_biometrics: bool,
 ) -> PyResult<String> {
     let core_claim: CoreClaim169 = claim169.into();
     let core_meta: CoreCwtMeta = cwt_meta.into();
 
-    CoreEncoder::new(core_claim, core_meta)
+    let mut encoder = CoreEncoder::new(core_claim, core_meta)
         .sign_with_ed25519(sign_key)
         .map_err(|e| PyValueError::new_err(e.to_string()))?
         .encrypt_with_aes256(encrypt_key)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
+}
+
+/// Encode a Claim 169 credential with Ed25519 signature and AES-128-GCM encryption
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///     sign_key: Ed25519 private key bytes (32 bytes)
+///     encrypt_key: AES-128 key bytes (16 bytes)
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+#[pyfunction]
+#[pyo3(signature = (claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=false))]
+fn encode_signed_encrypted_aes128(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    sign_key: &[u8],
+    encrypt_key: &[u8],
+    skip_biometrics: bool,
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    let mut encoder = CoreEncoder::new(core_claim, core_meta)
+        .sign_with_ed25519(sign_key)
         .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .encode()
-        .map_err(to_py_err)
+        .encrypt_with_aes128(encrypt_key)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential without signature (INSECURE - testing only)
@@ -1044,18 +1279,219 @@ fn encode_signed_encrypted(
 /// Args:
 ///     claim169: Claim169Input containing the identity data
 ///     cwt_meta: CwtMetaInput containing token metadata
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
 ///
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-fn encode_unsigned(claim169: &Claim169Input, cwt_meta: &CwtMetaInput) -> PyResult<String> {
+#[pyo3(signature = (claim169, cwt_meta, skip_biometrics=false))]
+fn encode_unsigned(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    skip_biometrics: bool,
+) -> PyResult<String> {
     let core_claim: CoreClaim169 = claim169.into();
     let core_meta: CoreCwtMeta = cwt_meta.into();
 
-    CoreEncoder::new(core_claim, core_meta)
-        .allow_unsigned()
-        .encode()
-        .map_err(to_py_err)
+    let mut encoder = CoreEncoder::new(core_claim, core_meta).allow_unsigned();
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
+}
+
+/// Encode a Claim 169 credential with a custom signer callback
+///
+/// Use this for integration with external crypto providers such as:
+/// - Hardware Security Modules (HSMs)
+/// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
+/// - Remote signing services
+/// - Smart cards and TPMs
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///     signer: A callable that takes (algorithm, key_id, data) and returns signature bytes
+///     algorithm: The signing algorithm ("EdDSA" or "ES256")
+///     key_id: Optional key identifier bytes
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+///
+/// Example:
+///     def my_sign(algorithm, key_id, data):
+///         return crypto_provider.sign(key_id, data)
+///
+///     qr_text = encode_with_signer(claim, meta, my_sign, "EdDSA")
+#[pyfunction]
+#[pyo3(signature = (claim169, cwt_meta, signer, algorithm, key_id=None, skip_biometrics=false))]
+fn encode_with_signer(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    signer: Py<PyAny>,
+    algorithm: &str,
+    key_id: Option<Vec<u8>>,
+    skip_biometrics: bool,
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    let alg = match algorithm {
+        "EdDSA" => iana::Algorithm::EdDSA,
+        "ES256" => iana::Algorithm::ES256,
+        _ => {
+            return Err(PyValueError::new_err(format!(
+                "Unsupported algorithm: {}. Use 'EdDSA' or 'ES256'",
+                algorithm
+            )))
+        }
+    };
+
+    let py_signer = PySigner::new(signer, key_id);
+    let mut encoder = CoreEncoder::new(core_claim, core_meta).sign_with(py_signer, alg);
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
+}
+
+/// Encode a Claim 169 credential with custom signer and encryptor callbacks
+///
+/// Use this for integration with external crypto providers such as:
+/// - Hardware Security Modules (HSMs)
+/// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
+/// - Remote signing services
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///     signer: A callable that takes (algorithm, key_id, data) and returns signature bytes
+///     sign_algorithm: The signing algorithm ("EdDSA" or "ES256")
+///     encryptor: A callable that takes (algorithm, key_id, nonce, aad, plaintext)
+///                and returns ciphertext bytes
+///     encrypt_algorithm: The encryption algorithm ("A256GCM" or "A128GCM")
+///     key_id: Optional key identifier bytes
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+///
+/// Example:
+///     def my_sign(algorithm, key_id, data):
+///         return crypto_provider.sign(key_id, data)
+///
+///     def my_encrypt(algorithm, key_id, nonce, aad, plaintext):
+///         return crypto_provider.encrypt(key_id, nonce, aad, plaintext)
+///
+///     qr_text = encode_with_signer_and_encryptor(
+///         claim, meta, my_sign, "EdDSA", my_encrypt, "A256GCM"
+///     )
+#[pyfunction]
+#[pyo3(signature = (claim169, cwt_meta, signer, sign_algorithm, encryptor, encrypt_algorithm, key_id=None, skip_biometrics=false))]
+#[allow(clippy::too_many_arguments)]
+fn encode_with_signer_and_encryptor(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    signer: Py<PyAny>,
+    sign_algorithm: &str,
+    encryptor: Py<PyAny>,
+    encrypt_algorithm: &str,
+    key_id: Option<Vec<u8>>,
+    skip_biometrics: bool,
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    let sign_alg = match sign_algorithm {
+        "EdDSA" => iana::Algorithm::EdDSA,
+        "ES256" => iana::Algorithm::ES256,
+        _ => {
+            return Err(PyValueError::new_err(format!(
+                "Unsupported sign algorithm: {}. Use 'EdDSA' or 'ES256'",
+                sign_algorithm
+            )))
+        }
+    };
+
+    let encrypt_alg = match encrypt_algorithm {
+        "A256GCM" => iana::Algorithm::A256GCM,
+        "A128GCM" => iana::Algorithm::A128GCM,
+        _ => {
+            return Err(PyValueError::new_err(format!(
+                "Unsupported encrypt algorithm: {}. Use 'A256GCM' or 'A128GCM'",
+                encrypt_algorithm
+            )))
+        }
+    };
+
+    let py_signer = PySigner::new(signer, key_id);
+    let py_encryptor = PyEncryptor::new(encryptor);
+
+    let mut encoder = CoreEncoder::new(core_claim, core_meta)
+        .sign_with(py_signer, sign_alg)
+        .encrypt_with(py_encryptor, encrypt_alg);
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
+}
+
+/// Encode with software signing and custom encryptor callback
+///
+/// Args:
+///     claim169: Claim169Input containing the identity data
+///     cwt_meta: CwtMetaInput containing token metadata
+///     sign_key: Ed25519 private key bytes (32 bytes)
+///     encryptor: A callable that takes (algorithm, key_id, nonce, aad, plaintext)
+///                and returns ciphertext bytes
+///     encrypt_algorithm: The encryption algorithm ("A256GCM" or "A128GCM")
+///     skip_biometrics: If True, exclude biometric data to reduce QR size (default: False)
+///
+/// Returns:
+///     Base45-encoded string suitable for QR code generation
+#[pyfunction]
+#[pyo3(signature = (claim169, cwt_meta, sign_key, encryptor, encrypt_algorithm, skip_biometrics=false))]
+fn encode_with_encryptor(
+    claim169: &Claim169Input,
+    cwt_meta: &CwtMetaInput,
+    sign_key: &[u8],
+    encryptor: Py<PyAny>,
+    encrypt_algorithm: &str,
+    skip_biometrics: bool,
+) -> PyResult<String> {
+    let core_claim: CoreClaim169 = claim169.into();
+    let core_meta: CoreCwtMeta = cwt_meta.into();
+
+    let encrypt_alg = match encrypt_algorithm {
+        "A256GCM" => iana::Algorithm::A256GCM,
+        "A128GCM" => iana::Algorithm::A128GCM,
+        _ => {
+            return Err(PyValueError::new_err(format!(
+                "Unsupported encrypt algorithm: {}. Use 'A256GCM' or 'A128GCM'",
+                encrypt_algorithm
+            )))
+        }
+    };
+
+    let py_encryptor = PyEncryptor::new(encryptor);
+
+    let mut encoder = CoreEncoder::new(core_claim, core_meta)
+        .sign_with_ed25519(sign_key)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?
+        .encrypt_with(py_encryptor, encrypt_alg);
+
+    if skip_biometrics {
+        encoder = encoder.skip_biometrics();
+    }
+
+    encoder.encode().map_err(to_py_err)
 }
 
 /// Generate a random 12-byte nonce for AES-GCM encryption
@@ -1083,6 +1519,7 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     )?;
     m.add("SignatureError", py.get_type::<SignatureError>())?;
     m.add("DecryptionError", py.get_type::<DecryptionError>())?;
+    m.add("EncryptionError", py.get_type::<EncryptionError>())?;
 
     // Add classes
     m.add_class::<Biometric>()?;
@@ -1091,6 +1528,8 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<DecodeResult>()?;
     m.add_class::<PySignatureVerifier>()?;
     m.add_class::<PyDecryptor>()?;
+    m.add_class::<PySigner>()?;
+    m.add_class::<PyEncryptor>()?;
     m.add_class::<Claim169Input>()?;
     m.add_class::<CwtMetaInput>()?;
 
@@ -1100,13 +1539,19 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(decode_with_ecdsa_p256, m)?)?;
     m.add_function(wrap_pyfunction!(py_decode_with_verifier, m)?)?;
     m.add_function(wrap_pyfunction!(decode_encrypted_aes, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_encrypted_aes256, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_encrypted_aes128, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_decryptor, m)?)?;
 
     // Add encode functions
     m.add_function(wrap_pyfunction!(encode_with_ed25519, m)?)?;
     m.add_function(wrap_pyfunction!(encode_with_ecdsa_p256, m)?)?;
     m.add_function(wrap_pyfunction!(encode_signed_encrypted, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_signed_encrypted_aes128, m)?)?;
     m.add_function(wrap_pyfunction!(encode_unsigned, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_with_signer, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_with_signer_and_encryptor, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_with_encryptor, m)?)?;
     m.add_function(wrap_pyfunction!(generate_nonce, m)?)?;
 
     // Utilities

@@ -123,7 +123,7 @@ The status of the credential, when represented using CWT, is outside the scope o
 ```json
 1: www.mosip.io # iss
 4: 1787912445 # exp
-5: 1756376445 # nbf 
+5: 1756376445 # nbf
 6: 1756376445 # iat
 169: # identity-data
   1: 3918592438 # ID
@@ -171,7 +171,7 @@ The status of the credential, when represented using CWT, is outside the scope o
     - 0: 36F2C546(...)CB90378C58 # Data
       1: 1 # Image
       2: 6 # WSQ
-      3: VendorA # Biometric data issuer   
+      3: VendorA # Biometric data issuer
     # Left Ring Finger template
     - 0: 36F2C546(...)CB90378C58 # Data
       1: 1 # Template
@@ -183,7 +183,7 @@ The status of the credential, when represented using CWT, is outside the scope o
       1: 1 # Image
       2: 6 # WSQ
       3: VendorX # Biometric data issuer
-    # Right Iris image 
+    # Right Iris image
     - 0: 36F2C546(...)CB90378C58 # Data
       1: 1 # Image
       2: 6 # WSQ
@@ -199,7 +199,7 @@ The status of the credential, when represented using CWT, is outside the scope o
       1: 1 # Template
       2: 100 # Vendor specific
       3: VendorY # Biometric data issuer
-   65: # Voice Biometrics   
+   65: # Voice Biometrics
     # Voice sound
     - 0: 03CBA(...)0378C58 # Data
       1: 2 # Sound
@@ -297,10 +297,10 @@ The status of the credential, when represented using CWT, is outside the scope o
 
 ```
 61 / CWT Tag / (
- 		18 / COSE_Sign1 Tag  / ( 
+ 		18 / COSE_Sign1 Tag  / (
 				[
 				 	h'A10127', / Protected Header /
-				  {4: h'6B2D31313031'}, / Unprotected Header / 
+				  {4: h'6B2D31313031'}, / Unprotected Header /
 				  h'A5016C7777772E6D6F7369702E696F041A6A9160FD051A68B02D7D061A68B02D7D18A95902
 				  6DA9016A33393138353932343338046C4A616E61726468616E20425308683139383430343138
 				  0961310A78294E657720486F7573652C204E656172204D6574726F204C696E652C2042656E67
@@ -320,7 +320,7 @@ The status of the credential, when represented using CWT, is outside the scope o
 				  FE9ACD90CD3EDE4381D5B3D64064BCE4BB8D05113FD901B158698312BDF8A21049288D6006A2
 				  C944DAE7BC3E2400000001000204', / Payload with claim 169 tag /
 				  h'74E64803A946B30EC091D138433DD6A288CCBB44A8614DFA6094695B998FBCC9D8AD3EEB56
-				  8B3360FA67EEAD58B89F924DB5F58781A80E501E908231EDEE1C05' / Signature / 
+				  8B3360FA67EEAD58B89F924DB5F58781A80E501E908231EDEE1C05' / Signature /
 				]
 		)
 )

@@ -27,7 +27,7 @@ def main() -> int:
         print("ERROR: no .md files found under docs/en", file=sys.stderr)
         return 2
 
-    locales = ["fr", "es"]
+    locales = ["fr"]
     missing: dict[str, list[str]] = {loc: [] for loc in locales}
 
     for loc in locales:
@@ -57,10 +57,9 @@ def main() -> int:
         )
         return 1
 
-    print("OK: FR/ES docs match EN page set.")
+    print("OK: FR docs match EN page set.")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

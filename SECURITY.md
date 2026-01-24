@@ -79,7 +79,7 @@ This library is designed to decode and verify Claim 169 QR codes where:
 
 The library does NOT protect against:
 - Key compromise at the issuer
-- Replay attacks (implement application-level protection)
+- Replay of still-valid credentials (the library enforces `exp`/`nbf` by default, but does not provide anti-replay tracking)
 - Side-channel attacks on the host system
 
 ## Fuzzing

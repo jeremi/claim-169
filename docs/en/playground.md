@@ -14,20 +14,20 @@ The playground uses a unified two-panel layout inspired by [jwt.io](https://jwt.
 
 ### Left Panel - Identity & Settings
 
-- **Identity fields** - Fill in demographic data (name, DOB, email, address, etc.)
-- **Credential Settings** - Grouped configuration for:
-    - **Token Settings** - Issuer, subject, and timestamps (collapsible)
-    - **Cryptography** - Signing and encryption options
-- **Auto-generated keys** - Fresh cryptographic keys generated when switching methods
-- **Load examples** - Pre-filled test data and sample QR codes
+- **Identity fields** — Fill in demographic data (name, DOB, email, address, etc.)
+- **Credential Settings** — Grouped configuration for:
+    - **Token Settings** — Issuer, subject, and timestamps (collapsible)
+    - **Cryptography** — Signing and encryption options
+- **Auto-generated keys** — Fresh cryptographic keys generated when switching methods
+- **Load examples** — Pre-filled test data and sample QR codes
 
 ### Right Panel - QR Code & Verification
 
-- **QR Code display** - Live-updating QR code as you edit fields
-- **Verification badge** - Shows signature status (verified, unverified, invalid)
-- **Base45 data** - Raw encoded data with copy button
-- **QR Scanner** - Use your camera to scan existing QR codes
-- **Pipeline details** - Expandable view of encoding stages
+- **QR Code display** — Live-updating QR code as you edit fields
+- **Verification badge** — Shows signature status (verified, unverified, invalid)
+- **Base45 data** — Raw encoded data with copy button
+- **QR Scanner** — Use your camera to scan existing QR codes
+- **Pipeline details** — Expandable view of encoding stages
 
 ## Live Sync
 
@@ -42,7 +42,7 @@ No "Generate" or "Decode" buttons needed.
 
 ### Creating a Credential
 
-1. Open the [Playground](../)
+1. Open the [Playground](https://jeremi.github.io/claim-169/)
 2. Select **Load example → Demo Identity** to populate test data
 3. Modify the identity fields as needed
 4. The QR code updates automatically
@@ -59,18 +59,18 @@ No "Generate" or "Decode" buttons needed.
 
 ### Key Management
 
-- **Generate button** - Creates fresh keys for the selected algorithm
-- **Public key** - Auto-derived when encoding, editable for verification
+- **Generate button** — Creates fresh keys for the selected algorithm
+- **Public key** — Auto-derived when encoding, editable for verification
 - Keys are generated per-session for security (never reuse playground keys)
 
 ## Technology
 
 The playground runs entirely in your browser using:
 
-- **WebAssembly** - claim169 SDK compiled to WASM
-- **React** - Modern UI framework
-- **Web Crypto API** - Key generation (Ed25519, ECDSA P-256, AES)
-- **html5-qrcode** - Camera-based QR scanning
+- **WebAssembly** — claim169 SDK compiled to WASM
+- **React** — Modern UI framework
+- **Web Crypto API** — Key generation (Ed25519, ECDSA P-256, AES)
+- **html5-qrcode** — Camera-based QR scanning
 
 No data is sent to any server.
 
