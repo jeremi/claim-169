@@ -1,0 +1,40 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-json
+        # TypeScript tsconfig files can contain comments (JSONC).
+        exclude: ^playground/tsconfig\..*\.json$
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+        # mkdocs.yml uses YAML tags for python callables that safe YAML parsing rejects.
+        exclude: ^mkdocs\.yml$
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args: [--config, .codespellrc]
+        files: ^docs/en/
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all
+        language: system
+        pass_filenames: false
+        files: \.rs$
+
+      - id: docs-i18n-parity
+        name: docs i18n parity
+        entry: python3 scripts/check-docs-i18n.py
+        language: system
+        pass_filenames: false
+        files: ^docs/
