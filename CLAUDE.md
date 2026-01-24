@@ -209,6 +209,7 @@ Releases are automated via GitHub Actions:
    git tag -s v0.2.0 -m "Release v0.2.0"
    git push origin v0.2.0
    ```
+   The repo is configured to use the dedicated release signing key (`AE6CFF6860B82163`).
 5. **Auto-publish**: Publishing to crates.io, PyPI, and npm happens automatically
 
 ### Pre-release Versions
