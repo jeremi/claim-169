@@ -113,10 +113,14 @@ describe("Custom Crypto Providers", () => {
       };
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
-      // Note: keyId is set via the COSE header in the encoding, which we're not testing here
-      const qrData = new Encoder(claim, meta).signWith(mySigner, "EdDSA").encode();
+      const expectedKeyId = new Uint8Array([1, 2, 3, 4, 5]);
+      const qrData = new Encoder(claim, meta)
+        .signWith(mySigner, "EdDSA", expectedKeyId)
+        .encode();
 
       expect(typeof qrData).toBe("string");
+      expect(receivedKeyId).not.toBeNull();
+      expect(Array.from(receivedKeyId!)).toEqual(Array.from(expectedKeyId));
     });
 
     it("should propagate signer callback errors", () => {

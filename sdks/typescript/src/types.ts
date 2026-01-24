@@ -205,6 +205,14 @@ export type VerificationStatus = "verified" | "skipped" | "failed";
 export type Algorithm = "EdDSA" | "ES256" | "A256GCM" | "A128GCM";
 
 /**
+ * Algorithm identifier as surfaced by the underlying WASM bindings.
+ *
+ * This preserves autocomplete for known values while still allowing
+ * unknown strings for forwards compatibility.
+ */
+export type AlgorithmName = Algorithm | (string & {});
+
+/**
  * Custom signature verifier callback.
  * Use for external crypto providers (HSM, cloud KMS, remote signing, etc.)
  *
@@ -224,7 +232,7 @@ export type Algorithm = "EdDSA" | "ES256" | "A256GCM" | "A128GCM";
  * ```
  */
 export type VerifierCallback = (
-  algorithm: string,
+  algorithm: AlgorithmName,
   keyId: Uint8Array | null,
   data: Uint8Array,
   signature: Uint8Array
@@ -249,7 +257,7 @@ export type VerifierCallback = (
  * ```
  */
 export type DecryptorCallback = (
-  algorithm: string,
+  algorithm: AlgorithmName,
   keyId: Uint8Array | null,
   nonce: Uint8Array,
   aad: Uint8Array,
@@ -273,7 +281,7 @@ export type DecryptorCallback = (
  * ```
  */
 export type SignerCallback = (
-  algorithm: string,
+  algorithm: AlgorithmName,
   keyId: Uint8Array | null,
   data: Uint8Array
 ) => Uint8Array;
@@ -297,7 +305,7 @@ export type SignerCallback = (
  * ```
  */
 export type EncryptorCallback = (
-  algorithm: string,
+  algorithm: AlgorithmName,
   keyId: Uint8Array | null,
   nonce: Uint8Array,
   aad: Uint8Array,
@@ -512,6 +520,7 @@ export interface IEncoder {
    *
    * @param signer - Function that signs data
    * @param algorithm - Signature algorithm: "EdDSA" or "ES256"
+   * @param keyId - Optional key identifier passed to the signer callback
    * @returns The encoder instance for chaining
    *
    * @example
@@ -523,7 +532,11 @@ export interface IEncoder {
    *   .encode();
    * ```
    */
-  signWith(signer: SignerCallback, algorithm: "EdDSA" | "ES256"): IEncoder;
+  signWith(
+    signer: SignerCallback,
+    algorithm: "EdDSA" | "ES256",
+    keyId?: Uint8Array | null
+  ): IEncoder;
 
   /**
    * Encrypt with a custom encryptor callback.

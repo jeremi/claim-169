@@ -86,6 +86,7 @@
 
 export type {
   Algorithm,
+  AlgorithmName,
   Biometric,
   Claim169,
   Claim169Input,
@@ -712,6 +713,7 @@ export class Encoder implements IEncoder {
    *
    * @param signer - Function that signs data
    * @param algorithm - Signature algorithm: "EdDSA" or "ES256"
+   * @param keyId - Optional key identifier passed to the signer callback
    * @returns The encoder instance for chaining
    *
    * @example
@@ -723,9 +725,18 @@ export class Encoder implements IEncoder {
    *   .encode();
    * ```
    */
-  signWith(signer: SignerCallback, algorithm: "EdDSA" | "ES256"): Encoder {
+  signWith(
+    signer: SignerCallback,
+    algorithm: "EdDSA" | "ES256",
+    keyId?: Uint8Array | null
+  ): Encoder {
     try {
-      this.wasmEncoder = this.wasmEncoder.signWith(signer, algorithm);
+      // Wrap the callback so callers can optionally provide a keyId even if the
+      // underlying WASM bindings don't expose key-id configuration yet.
+      const signerWithKeyId: SignerCallback = (alg, wasmKeyId, data) =>
+        signer(alg, keyId ?? wasmKeyId, data);
+
+      this.wasmEncoder = this.wasmEncoder.signWith(signerWithKeyId, algorithm);
       return this;
     } catch (error) {
       if (error instanceof Error) {

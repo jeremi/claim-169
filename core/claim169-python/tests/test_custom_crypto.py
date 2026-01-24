@@ -93,8 +93,7 @@ class TestEncodeWithSigner:
             claim, meta, my_signer, "EdDSA", key_id=expected_key_id
         )
         assert qr_text
-        # Note: The key_id may not be passed during signing in this implementation
-        # The test verifies the callback is called and returns valid signature
+        assert received_key_id == expected_key_id
 
         result = claim169.decode_with_ed25519(
             qr_text, public_key_bytes, validate_timestamps=False

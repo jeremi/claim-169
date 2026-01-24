@@ -40,7 +40,43 @@ theme:
     repo: fontawesome/brands/github
 
 plugins:
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: en
+          name: English
+          build: true
+          default: true
+        - locale: fr
+          name: Français
+          build: true
+          nav_translations:
+            Home: Accueil
+            Playground: Playground
+            Core Concepts: Concepts clés
+            Specification: Spécification
+            Encoding: Encodage
+            Decoding: Décodage
+            Encryption: Chiffrement
+            Key Management: Gestion des clés
+            Security: Sécurité
+            Glossary: Glossaire
+            Test Vectors: Vecteurs de test
+            Python SDK: SDK Python
+            Overview: Vue d’ensemble
+            Installation: Installation
+            Quick Start: Démarrage rapide
+            Custom Crypto: Crypto personnalisée
+            API Reference: Référence API
+            Troubleshooting: Dépannage
+            TypeScript SDK: SDK TypeScript
+            WASM Configuration: Configuration WASM
+            Rust SDK: SDK Rust
+            Contributing: Contribuer
   - search
+
+hooks:
+  - scripts/mkdocs_hooks.py
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -49,7 +85,11 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - admonition
@@ -68,6 +108,9 @@ extra:
 
 extra_css:
   - assets/css/extra.css
+extra_javascript:
+  - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
+  - assets/js/mermaid-init.js
 
 dev_addr: 127.0.0.1:8001
 

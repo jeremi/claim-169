@@ -164,7 +164,7 @@ const qrData = new Encoder(claim169, cwtMeta)
 |--------|-------------|
 | `signWithEd25519(privateKey)` | Sign with Ed25519 |
 | `signWithEcdsaP256(privateKey)` | Sign with ECDSA P-256 |
-| `signWith(callback, algorithm)` | Sign with custom callback (HSM, cloud KMS, etc.) |
+| `signWith(callback, algorithm, keyId?)` | Sign with custom callback (HSM, cloud KMS, etc.) |
 | `encryptWithAes256(key)` | Encrypt with AES-256-GCM |
 | `encryptWithAes128(key)` | Encrypt with AES-128-GCM |
 | `encryptWith(callback, algorithm)` | Encrypt with custom callback (HSM, cloud KMS, etc.) |
@@ -205,7 +205,7 @@ const claim: Claim169Input = { id: "123", fullName: "John Doe" };
 const meta: CwtMetaInput = { issuer: "https://issuer.example" };
 
 const qrData = new Encoder(claim, meta)
-  .signWith(mySigner, "EdDSA")
+  .signWith(mySigner, "EdDSA", new Uint8Array([1, 2, 3])) // optional keyId
   .encode();
 ```
 

@@ -37,6 +37,7 @@ pyo3::create_exception!(claim169, CwtParseError, Claim169Exception);
 pyo3::create_exception!(claim169, Claim169NotFoundError, Claim169Exception);
 pyo3::create_exception!(claim169, SignatureError, Claim169Exception);
 pyo3::create_exception!(claim169, DecryptionError, Claim169Exception);
+pyo3::create_exception!(claim169, EncryptionError, Claim169Exception);
 
 fn to_py_err(e: Claim169Error) -> PyErr {
     match e {
@@ -48,8 +49,10 @@ fn to_py_err(e: Claim169Error) -> PyErr {
         Claim169Error::CwtParse(_) => CwtParseError::new_err(e.to_string()),
         Claim169Error::Claim169NotFound => Claim169NotFoundError::new_err(e.to_string()),
         Claim169Error::SignatureInvalid(_) => SignatureError::new_err(e.to_string()),
+        Claim169Error::SignatureFailed(_) => SignatureError::new_err(e.to_string()),
         Claim169Error::Crypto(_) => SignatureError::new_err(e.to_string()),
         Claim169Error::DecryptionFailed(_) => DecryptionError::new_err(e.to_string()),
+        Claim169Error::EncryptionFailed(_) => EncryptionError::new_err(e.to_string()),
         _ => Claim169Exception::new_err(e.to_string()),
     }
 }
@@ -1513,6 +1516,7 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     )?;
     m.add("SignatureError", py.get_type::<SignatureError>())?;
     m.add("DecryptionError", py.get_type::<DecryptionError>())?;
+    m.add("EncryptionError", py.get_type::<EncryptionError>())?;
 
     // Add classes
     m.add_class::<Biometric>()?;

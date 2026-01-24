@@ -3,26 +3,23 @@
 <div class="hero-section" markdown>
 <h1 class="hero-title">MOSIP Claim 169 QR Code Library</h1>
 <p>Encode and verify offline-verifiable digital identity credentials</p>
+<div class="cta-group">
+<a href="playground/" class="cta-button">Try the Playground</a>
+<a href="core/specification/" class="cta-button cta-button-secondary">Read the Specification</a>
+</div>
 </div>
 
 ## What is Claim 169?
 
 Claim 169 is an [IANA-registered](https://www.iana.org/assignments/cwt/cwt.xhtml) CBOR Web Token (CWT) claim for encoding identity credentials in QR codes. It enables **offline verification** of identity documents without network connectivity.
 
-<div class="pipeline" markdown>
-<span class="pipeline-step">Identity Data</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">CBOR</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">CWT</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">COSE Sign</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">zlib</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">Base45</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">QR Code</span>
+<div class="diagram" markdown>
+
+```mermaid
+flowchart LR
+  A[Identity Data] --> B[CBOR] --> C[CWT] --> D[COSE Sign] --> E[zlib] --> F[Base45] --> G[QR Code]
+```
+
 </div>
 
 ## Choose Your SDK
@@ -30,7 +27,6 @@ Claim 169 is an [IANA-registered](https://www.iana.org/assignments/cwt/cwt.xhtml
 <div class="sdk-grid" markdown>
 
 <div class="sdk-card" markdown>
-<div class="sdk-icon">🐍</div>
 <h3>Python</h3>
 <p>Native bindings with full type hints</p>
 <a href="sdk/python/" class="md-button">Get Started</a>
@@ -38,7 +34,6 @@ Claim 169 is an [IANA-registered](https://www.iana.org/assignments/cwt/cwt.xhtml
 </div>
 
 <div class="sdk-card" markdown>
-<div class="sdk-icon">🦀</div>
 <h3>Rust</h3>
 <p>Core library with zero-copy parsing</p>
 <a href="sdk/rust/" class="md-button">Get Started</a>
@@ -46,7 +41,6 @@ Claim 169 is an [IANA-registered](https://www.iana.org/assignments/cwt/cwt.xhtml
 </div>
 
 <div class="sdk-card" markdown>
-<div class="sdk-icon">📜</div>
 <h3>TypeScript</h3>
 <p>Browser & Node.js via WebAssembly</p>
 <a href="sdk/typescript/" class="md-button">Get Started</a>
@@ -142,6 +136,21 @@ Test encoding and decoding in your browser with the [Interactive Playground](pla
 
 ## Learn More
 
-- [Specification](core/specification.md) — Wire format, CBOR keys, field tables
-- [Security](core/security.md) — Threat model, safe defaults, validation
-- [Glossary](core/glossary.md) — CBOR, COSE, CWT terminology
+<div class="quick-links">
+
+<a href="core/specification/" class="quick-link">
+<strong>Specification</strong>
+Wire format, CBOR keys, field tables
+</a>
+
+<a href="core/security/" class="quick-link">
+<strong>Security</strong>
+Threat model, safe defaults, validation
+</a>
+
+<a href="core/glossary/" class="quick-link">
+<strong>Glossary</strong>
+CBOR, COSE, CWT terminology
+</a>
+
+</div>

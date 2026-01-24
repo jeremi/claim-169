@@ -12,6 +12,7 @@ from .claim169 import (
     Claim169NotFoundError,
     SignatureError,
     DecryptionError,
+    EncryptionError,
     # Data classes (decode output)
     Biometric,
     CwtMeta,
@@ -118,6 +119,7 @@ __all__ = [
     "Claim169NotFoundError",
     "SignatureError",
     "DecryptionError",
+    "EncryptionError",
     # Data classes (decode output)
     "Biometric",
     "CwtMeta",

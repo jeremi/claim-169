@@ -199,7 +199,7 @@ When contributing, please consider:
 
 This repo uses MkDocs Material + `mkdocs-static-i18n`:
 
-- Source: `docs/<locale>/...` (currently `en`, `fr`, `es`)
+- Source: `docs/<locale>/...` (currently `en`, `fr`)
 - Config: `mkdocs.yml`
 
 Preview docs locally:

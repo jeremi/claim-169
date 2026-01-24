@@ -13,6 +13,12 @@
 //! - `signWith(callback, algorithm)` - Custom signing
 //! - `encryptWith(callback, algorithm)` - Custom encryption
 
+// The JS callback wrappers below use `unsafe impl Send/Sync` under the assumption
+// that this crate is used in a single-threaded wasm environment (no wasm threads).
+// Guard against builds that enable wasm atomics/threads.
+#[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
+compile_error!("claim169-wasm assumes a single-threaded wasm runtime; build without target_feature=atomics (wasm threads).");
+
 use js_sys::{Function, Uint8Array};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -95,12 +101,7 @@ impl CoreSignatureVerifier for JsSignatureVerifier {
 
         match result {
             Ok(_) => Ok(()),
-            Err(e) => {
-                let msg = e
-                    .as_string()
-                    .unwrap_or_else(|| "verification callback failed".to_string());
-                Err(CryptoError::Other(msg))
-            }
+            Err(_e) => Err(CryptoError::VerificationFailed),
         }
     }
 }
@@ -914,11 +915,13 @@ impl WasmEncoder {
     ///
     /// @param signer - The signing callback function
     /// @param algorithm - "EdDSA" or "ES256"
+    /// @param keyId - Optional key identifier (Uint8Array), passed through to the signer callback
     #[wasm_bindgen(js_name = "signWith")]
     pub fn sign_with(
         mut self,
         signer: Function,
         algorithm: &str,
+        key_id: Option<Vec<u8>>,
     ) -> Result<WasmEncoder, JsError> {
         let alg = match algorithm {
             "EdDSA" => iana::Algorithm::EdDSA,
@@ -932,7 +935,7 @@ impl WasmEncoder {
         self.sign_config = SignConfig::Custom {
             signer: JsSigner {
                 callback: signer,
-                key_id: None,
+                key_id,
             },
             algorithm: alg,
         };

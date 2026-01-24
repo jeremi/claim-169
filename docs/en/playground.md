@@ -6,7 +6,7 @@ Try encoding and decoding Claim 169 credentials directly in your browser.
 [Open Playground](https://jeremi.github.io/claim-169/){ .md-button .md-button--primary }
 </div>
 
-![Playground Screenshot](assets/img/playground.png)
+![Playground Screenshot](../assets/img/playground.png)
 
 ## Features
 

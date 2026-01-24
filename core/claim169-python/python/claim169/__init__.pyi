@@ -34,6 +34,10 @@ class DecryptionError(Claim169Exception):
     """Decryption failed."""
     ...
 
+class EncryptionError(Claim169Exception):
+    """Encryption failed."""
+    ...
+
 class Biometric:
     """Biometric data extracted from claim 169."""
     data: bytes
