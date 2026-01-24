@@ -87,16 +87,16 @@ console.log(result.claim169.face); // undefined
 
 ### Validation des horodatages
 
-Activer la validation des claims `exp` (expires at) et `nbf` (not before) :
+La validation des horodatages `exp` (expires at) et `nbf` (not before) est activée par défaut (côté hôte en JavaScript). Désactivez-la uniquement si vous souhaitez volontairement ignorer les contrôles de temps :
 
 ```typescript
 const result = new Decoder(qrText)
   .verifyWithEd25519(publicKey)
-  .withTimestampValidation()
+  .withoutTimestampValidation()
   .decode();
 ```
 
-Note : la validation des horodatages est désactivée par défaut, car WebAssembly n’a pas un accès fiable à l’heure système.
+Note : la validation des horodatages est effectuée côté hôte (JavaScript) afin d’éviter les limitations de temps propres à l’exécution WASM.
 
 ### Tolérance à la dérive d’horloge
 
@@ -105,7 +105,6 @@ Autoriser une tolérance aux écarts d’horloge :
 ```typescript
 const result = new Decoder(qrText)
   .verifyWithEd25519(publicKey)
-  .withTimestampValidation()
   .clockSkewTolerance(60) // Autoriser 60 secondes de dérive
   .decode();
 ```
@@ -272,7 +271,6 @@ const result = new Decoder(qrText)
   .decryptWithAes256(aesKey)
   .verifyWithEd25519(publicKey)
   .skipBiometrics()
-  .withTimestampValidation()
   .clockSkewTolerance(120)
   .maxDecompressedBytes(65536)
   .decode();
@@ -356,4 +354,3 @@ if (claim169.voice) {
 - [Chiffrement](encryption.md) - Travailler avec des identifiants chiffrés
 - [Crypto personnalisée](custom-crypto.md) - Intégration HSM et KMS
 - [Référence API](api.md) - API complète de Decoder
-

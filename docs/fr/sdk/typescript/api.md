@@ -23,6 +23,7 @@ class Decoder implements IDecoder {
 
   skipBiometrics(): Decoder;
   withTimestampValidation(): Decoder;
+  withoutTimestampValidation(): Decoder;
   clockSkewTolerance(seconds: number): Decoder;
   maxDecompressedBytes(bytes: number): Decoder;
 
@@ -124,7 +125,13 @@ Ignorer le parsing biométrique.
 
 ##### `withTimestampValidation()`
 
-Activer la validation des horodatages exp/nbf.
+Activer la validation des horodatages exp/nbf (côté hôte en JavaScript).
+
+**Renvoie** : `Decoder` (chaînage)
+
+##### `withoutTimestampValidation()`
+
+Désactiver la validation des horodatages exp/nbf.
 
 **Renvoie** : `Decoder` (chaînage)
 
@@ -492,6 +499,9 @@ interface DecodeOptions {
 }
 ```
 
+Notes :
+- `validateTimestamps` vaut `true` par défaut (validation des horodatages côté hôte).
+
 ## Types
 
 ### VerificationStatus
@@ -644,4 +654,3 @@ export type {
   VerifierCallback,
 };
 ```
-

@@ -23,6 +23,7 @@ class Decoder implements IDecoder {
 
   skipBiometrics(): Decoder;
   withTimestampValidation(): Decoder;
+  withoutTimestampValidation(): Decoder;
   clockSkewTolerance(seconds: number): Decoder;
   maxDecompressedBytes(bytes: number): Decoder;
 
@@ -124,7 +125,13 @@ Skip biometric data parsing.
 
 ##### `withTimestampValidation()`
 
-Enable exp/nbf timestamp validation.
+Enable exp/nbf timestamp validation (host-side in JavaScript).
+
+**Returns**: `Decoder` for chaining
+
+##### `withoutTimestampValidation()`
+
+Disable exp/nbf timestamp validation.
 
 **Returns**: `Decoder` for chaining
 
@@ -491,6 +498,9 @@ interface DecodeOptions {
   maxDecompressedBytes?: number;
 }
 ```
+
+Notes:
+- `validateTimestamps` defaults to `true` (host-side timestamp validation).
 
 ## Types
 

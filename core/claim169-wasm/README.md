@@ -104,7 +104,6 @@ decoder.decryptWithAes128(key);         // Decrypt with AES-128-GCM (16 bytes)
 
 // Configuration methods (chainable)
 decoder.skipBiometrics();               // Skip biometric data parsing
-decoder.withTimestampValidation();      // Enable timestamp validation
 decoder.clockSkewTolerance(60);         // Set clock skew tolerance (seconds)
 decoder.maxDecompressedBytes(32768);    // Set max decompressed size
 
@@ -120,7 +119,7 @@ const result = decoder.decode();
 | `decryptWithAes256(key)` | Decrypt with AES-256-GCM (32 bytes) |
 | `decryptWithAes128(key)` | Decrypt with AES-128-GCM (16 bytes) |
 | `skipBiometrics()` | Skip biometric data parsing |
-| `withTimestampValidation()` | Enable exp/nbf validation |
+| `withTimestampValidation()` | Not supported in WASM (validate in host) |
 | `clockSkewTolerance(seconds)` | Set clock skew tolerance |
 | `maxDecompressedBytes(bytes)` | Set max decompressed size |
 | `decode()` | Execute the decode operation |
@@ -151,14 +150,22 @@ Builder-pattern class for encoding Claim 169 credentials.
 
 ### Timestamp Validation
 
-Timestamp validation is disabled by default because WebAssembly doesn't have reliable access to system time. Enable it explicitly if your environment provides accurate time:
+Timestamp validation is **not supported inside WASM** (some runtimes don’t implement system time and may trap). Validate timestamps in the host (JavaScript) using `result.cwtMeta`:
 
 ```javascript
 const result = new Decoder(qrText)
-    .verifyWithEd25519(publicKey)
-    .withTimestampValidation()
-    .clockSkewTolerance(60)
-    .decode();
+  .verifyWithEd25519(publicKey)
+  .decode();
+
+const now = Math.floor(Date.now() / 1000);
+const skew = 60; // seconds
+
+if (result.cwtMeta.expiresAt !== undefined && now > result.cwtMeta.expiresAt + skew) {
+  throw new Error("Credential expired");
+}
+if (result.cwtMeta.notBefore !== undefined && now + skew < result.cwtMeta.notBefore) {
+  throw new Error("Credential not yet valid");
+}
 ```
 
 ### Secure by Default
@@ -245,7 +252,7 @@ The WASM bindings include full signature verification and decryption support:
 Best practices:
 - Always verify credentials using `verifyWithEd25519()` or `verifyWithEcdsaP256()`
 - Only use `allowUnverified()` for testing or when verification is handled elsewhere
-- Enable timestamp validation in production to reject expired credentials
+- Validate timestamps in the host (JavaScript) in production to reject expired/not-yet-valid credentials
 - Set appropriate `maxDecompressedBytes` limits to prevent denial-of-service
 
 ## Testing

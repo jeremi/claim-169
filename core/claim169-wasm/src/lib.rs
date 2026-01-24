@@ -678,11 +678,15 @@ impl WasmDecoder {
             decoder = decoder.skip_biometrics();
         }
 
-        if !self.validate_timestamps {
-            decoder = decoder.without_timestamp_validation();
-        } else {
-            decoder = decoder.clock_skew_tolerance(self.clock_skew_tolerance_seconds);
+        if self.validate_timestamps {
+            return Err(JsError::new(
+                "Timestamp validation is not supported in WASM; validate timestamps in the host (JavaScript) instead.",
+            ));
         }
+
+        // WASM environments may not provide a reliable or implemented system clock.
+        // Always disable core timestamp validation and let callers validate in JS.
+        decoder = decoder.without_timestamp_validation();
 
         let result = decoder.decode().map_err(|e| JsError::new(&e.to_string()))?;
 

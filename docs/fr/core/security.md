@@ -9,7 +9,7 @@ La bibliothèque applique des bonnes pratiques de sécurité par défaut :
 | Protection | Par défaut | Contournement |
 |------------|------------|---------------|
 | Vérification de signature | Requise | `allow_unverified()` |
-| Validation des horodatages | Activée (Rust/Python) ; désactivée par défaut (TypeScript/WASM) | Rust/Python : `without_timestamp_validation()` ; TypeScript : `withTimestampValidation()` |
+| Validation des horodatages | Activée (Rust/Python + TypeScript côté hôte) | Rust/Python : `without_timestamp_validation()` ; TypeScript : `withoutTimestampValidation()` / `validateTimestamps: false` |
 | Limite de décompression | 64 KB | `max_decompressed_bytes()` |
 | Profondeur d’imbrication CBOR | 128 niveaux | Non configurable |
 | Confusion d’algorithme | Empêchée | Algorithme lu uniquement depuis l’en-tête COSE |
@@ -178,4 +178,3 @@ Les fournisseurs personnalisés doivent retourner des erreurs appropriées :
 | Attaques par canaux auxiliaires | Dépend de l’implémentation crypto |
 | Sécurité physique du QR code | Responsabilité applicative |
 | Distribution de clés | Responsabilité applicative |
-

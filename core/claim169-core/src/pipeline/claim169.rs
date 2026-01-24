@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use ciborium::Value;
 
@@ -20,6 +21,7 @@ pub fn transform(value: Value, skip_biometrics: bool) -> Result<Claim169> {
 
     let mut claim = Claim169::default();
     let mut unknown_fields: HashMap<i64, serde_json::Value> = HashMap::new();
+    let mut seen_keys: HashSet<i64> = HashSet::new();
 
     for (key, val) in map {
         let key_int = match &key {
@@ -39,6 +41,12 @@ pub fn transform(value: Value, skip_biometrics: bool) -> Result<Claim169> {
                 ));
             }
         };
+
+        if !seen_keys.insert(key_int) {
+            return Err(Claim169Error::Claim169Invalid(format!(
+                "duplicate claim 169 key: {key_int}"
+            )));
+        }
 
         match key_int {
             // Demographics

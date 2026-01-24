@@ -653,9 +653,15 @@ export interface IDecoder {
   withTimestampValidation(): IDecoder;
 
   /**
+   * Disable timestamp validation.
+   * @returns The decoder instance for chaining
+   */
+  withoutTimestampValidation(): IDecoder;
+
+  /**
    * Set clock skew tolerance in seconds.
    * Allows credentials to be accepted when clocks are slightly out of sync.
-   * Only applies when timestamp validation is enabled.
+   * Applies when timestamp validation is enabled.
    * @param seconds - The tolerance in seconds
    * @returns The decoder instance for chaining
    */

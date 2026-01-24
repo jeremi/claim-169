@@ -78,8 +78,8 @@
  *
  * ## Notes
  *
- * - **Timestamp validation**: Disabled by default because WASM doesn't have
- *   reliable access to system time. Enable with `.withTimestampValidation()`.
+ * - **Timestamp validation**: Enabled by default in JS (host-side). Disable with
+ *   `.withoutTimestampValidation()` if you intentionally want to skip time checks.
  *
  * @module claim169
  */
@@ -268,6 +268,26 @@ function transformBiometrics(
   }));
 }
 
+function validateTimestampsHost(
+  cwtMeta: { expiresAt?: number; notBefore?: number },
+  clockSkewToleranceSeconds: number
+): void {
+  const skew = Math.max(0, Math.floor(clockSkewToleranceSeconds));
+  const now = Math.floor(Date.now() / 1000);
+
+  if (cwtMeta.expiresAt !== undefined && now > cwtMeta.expiresAt + skew) {
+    throw new Claim169Error(
+      `Credential expired at timestamp ${cwtMeta.expiresAt} (now ${now})`
+    );
+  }
+
+  if (cwtMeta.notBefore !== undefined && now + skew < cwtMeta.notBefore) {
+    throw new Claim169Error(
+      `Credential not valid until timestamp ${cwtMeta.notBefore} (now ${now})`
+    );
+  }
+}
+
 /**
  * Builder-pattern decoder for Claim 169 QR codes.
  *
@@ -297,6 +317,8 @@ function transformBiometrics(
  */
 export class Decoder implements IDecoder {
   private wasmDecoder: wasm.WasmDecoder;
+  private validateTimestamps = true;
+  private clockSkewToleranceSeconds = 0;
 
   /**
    * Create a new Decoder instance.
@@ -401,23 +423,32 @@ export class Decoder implements IDecoder {
   /**
    * Enable timestamp validation.
    * When enabled, expired or not-yet-valid credentials will throw an error.
-   * Disabled by default because WASM doesn't have reliable access to system time.
+   * Implemented in the host (JavaScript) to avoid WASM runtime time limitations.
    * @returns The decoder instance for chaining
    */
   withTimestampValidation(): Decoder {
-    this.wasmDecoder = this.wasmDecoder.withTimestampValidation();
+    this.validateTimestamps = true;
+    return this;
+  }
+
+  /**
+   * Disable timestamp validation.
+   * @returns The decoder instance for chaining
+   */
+  withoutTimestampValidation(): Decoder {
+    this.validateTimestamps = false;
     return this;
   }
 
   /**
    * Set clock skew tolerance in seconds.
    * Allows credentials to be accepted when clocks are slightly out of sync.
-   * Only applies when timestamp validation is enabled.
+   * Applies when timestamp validation is enabled.
    * @param seconds - The tolerance in seconds
    * @returns The decoder instance for chaining
    */
   clockSkewTolerance(seconds: number): Decoder {
-    this.wasmDecoder = this.wasmDecoder.clockSkewTolerance(seconds);
+    this.clockSkewToleranceSeconds = Math.max(0, Math.floor(seconds));
     return this;
   }
 
@@ -500,7 +531,14 @@ export class Decoder implements IDecoder {
   decode(): DecodeResult {
     try {
       const result = this.wasmDecoder.decode();
-      return transformResult(result);
+      const transformed = transformResult(result);
+      if (this.validateTimestamps) {
+        validateTimestampsHost(
+          transformed.cwtMeta,
+          this.clockSkewToleranceSeconds
+        );
+      }
+      return transformed;
     } catch (error) {
       if (error instanceof Error) {
         throw new Claim169Error(error.message);
@@ -515,7 +553,7 @@ export class Decoder implements IDecoder {
  *
  * Notes:
  * - If you don't provide a verification key, you must explicitly set `allowUnverified: true` (testing only).
- * - Timestamp validation is disabled by default in WASM; set `validateTimestamps: true` to enable it.
+ * - Timestamp validation is enabled by default in JS (host-side). Set `validateTimestamps: false` to disable.
  */
 export interface DecodeOptions {
   verifyWithEd25519?: Uint8Array;
@@ -550,8 +588,8 @@ export function decode(qrText: string, options: DecodeOptions = {}): DecodeResul
     decoder = decoder.skipBiometrics();
   }
 
-  if (options.validateTimestamps) {
-    decoder = decoder.withTimestampValidation();
+  if (options.validateTimestamps === false) {
+    decoder = decoder.withoutTimestampValidation();
   }
 
   if (options.clockSkewToleranceSeconds !== undefined) {

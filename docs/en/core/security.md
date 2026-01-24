@@ -9,7 +9,7 @@ The library enforces security best practices out of the box:
 | Protection | Default | Override |
 |------------|---------|----------|
 | Signature verification | Required | `allow_unverified()` |
-| Timestamp validation | Enabled (Rust/Python); disabled by default (TypeScript/WASM) | Rust/Python: `without_timestamp_validation()`; TypeScript: `withTimestampValidation()` |
+| Timestamp validation | Enabled (Rust/Python + TypeScript host-side) | Rust/Python: `without_timestamp_validation()`; TypeScript: `withoutTimestampValidation()` / `validateTimestamps: false` |
 | Decompression limit | 64 KB | `max_decompressed_bytes()` |
 | CBOR nesting depth | 128 levels | Not configurable |
 | Algorithm confusion | Prevented | Algorithm from COSE header only |

@@ -60,7 +60,8 @@ const result = decode(qrText, { allowUnverified: true });
 const options: DecodeOptions = {
   maxDecompressedBytes: 32768,  // 32KB limit
   skipBiometrics: true,         // Skip biometric parsing
-  validateTimestamps: false,    // Disabled by default in WASM
+  // Timestamp validation is enabled by default (host-side). Set to false to disable:
+  validateTimestamps: false,
   allowUnverified: true,        // Explicit opt-out (testing only)
 };
 
@@ -94,7 +95,6 @@ const result = new Decoder(qrText)
 const result = new Decoder(qrText)
   .verifyWithEd25519(publicKey)
   .skipBiometrics()              // Skip biometric data
-  .withTimestampValidation()     // Enable timestamp validation
   .clockSkewTolerance(60)        // 60 seconds tolerance
   .maxDecompressedBytes(32768)   // 32KB max size
   .decode();
@@ -112,7 +112,8 @@ const result = new Decoder(qrText)
 | `decryptWith(callback)` | Decrypt with custom callback (HSM, cloud KMS, etc.) |
 | `allowUnverified()` | Skip verification (testing only) |
 | `skipBiometrics()` | Skip biometric data parsing |
-| `withTimestampValidation()` | Enable exp/nbf validation |
+| `withTimestampValidation()` | Enable timestamp validation (host-side) |
+| `withoutTimestampValidation()` | Disable timestamp validation |
 | `clockSkewTolerance(seconds)` | Set clock skew tolerance |
 | `maxDecompressedBytes(bytes)` | Set max decompressed size |
 | `decode()` | Execute the decode operation |
@@ -408,12 +409,12 @@ Error messages indicate the specific failure:
 
 ### Timestamp Validation
 
-Timestamp validation is disabled by default because WebAssembly does not have reliable access to system time. Enable it explicitly if your environment provides accurate time:
+Timestamp validation is performed in the host (JavaScript) and is enabled by default. Disable it explicitly if you intentionally want to skip time checks:
 
 ```typescript
 const result = new Decoder(qrText)
   .verifyWithEd25519(publicKey)
-  .withTimestampValidation()
+  .withoutTimestampValidation()
   .clockSkewTolerance(60)  // Allow 60 seconds clock drift
   .decode();
 ```

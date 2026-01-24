@@ -87,16 +87,16 @@ console.log(result.claim169.face); // undefined
 
 ### Timestamp Validation
 
-Enable validation of `exp` (expires at) and `nbf` (not before) claims:
+Timestamp validation of `exp` (expires at) and `nbf` (not before) is enabled by default (host-side in JavaScript). Disable it only if you intentionally want to skip time checks:
 
 ```typescript
 const result = new Decoder(qrText)
   .verifyWithEd25519(publicKey)
-  .withTimestampValidation()
+  .withoutTimestampValidation()
   .decode();
 ```
 
-Note: Timestamp validation is disabled by default because WebAssembly does not have reliable access to system time.
+Note: Timestamp validation is performed in the host (JavaScript) to avoid WASM runtime time limitations.
 
 ### Clock Skew Tolerance
 
@@ -105,7 +105,6 @@ Allow some tolerance for clock drift between systems:
 ```typescript
 const result = new Decoder(qrText)
   .verifyWithEd25519(publicKey)
-  .withTimestampValidation()
   .clockSkewTolerance(60) // Allow 60 seconds drift
   .decode();
 ```
@@ -272,7 +271,6 @@ const result = new Decoder(qrText)
   .decryptWithAes256(aesKey)
   .verifyWithEd25519(publicKey)
   .skipBiometrics()
-  .withTimestampValidation()
   .clockSkewTolerance(120)
   .maxDecompressedBytes(65536)
   .decode();
