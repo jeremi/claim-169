@@ -1393,6 +1393,7 @@ fn encode_with_signer(
 ///     )
 #[pyfunction]
 #[pyo3(signature = (claim169, cwt_meta, signer, sign_algorithm, encryptor, encrypt_algorithm, key_id=None, skip_biometrics=false))]
+#[allow(clippy::too_many_arguments)]
 fn encode_with_signer_and_encryptor(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,

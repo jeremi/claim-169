@@ -28,7 +28,7 @@ fn create_claim169_map(entries: Vec<(i64, Value)>) -> Value {
 
 fn create_signed_qr(cwt_bytes: Vec<u8>) -> (String, [u8; 32]) {
     let signer = Ed25519Signer::generate();
-    let public_key: [u8; 32] = signer.public_key_bytes().try_into().unwrap();
+    let public_key: [u8; 32] = signer.public_key_bytes();
 
     let protected = HeaderBuilder::new()
         .algorithm(iana::Algorithm::EdDSA)
