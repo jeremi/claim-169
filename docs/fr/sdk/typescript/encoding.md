@@ -295,4 +295,3 @@ console.log('Verified:', result.verificationStatus); // "verified"
 - [Chiffrement](encryption.md) - Exemples détaillés
 - [Crypto personnalisée](custom-crypto.md) - Intégration HSM et KMS cloud
 - [Référence API](api.md) - API complète d’Encoder
-

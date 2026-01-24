@@ -353,4 +353,3 @@ if (isLoaded()) {
 - [Installation](installation.md) - Guide d’installation complet
 - [Démarrage rapide](quick-start.md) - Commencer rapidement
 - [Dépannage](troubleshooting.md) - Problèmes courants
-

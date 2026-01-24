@@ -192,4 +192,3 @@ Se protéger des bombes de décompression :
 - Limite par défaut : 64 KB
 - N’augmenter que si nécessaire
 - Tenir compte des contraintes mémoire
-

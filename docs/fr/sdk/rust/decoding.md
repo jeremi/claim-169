@@ -433,4 +433,3 @@ fn verify_credential(
     Ok(())
 }
 ```
-

@@ -276,4 +276,3 @@ Pour la plupart des applications, **AES-256-GCM** est recommandé car il offre u
 - [Crypto personnalisée](custom-crypto.md) - Intégration HSM et KMS cloud
 - [Référence API](api.md) - API de chiffrement complète
 - [Dépannage](troubleshooting.md) - Problèmes de chiffrement courants
-

@@ -197,4 +197,3 @@ Pour valider une implémentation Claim 169 :
 3. **Gérer tous les cas limites** — traiter des entrées inhabituelles mais valides
 
 Une implémentation conforme doit passer tous les vecteurs de test.
-

@@ -431,4 +431,3 @@ Si vous rencontrez un problème non couvert :
    - Version `claim169-core`
    - Code minimal de reproduction
    - Message d’erreur complet
-

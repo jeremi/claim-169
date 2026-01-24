@@ -847,4 +847,3 @@ class DecryptionError(Claim169Exception):
 **Chiffrement :**
 - `"A256GCM"` — AES-256-GCM
 - `"A128GCM"` — AES-128-GCM
-

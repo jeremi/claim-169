@@ -183,4 +183,3 @@ La signification de `subFormat` dépend de `format` :
 - [RFC 9052 — COSE](https://www.rfc-editor.org/rfc/rfc9052)
 - [RFC 8392 — CWT](https://www.rfc-editor.org/rfc/rfc8392)
 - [RFC 9285 — Base45](https://www.rfc-editor.org/rfc/rfc9285)
-

@@ -329,4 +329,3 @@ try {
 - [Chiffrement](encryption.md) - Exemples standard
 - [Référence API](api.md) - Définitions complètes des types de callbacks
 - [Dépannage](troubleshooting.md) - Problèmes fréquents de crypto personnalisée
-

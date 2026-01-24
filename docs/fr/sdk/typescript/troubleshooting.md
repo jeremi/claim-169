@@ -395,4 +395,3 @@ Si vous avez toujours des problèmes :
    - Bundler + version
    - Code minimal de reproduction
    - Message d’erreur complet + stack trace
-

@@ -160,4 +160,3 @@ L’encodage peut échouer pour plusieurs raisons :
 | Échec d’encodage CBOR | Structure de données invalide |
 
 Gérez ces erreurs correctement dans votre application.
-

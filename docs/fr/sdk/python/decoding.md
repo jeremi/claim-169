@@ -392,4 +392,3 @@ if credential:
 - [Chiffrement](encryption.md) — décoder des identifiants chiffrés
 - [Crypto personnalisée](custom-crypto.md) — intégration HSM/KMS
 - [Référence API](api.md) — documentation complète des fonctions
-

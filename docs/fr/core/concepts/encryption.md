@@ -188,4 +188,3 @@ Le chiffrement ajoute un surcoût :
 | **Surcoût total** | ~48 octets |
 
 En général, c’est négligeable par rapport au contenu de l’identifiant.
-

@@ -159,4 +159,3 @@ const keyHex = bytesToHex(publicKey);
 - [Chiffrement](encryption.md) - Travailler avec des identifiants chiffrés
 - [Crypto personnalisée](custom-crypto.md) - Intégration HSM et KMS cloud
 - [Référence API](api.md) - Documentation complète
-

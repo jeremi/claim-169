@@ -301,4 +301,3 @@ except claim169.Claim169Exception as e:
 - [Chiffrement](encryption.md) — ajouter le chiffrement AES-GCM
 - [Crypto personnalisée](custom-crypto.md) — utiliser un HSM/KMS pour signer
 - [Référence API](api.md) — documentation complète des fonctions
-

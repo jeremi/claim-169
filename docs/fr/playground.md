@@ -78,4 +78,3 @@ Aucune donnée n’est envoyée à un serveur.
 
 Le code source du playground est disponible ici :
 [github.com/jeremi/claim-169/tree/main/playground](https://github.com/jeremi/claim-169/tree/main/playground)
-

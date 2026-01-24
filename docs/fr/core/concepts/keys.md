@@ -230,4 +230,3 @@ Voir les guides « custom crypto » des SDKs pour des détails d’implémentati
 - [ ] IDs de clé utilisés pour scénarios multi-clés
 - [ ] Accès aux clés audités
 - [ ] Procédures de sauvegarde et restauration
-

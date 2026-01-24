@@ -325,4 +325,3 @@ fn create_full_credential() -> claim169_core::Result<String> {
     Ok(qr_data)
 }
 ```
-

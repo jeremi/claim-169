@@ -566,4 +566,3 @@ except claim169.Claim169Exception as e:
 
 - [Référence API](api.md) — documentation complète des fonctions
 - [Dépannage](troubleshooting.md) — erreurs fréquentes et solutions
-

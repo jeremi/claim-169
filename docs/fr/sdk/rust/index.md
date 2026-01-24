@@ -84,4 +84,3 @@ La bibliothèque impose des valeurs sûres :
 ## Licence
 
 Ce projet est distribué sous licence MIT.
-

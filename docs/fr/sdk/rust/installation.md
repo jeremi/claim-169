@@ -112,4 +112,3 @@ Exécuter avec :
 ```bash
 cargo run
 ```
-

@@ -148,4 +148,3 @@ Pour un usage navigateur sans bundler, vous pouvez utiliser un CDN :
 ```
 
 Note : l’usage via CDN peut nécessiter une configuration WASM additionnelle selon le fournisseur.
-

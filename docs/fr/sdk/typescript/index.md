@@ -78,4 +78,3 @@ Le SDK est conçu pour être sécurisé par défaut :
 ## Licence
 
 Licence MIT — voir [LICENSE](https://github.com/jeremi/claim-169/blob/main/LICENSE) pour les détails.
-

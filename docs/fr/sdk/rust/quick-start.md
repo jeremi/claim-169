@@ -169,4 +169,3 @@ fn test_without_signatures() -> claim169_core::Result<()> {
 - [Décodage](./decoding.md) — toutes les options de décodage
 - [Chiffrement](./encryption.md) — ajouter le chiffrement AES-GCM
 - [Crypto personnalisée](./custom-crypto.md) — intégration HSM/KMS
-

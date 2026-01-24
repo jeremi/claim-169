@@ -125,4 +125,3 @@ Erreurs fréquentes et solutions.
 ## Licence
 
 Licence MIT. Voir [LICENSE](https://github.com/jeremi/claim-169/blob/main/LICENSE) pour les détails.
-

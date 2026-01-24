@@ -114,4 +114,3 @@ chore(deps): update ed25519-dalek to 2.1
 ## Licence
 
 En contribuant, vous acceptez que vos contributions soient licenciées sous la licence du projet.
-

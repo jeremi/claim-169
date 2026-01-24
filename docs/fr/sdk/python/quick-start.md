@@ -197,4 +197,3 @@ print(claim_dict)
 - [Guide de décodage](decoding.md) — options avancées de décodage
 - [Chiffrement](encryption.md) — ajouter le chiffrement AES-GCM
 - [Crypto personnalisée](custom-crypto.md) — intégration HSM/KMS
-

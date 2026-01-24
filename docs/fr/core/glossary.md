@@ -117,4 +117,3 @@ Résultat de la vérification : `Verified`, `Unverified`, ou une erreur.
 
 ### Fournisseur crypto personnalisé
 Implémentation d’opérations cryptographiques via des systèmes externes (HSM, KMS, etc.).
-

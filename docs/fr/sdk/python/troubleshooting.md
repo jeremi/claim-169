@@ -421,4 +421,3 @@ Lors d’un signalement, inclure :
 - Système d’exploitation
 - Code minimal de reproduction
 - Traceback complet
-

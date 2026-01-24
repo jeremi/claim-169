@@ -300,4 +300,3 @@ fn encrypted_roundtrip() -> claim169_core::Result<()> {
 3. **Protection des clés** : stocker les clés de façon sûre, envisager un HSM en production
 4. **Chiffrement authentifié** : AES-GCM fournit confidentialité et intégrité
 5. **Canaux auxiliaires** : l’implémentation logicielle n’est pas durcie contre les attaques par timing ; utiliser un HSM pour des scénarios très sensibles
-

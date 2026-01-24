@@ -370,4 +370,3 @@ except claim169.Claim169Exception as e:
 
 - [Crypto personnalisée](custom-crypto.md) — exemples d’intégration HSM/KMS
 - [Référence API](api.md) — documentation complète des fonctions
-
