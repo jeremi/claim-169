@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ChevronDown, ChevronRight, Copy, Check, Eye, EyeOff, AlertTriangle, RefreshCw } from "lucide-react"
-import { copyToClipboard, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey } from "@/lib/utils"
+import { copyToClipboard, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey, detectPublicKeyFormat, detectEncryptionKeyFormat } from "@/lib/utils"
 import type { SigningMethod, EncryptionMethod } from "@/components/UnifiedPlayground"
 
 interface IdentityPanelProps {
@@ -463,7 +463,20 @@ export function IdentityPanel({
         {signingMethod !== "unsigned" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="publicKey" className="text-xs">{t("crypto.publicKey")}</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="publicKey" className="text-xs">{t("crypto.publicKey")}</Label>
+                {publicKey && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    detectPublicKeyFormat(publicKey) === 'pem'
+                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300'
+                      : detectPublicKeyFormat(publicKey) === 'hex'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                  }`}>
+                    {t(`keyFormat.${detectPublicKeyFormat(publicKey)}`)}
+                  </span>
+                )}
+              </div>
               {publicKey && (
                 <Button variant="ghost" size="sm" onClick={handleCopyPublicKey} className="h-6 px-2">
                   {publicKeyCopied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
@@ -471,12 +484,12 @@ export function IdentityPanel({
                 </Button>
               )}
             </div>
-            <Input
+            <Textarea
               id="publicKey"
               placeholder={t("crypto.publicKeyPlaceholder")}
               value={publicKey}
               onChange={(e) => onPublicKeyChange(e.target.value)}
-              className="font-mono text-xs"
+              className="font-mono text-xs min-h-[60px] resize-y"
             />
             <p className="text-xs text-muted-foreground">{t("crypto.publicKeyHelpVerify")}</p>
           </div>
@@ -522,7 +535,20 @@ export function IdentityPanel({
         {encryptionMethod !== "none" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="encryptionKey" className="text-xs">{t("crypto.encryptionKey")}</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="encryptionKey" className="text-xs">{t("crypto.encryptionKey")}</Label>
+                {encryptionKey && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    detectEncryptionKeyFormat(encryptionKey) === 'base64'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
+                      : detectEncryptionKeyFormat(encryptionKey) === 'hex'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                  }`}>
+                    {t(`keyFormat.${detectEncryptionKeyFormat(encryptionKey)}`)}
+                  </span>
+                )}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -536,7 +562,7 @@ export function IdentityPanel({
             <Input
               id="encryptionKey"
               type="password"
-              placeholder={encryptionMethod === "aes256" ? "32 bytes (64 hex)" : "16 bytes (32 hex)"}
+              placeholder={encryptionMethod === "aes256" ? "32 bytes (64 hex or 44 base64)" : "16 bytes (32 hex or 24 base64)"}
               value={encryptionKey}
               onChange={(e) => onEncryptionKeyChange(e.target.value)}
               className="font-mono text-xs"

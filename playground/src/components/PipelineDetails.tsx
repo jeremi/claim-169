@@ -8,7 +8,7 @@ export interface PipelineStage {
   name: string
   inputSize: number
   outputSize: number
-  status: "success" | "error" | "skipped"
+  status: "success" | "error" | "skipped" | "pending"
   details?: Record<string, string | number | boolean>
   hexData?: string
 }

@@ -138,5 +138,16 @@
     "copied": "Copié",
     "processing": "Traitement en cours...",
     "error": "Erreur"
+  },
+  "error": {
+    "stageFailed": "Échec de {{stage}}",
+    "suggestion": "Suggestion",
+    "technicalDetails": "Détails techniques"
+  },
+  "keyFormat": {
+    "hex": "Hex",
+    "pem": "PEM",
+    "base64": "Base64",
+    "unknown": "Inconnu"
   }
 }

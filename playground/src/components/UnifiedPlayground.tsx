@@ -3,7 +3,15 @@ import { Encoder, Decoder, type Claim169Input, type CwtMetaInput, type DecodeRes
 import { IdentityPanel } from "@/components/IdentityPanel"
 import { ResultPanel } from "@/components/ResultPanel"
 import { QrScanner } from "@/components/QrScanner"
-import { hexToBytes, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey } from "@/lib/utils"
+import {
+  hexToBytes,
+  generateEd25519KeyPair,
+  generateEcdsaP256KeyPair,
+  generateAesKey,
+  detectPublicKeyFormat,
+  parseEncryptionKey,
+} from "@/lib/utils"
+import { parseDecodeError, buildPartialPipeline, type ParsedError } from "@/lib/errors"
 import type { PipelineStage } from "@/components/PipelineDetails"
 import type { VerificationStatus } from "@/components/VerificationBadge"
 
@@ -48,6 +56,7 @@ export function UnifiedPlayground() {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("none")
   const [algorithm, setAlgorithm] = useState<string | undefined>()
   const [error, setError] = useState<string | null>(null)
+  const [parsedError, setParsedError] = useState<ParsedError | null>(null)
   const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([])
 
   // UI state
@@ -113,6 +122,7 @@ export function UnifiedPlayground() {
 
     setIsProcessing(true)
     setError(null)
+    setParsedError(null)
 
     try {
       // Build claim169 input, only include non-empty fields
@@ -264,18 +274,22 @@ export function UnifiedPlayground() {
       setVerificationStatus("none")
       setAlgorithm(undefined)
       setError(null)
+    setParsedError(null)
       return
     }
 
     setIsProcessing(true)
     setError(null)
+    setParsedError(null)
 
     try {
       let decoder = new Decoder(base45Data.trim())
 
       // Apply decryption if configured
       if (encryptionMethod !== "none" && encryptionKey.trim()) {
-        const keyBytes = hexToBytes(encryptionKey.trim())
+        // Auto-detect encryption key format (hex or base64)
+        const expectedLength = encryptionMethod === "aes256" ? 32 : 16
+        const keyBytes = parseEncryptionKey(encryptionKey.trim(), expectedLength as 16 | 32)
         if (encryptionMethod === "aes256") {
           decoder = decoder.decryptWithAes256(keyBytes)
         } else {
@@ -283,13 +297,23 @@ export function UnifiedPlayground() {
         }
       }
 
-      // Apply verification if configured
+      // Apply verification if configured - auto-detect hex vs PEM format
       if (publicKey.trim() && signingMethod !== "unsigned") {
-        const keyBytes = hexToBytes(publicKey.trim())
+        const keyFormat = detectPublicKeyFormat(publicKey.trim())
         if (signingMethod === "ed25519") {
-          decoder = decoder.verifyWithEd25519(keyBytes)
+          if (keyFormat === "pem") {
+            decoder = decoder.verifyWithEd25519Pem(publicKey.trim())
+          } else {
+            const keyBytes = hexToBytes(publicKey.trim())
+            decoder = decoder.verifyWithEd25519(keyBytes)
+          }
         } else if (signingMethod === "ecdsa") {
-          decoder = decoder.verifyWithEcdsaP256(keyBytes)
+          if (keyFormat === "pem") {
+            decoder = decoder.verifyWithEcdsaP256Pem(publicKey.trim())
+          } else {
+            const keyBytes = hexToBytes(publicKey.trim())
+            decoder = decoder.verifyWithEcdsaP256(keyBytes)
+          }
         }
       } else {
         decoder = decoder.allowUnverified()
@@ -376,19 +400,23 @@ export function UnifiedPlayground() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
 
-      // Improve error messages for algorithm mismatches
-      let friendlyError = errorMessage
-      if (errorMessage.includes("unsupported algorithm: EdDSA") && signingMethod === "ecdsa") {
-        friendlyError = "This QR code was signed with EdDSA (Ed25519). Switch to Ed25519 to verify."
-      } else if (errorMessage.includes("unsupported algorithm: ES256") && signingMethod === "ed25519") {
-        friendlyError = "This QR code was signed with ECDSA P-256. Switch to ECDSA P-256 to verify."
-      } else if (errorMessage.includes("signature verification failed")) {
-        friendlyError = "Signature verification failed. Make sure you're using the correct public key."
-      }
+      // Parse the error to determine stage and provide suggestions
+      const parsed = parseDecodeError(errorMessage)
+      setParsedError(parsed)
 
-      setError(friendlyError)
+      // Build partial pipeline showing where the error occurred
+      const isEncrypted = encryptionMethod !== "none"
+      const partialStages = buildPartialPipeline(parsed.stage, isEncrypted)
+      setPipelineStages(partialStages.map(s => ({
+        name: s.name,
+        inputSize: 0,
+        outputSize: 0,
+        status: s.status,
+      })))
+
+      // Set user-friendly error message
+      setError(parsed.message)
       setVerificationStatus("invalid")
-      setPipelineStages([])
     } finally {
       setIsProcessing(false)
     }
@@ -446,6 +474,7 @@ export function UnifiedPlayground() {
     setEncryptionMethod("none")
     setEncryptionKey("")
     setError(null)
+    setParsedError(null)
   }
 
   // Load example
@@ -466,6 +495,7 @@ export function UnifiedPlayground() {
     setSigningMethod(example.publicKey ? "ed25519" : "unsigned")
     setPrivateKey("")
     setError(null)
+    setParsedError(null)
   }
 
   // Handle QR scan
@@ -517,6 +547,7 @@ export function UnifiedPlayground() {
         onScanClick={() => setShowScanner(true)}
         isProcessing={isProcessing}
         error={error}
+        parsedError={parsedError}
         claim169={claim169 as Record<string, unknown>}
         cwtMeta={cwtMeta as Record<string, unknown>}
       />

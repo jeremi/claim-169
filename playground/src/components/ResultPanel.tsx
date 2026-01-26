@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { VerificationBadge, type VerificationStatus } from "@/components/VerificationBadge"
 import { PipelineDetails, type PipelineStage } from "@/components/PipelineDetails"
+import { ErrorDisplay } from "@/components/ErrorDisplay"
 import { Camera, Copy, Check, Download, ChevronDown, ChevronRight } from "lucide-react"
 import { copyToClipboard, cn } from "@/lib/utils"
+import type { ParsedError } from "@/lib/errors"
 
 interface ResultPanelProps {
   base45Data: string
@@ -18,6 +20,7 @@ interface ResultPanelProps {
   onScanClick: () => void
   isProcessing: boolean
   error: string | null
+  parsedError?: ParsedError | null
   claim169: Record<string, unknown>
   cwtMeta: Record<string, unknown>
 }
@@ -31,6 +34,7 @@ export function ResultPanel({
   onScanClick,
   isProcessing,
   error,
+  parsedError,
   claim169,
   cwtMeta,
 }: ResultPanelProps) {
@@ -150,7 +154,9 @@ export function ResultPanel({
       )}
 
       {/* Error Display */}
-      {error && (
+      {parsedError ? (
+        <ErrorDisplay error={parsedError} />
+      ) : error && (
         <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
