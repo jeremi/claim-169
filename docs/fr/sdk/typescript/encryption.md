@@ -101,6 +101,36 @@ const aes256Key = crypto.getRandomValues(new Uint8Array(32));
 const aes128Key = crypto.getRandomValues(new Uint8Array(16));
 ```
 
+## Formats de clé supportés
+
+Les clés AES peuvent être fournies sous différents formats :
+
+### Format hexadécimal
+
+```typescript
+// AES-256 (64 caractères hex)
+const keyHex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const key = hexToBytes(keyHex); // 32 octets
+
+// AES-128 (32 caractères hex)
+const keyHex128 = "0123456789abcdef0123456789abcdef";
+const key128 = hexToBytes(keyHex128); // 16 octets
+```
+
+### Format Base64
+
+```typescript
+// AES-256 (44 caractères Base64)
+const keyB64 = "ASNFZ4mrze8BI0VniavN7wEjRWeJq83vASNFZ4mrze8=";
+const key = base64ToBytes(keyB64); // 32 octets
+
+// AES-128 (24 caractères Base64)
+const keyB64_128 = "ASNFZ4mrze8BI0VniavN7w==";
+const key128 = base64ToBytes(keyB64_128); // 16 octets
+```
+
+Le playground détecte automatiquement le format (hex ou Base64) lors de la saisie de clés de chiffrement.
+
 ### Générer un nonce
 
 Le SDK gère la génération de nonces en interne, mais vous pouvez en générer pour des fournisseurs crypto personnalisés :

@@ -313,6 +313,38 @@ aes_128_key = secrets.token_bytes(16)
 print(f"AES-128 key: {aes_128_key.hex()}")
 ```
 
+## Formats de clé supportés
+
+Les clés AES peuvent être fournies sous différents formats :
+
+### Format hexadécimal
+
+```python
+# AES-256 (64 caractères hex)
+key_hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+key = bytes.fromhex(key_hex)
+
+# AES-128 (32 caractères hex)
+key_hex_128 = "0123456789abcdef0123456789abcdef"
+key_128 = bytes.fromhex(key_hex_128)
+```
+
+### Format Base64
+
+```python
+import base64
+
+# AES-256 (44 caractères Base64)
+key_b64 = "ASNFZ4mrze8BI0VniavN7wEjRWeJq83vASNFZ4mrze8="
+key = base64.b64decode(key_b64)
+
+# AES-128 (24 caractères Base64)
+key_b64_128 = "ASNFZ4mrze8BI0VniavN7w=="
+key_128 = base64.b64decode(key_b64_128)
+```
+
+Le playground détecte automatiquement le format (hex ou Base64) lors de la saisie de clés de chiffrement.
+
 ### Nonce aléatoire
 
 La bibliothèque génère des nonces automatiquement, mais vous pouvez aussi en générer :

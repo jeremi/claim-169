@@ -67,6 +67,30 @@ Vérifier la signature avec une clé publique ECDSA P-256.
 
 **Lève** : `Claim169Error` si la clé est invalide
 
+##### `verifyWithEd25519Pem(pem)`
+
+Vérifier la signature avec une clé publique Ed25519 au format PEM.
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `pem` | string | Clé publique Ed25519 au format PEM (SPKI) |
+
+**Renvoie** : `Decoder` (chaînage)
+
+**Lève** : `Claim169Error` si le PEM est invalide
+
+##### `verifyWithEcdsaP256Pem(pem)`
+
+Vérifier la signature avec une clé publique ECDSA P-256 au format PEM.
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `pem` | string | Clé publique P-256 au format PEM (SPKI) |
+
+**Renvoie** : `Decoder` (chaînage)
+
+**Lève** : `Claim169Error` si le PEM est invalide
+
 ##### `verifyWith(verifier)`
 
 Vérifier via un callback de vérification personnalisé.

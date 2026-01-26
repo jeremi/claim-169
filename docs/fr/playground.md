@@ -59,9 +59,25 @@ Aucun bouton « Generate » ou « Decode » n’est nécessaire.
 
 ### Gestion des clés
 
-- **Bouton Generate** — Crée de nouvelles clés pour l’algorithme sélectionné
-- **Clé publique** — Dérivée automatiquement à l’encodage, modifiable pour la vérification
+- **Bouton Generate** — Crée de nouvelles clés pour l'algorithme sélectionné
+- **Clé publique** — Dérivée automatiquement à l'encodage, modifiable pour la vérification
 - Les clés sont générées par session pour la sécurité (ne réutilisez jamais les clés du playground)
+
+### Formats de clé supportés
+
+Le playground détecte automatiquement et supporte plusieurs formats de clé :
+
+**Clés publiques (pour la vérification) :**
+
+- **Hex** — Octets bruts en chaîne hexadécimale (p. ex. `d75a980182b10ab7...`)
+- **PEM** — Clés SPKI avec l'en-tête `-----BEGIN PUBLIC KEY-----`
+
+**Clés de chiffrement (AES) :**
+
+- **Hex** — Octets bruts en chaîne hexadécimale (p. ex. `0123456789abcdef...`)
+- **Base64** — Encodage Base64 standard ou URL-safe
+
+Un badge de format s'affiche à côté du champ de clé indiquant le format détecté (Hex, PEM, ou Base64).
 
 ## Technologie
 

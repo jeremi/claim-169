@@ -30,8 +30,19 @@ Utilisées pour chiffrer des identifiants :
 |------|--------|--------|
 | Privée | Octets bruts | 32 octets |
 | Publique | Octets bruts | 32 octets |
+| Publique | PEM (SPKI) | ~110 caractères |
 
-Les clés Ed25519 sont de simples tableaux d’octets. Aucun conteneur d’encodage n’est utilisé.
+Les clés Ed25519 peuvent être fournies sous forme de :
+
+- **Octets bruts** — 32 octets en chaîne hexadécimale (64 caractères hex)
+- **Format PEM** — Encodées en SPKI, avec l'en-tête `-----BEGIN PUBLIC KEY-----`
+
+Exemple de format PEM :
+```
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapjJa8CCWX4cBURo=
+-----END PUBLIC KEY-----
+```
 
 ### ECDSA P-256
 
@@ -40,17 +51,40 @@ Les clés Ed25519 sont de simples tableaux d’octets. Aucun conteneur d’encod
 | Privée | Scalaire brut | 32 octets |
 | Publique (compressée) | SEC1 compressé | 33 octets |
 | Publique (non compressée) | SEC1 non compressé | 65 octets |
+| Publique | PEM (SPKI) | ~170 caractères |
 
-Les clés publiques commencent par :
-- `0x02` ou `0x03` pour compressées (33 octets)
-- `0x04` pour non compressées (65 octets)
+Les clés publiques peuvent être fournies sous forme de :
+
+- **SEC1 hex** — Commence par `02`/`03` (compressé, 33 octets) ou `04` (non compressé, 65 octets)
+- **Format PEM** — Encodées en SPKI, avec l'en-tête `-----BEGIN PUBLIC KEY-----`
+
+Exemple de format PEM :
+```
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+-----END PUBLIC KEY-----
+```
 
 ### Clés AES
 
 | Algorithme | Format | Taille |
 |-----------|--------|--------|
-| AES-256-GCM | Octets bruts | 32 octets |
-| AES-128-GCM | Octets bruts | 16 octets |
+| AES-256-GCM | Octets bruts ou Base64 | 32 octets |
+| AES-128-GCM | Octets bruts ou Base64 | 16 octets |
+
+Les clés AES peuvent être fournies sous forme de :
+
+- **Chaîne hex** — 64 caractères hex pour AES-256, 32 pour AES-128
+- **Chaîne Base64** — 44 caractères pour AES-256, 24 pour AES-128
+
+Exemples de formats :
+```
+# Hex (AES-256)
+0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+# Base64 (AES-256)
+ASNFZ4mrze8BI0VniavN7wEjRWeJq83vASNFZ4mrze8=
+```
 
 ## Génération de clés
 
