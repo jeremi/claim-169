@@ -484,7 +484,9 @@ pub struct JsDecodeResult {
 enum VerifyConfig {
     None,
     Ed25519(Vec<u8>),
+    Ed25519Pem(String),
     EcdsaP256(Vec<u8>),
+    EcdsaP256Pem(String),
     Custom(JsSignatureVerifier),
     Unverified,
 }
@@ -550,6 +552,34 @@ impl WasmDecoder {
             ));
         }
         self.verify_config = VerifyConfig::EcdsaP256(public_key.to_vec());
+        Ok(self)
+    }
+
+    /// Verify with Ed25519 public key in PEM format (SPKI)
+    #[wasm_bindgen(js_name = "verifyWithEd25519Pem")]
+    pub fn verify_with_ed25519_pem(mut self, pem: &str) -> Result<WasmDecoder, JsError> {
+        // Basic validation - check for PEM header
+        let trimmed = pem.trim();
+        if !trimmed.contains("-----BEGIN") {
+            return Err(JsError::new(
+                "Invalid PEM format: expected '-----BEGIN PUBLIC KEY-----' header",
+            ));
+        }
+        self.verify_config = VerifyConfig::Ed25519Pem(trimmed.to_string());
+        Ok(self)
+    }
+
+    /// Verify with ECDSA P-256 public key in PEM format (SPKI)
+    #[wasm_bindgen(js_name = "verifyWithEcdsaP256Pem")]
+    pub fn verify_with_ecdsa_p256_pem(mut self, pem: &str) -> Result<WasmDecoder, JsError> {
+        // Basic validation - check for PEM header
+        let trimmed = pem.trim();
+        if !trimmed.contains("-----BEGIN") {
+            return Err(JsError::new(
+                "Invalid PEM format: expected '-----BEGIN PUBLIC KEY-----' header",
+            ));
+        }
+        self.verify_config = VerifyConfig::EcdsaP256Pem(trimmed.to_string());
         Ok(self)
     }
 
@@ -672,8 +702,14 @@ impl WasmDecoder {
             VerifyConfig::Ed25519(key) => decoder
                 .verify_with_ed25519(&key)
                 .map_err(|e| JsError::new(&e.to_string()))?,
+            VerifyConfig::Ed25519Pem(pem) => decoder
+                .verify_with_ed25519_pem(&pem)
+                .map_err(|e| JsError::new(&e.to_string()))?,
             VerifyConfig::EcdsaP256(key) => decoder
                 .verify_with_ecdsa_p256(&key)
+                .map_err(|e| JsError::new(&e.to_string()))?,
+            VerifyConfig::EcdsaP256Pem(pem) => decoder
+                .verify_with_ecdsa_p256_pem(&pem)
                 .map_err(|e| JsError::new(&e.to_string()))?,
             VerifyConfig::Custom(verifier) => decoder.verify_with(verifier),
             VerifyConfig::Unverified => decoder.allow_unverified(),

@@ -63,6 +63,22 @@ No "Generate" or "Decode" buttons needed.
 - **Public key** — Auto-derived when encoding, editable for verification
 - Keys are generated per-session for security (never reuse playground keys)
 
+### Supported Key Formats
+
+The playground auto-detects and supports multiple key formats:
+
+**Public Keys (for verification):**
+
+- **Hex** — Raw bytes as hex string (e.g., `d75a980182b10ab7...`)
+- **PEM** — SPKI-encoded keys with `-----BEGIN PUBLIC KEY-----` header
+
+**Encryption Keys (AES):**
+
+- **Hex** — Raw bytes as hex string (e.g., `0123456789abcdef...`)
+- **Base64** — Standard or URL-safe Base64 encoding
+
+A format badge displays next to the key field indicating the detected format (Hex, PEM, or Base64).
+
 ## Technology
 
 The playground runs entirely in your browser using:

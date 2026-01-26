@@ -134,6 +134,70 @@ def decode_with_ecdsa_p256(
 
 ---
 
+### decode_with_ed25519_pem()
+
+Décoder avec vérification de signature Ed25519 à partir d'une clé publique PEM.
+
+```python
+def decode_with_ed25519_pem(
+    qr_text: str,
+    pem: str,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0
+) -> DecodeResult
+```
+
+**Paramètres :**
+
+| Nom | Type | Par défaut | Description |
+|-----|------|------------|-------------|
+| `qr_text` | `str` | requis | Contenu QR encodé en Base45 |
+| `pem` | `str` | requis | Clé publique Ed25519 au format PEM (SPKI) |
+| `skip_biometrics` | `bool` | `False` | Ignorer le parsing biométrique |
+| `max_decompressed_bytes` | `int` | `65536` | Limite de taille décompressée |
+| `validate_timestamps` | `bool` | `True` | Valider les horodatages exp/nbf |
+| `clock_skew_tolerance_seconds` | `int` | `0` | Tolérance aux écarts d'horloge |
+
+**Renvoie :** `DecodeResult`
+
+**Lève :** `SignatureError`, `Base45DecodeError`, `DecompressError`, `CoseParseError`, `CwtParseError`, `Claim169NotFoundError`
+
+---
+
+### decode_with_ecdsa_p256_pem()
+
+Décoder avec vérification de signature ECDSA P-256 à partir d'une clé publique PEM.
+
+```python
+def decode_with_ecdsa_p256_pem(
+    qr_text: str,
+    pem: str,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0
+) -> DecodeResult
+```
+
+**Paramètres :**
+
+| Nom | Type | Par défaut | Description |
+|-----|------|------------|-------------|
+| `qr_text` | `str` | requis | Contenu QR encodé en Base45 |
+| `pem` | `str` | requis | Clé publique P-256 au format PEM (SPKI) |
+| `skip_biometrics` | `bool` | `False` | Ignorer le parsing biométrique |
+| `max_decompressed_bytes` | `int` | `65536` | Limite de taille décompressée |
+| `validate_timestamps` | `bool` | `True` | Valider les horodatages exp/nbf |
+| `clock_skew_tolerance_seconds` | `int` | `0` | Tolérance aux écarts d'horloge |
+
+**Renvoie :** `DecodeResult`
+
+**Lève :** `SignatureError`, `Base45DecodeError`, `DecompressError`, `CoseParseError`, `CwtParseError`, `Claim169NotFoundError`
+
+---
+
 ### decode_with_verifier()
 
 Décoder via un callback de vérification personnalisé (intégration HSM/KMS).

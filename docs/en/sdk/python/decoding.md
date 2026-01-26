@@ -75,6 +75,60 @@ print(f"ID: {result.claim169.id}")
 print(f"Verified: {result.is_verified()}")
 ```
 
+## Decoding with PEM Public Keys
+
+If you have public keys in PEM format (e.g., from OpenSSL), you can use the PEM decode functions:
+
+### Ed25519 with PEM
+
+```python
+import claim169
+
+qr_data = "NCFOXN..."
+pem_key = """-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapjJa8CCWX4cBURo=
+-----END PUBLIC KEY-----"""
+
+result = claim169.decode_with_ed25519_pem(qr_data, pem_key)
+print(f"Verified: {result.is_verified()}")
+```
+
+### ECDSA P-256 with PEM
+
+```python
+import claim169
+
+qr_data = "NCFOXN..."
+pem_key = """-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+-----END PUBLIC KEY-----"""
+
+result = claim169.decode_with_ecdsa_p256_pem(qr_data, pem_key)
+print(f"Verified: {result.is_verified()}")
+```
+
+### Using the Convenience Function
+
+The `decode()` function accepts both raw bytes and PEM strings:
+
+```python
+import claim169
+
+qr_data = "NCFOXN..."
+
+# Using PEM format
+result = claim169.decode(
+    qr_data,
+    verify_with_ed25519_pem="-----BEGIN PUBLIC KEY-----\n..."
+)
+
+# Or with ECDSA P-256 PEM
+result = claim169.decode(
+    qr_data,
+    verify_with_ecdsa_p256_pem="-----BEGIN PUBLIC KEY-----\n..."
+)
+```
+
 ## Decoding with Custom Verifier
 
 For HSM, KMS, or custom crypto providers:

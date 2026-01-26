@@ -616,6 +616,24 @@ export interface IDecoder {
   verifyWithEcdsaP256(publicKey: Uint8Array): IDecoder;
 
   /**
+   * Verify signature with Ed25519 public key in PEM format.
+   * Supports SPKI format with "BEGIN PUBLIC KEY" headers.
+   * @param pem - PEM-encoded Ed25519 public key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the PEM is invalid
+   */
+  verifyWithEd25519Pem(pem: string): IDecoder;
+
+  /**
+   * Verify signature with ECDSA P-256 public key in PEM format.
+   * Supports SPKI format with "BEGIN PUBLIC KEY" headers.
+   * @param pem - PEM-encoded P-256 public key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the PEM is invalid
+   */
+  verifyWithEcdsaP256Pem(pem: string): IDecoder;
+
+  /**
    * Allow decoding without signature verification.
    * WARNING: Unverified credentials cannot be trusted. Use for testing only.
    * @returns The decoder instance for chaining

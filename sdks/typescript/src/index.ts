@@ -289,6 +289,53 @@ function validateTimestampsHost(
 }
 
 /**
+ * Validate date format is ISO 8601 and represents a valid date.
+ * Accepts both extended format (YYYY-MM-DD) and basic format (YYYYMMDD).
+ * @throws {Claim169Error} If the date format is invalid
+ */
+function validateDateFormat(
+  date: string | null | undefined,
+  fieldName: string
+): void {
+  if (!date) return;
+
+  // Accept both ISO 8601 extended (YYYY-MM-DD) and basic (YYYYMMDD) formats
+  const extendedPattern = /^\d{4}-\d{2}-\d{2}$/;
+  const basicPattern = /^\d{8}$/;
+
+  let year: number;
+  let month: number;
+  let day: number;
+
+  if (extendedPattern.test(date)) {
+    const parts = date.split("-");
+    year = Number.parseInt(parts[0], 10);
+    month = Number.parseInt(parts[1], 10);
+    day = Number.parseInt(parts[2], 10);
+  } else if (basicPattern.test(date)) {
+    year = Number.parseInt(date.substring(0, 4), 10);
+    month = Number.parseInt(date.substring(4, 6), 10);
+    day = Number.parseInt(date.substring(6, 8), 10);
+  } else {
+    throw new Claim169Error(
+      `Invalid ${fieldName} format: "${date}". Expected YYYY-MM-DD or YYYYMMDD.`
+    );
+  }
+
+  // Validate the date values are actually valid (not 2024-13-45)
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    throw new Claim169Error(
+      `Invalid ${fieldName} value: "${date}" is not a valid calendar date.`
+    );
+  }
+}
+
+/**
  * Builder-pattern decoder for Claim 169 QR codes.
  *
  * Provides a fluent API for configuring decoding options and executing the decode.
@@ -355,6 +402,44 @@ export class Decoder implements IDecoder {
   verifyWithEcdsaP256(publicKey: Uint8Array): Decoder {
     try {
       this.wasmDecoder = this.wasmDecoder.verifyWithEcdsaP256(publicKey);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Verify signature with Ed25519 public key in PEM format.
+   * Supports SPKI format with "BEGIN PUBLIC KEY" headers.
+   * @param pem - PEM-encoded Ed25519 public key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the PEM is invalid
+   */
+  verifyWithEd25519Pem(pem: string): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.verifyWithEd25519Pem(pem);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Verify signature with ECDSA P-256 public key in PEM format.
+   * Supports SPKI format with "BEGIN PUBLIC KEY" headers.
+   * @param pem - PEM-encoded P-256 public key
+   * @returns The decoder instance for chaining
+   * @throws {Claim169Error} If the PEM is invalid
+   */
+  verifyWithEcdsaP256Pem(pem: string): Decoder {
+    try {
+      this.wasmDecoder = this.wasmDecoder.verifyWithEcdsaP256Pem(pem);
       return this;
     } catch (error) {
       if (error instanceof Error) {
@@ -532,6 +617,10 @@ export class Decoder implements IDecoder {
     try {
       const result = this.wasmDecoder.decode();
       const transformed = transformResult(result);
+
+      // Validate date format (YYYY-MM-DD)
+      validateDateFormat(transformed.claim169.dateOfBirth, "dateOfBirth");
+
       if (this.validateTimestamps) {
         validateTimestampsHost(
           transformed.cwtMeta,

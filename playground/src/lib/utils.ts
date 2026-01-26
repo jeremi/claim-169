@@ -174,3 +174,115 @@ export function generateAesKey(bits: 128 | 256): string {
   crypto.getRandomValues(bytes)
   return bytesToHex(bytes)
 }
+
+/**
+ * Key format types for public verification keys
+ */
+export type PublicKeyFormat = 'hex' | 'pem' | 'unknown'
+
+/**
+ * Key format types for encryption keys (AES)
+ */
+export type EncryptionKeyFormat = 'hex' | 'base64' | 'unknown'
+
+/**
+ * Detect the format of a public verification key.
+ * @param key - The key string to detect
+ * @returns 'hex', 'pem', or 'unknown'
+ */
+export function detectPublicKeyFormat(key: string): PublicKeyFormat {
+  const trimmed = key.trim()
+
+  // PEM format detection: starts with -----BEGIN
+  if (trimmed.startsWith('-----BEGIN')) {
+    return 'pem'
+  }
+
+  // Hex format detection: only hex characters (with optional 0x prefix and whitespace)
+  const cleanHex = trimmed.replace(/\s/g, '').replace(/^0x/i, '')
+  if (/^[0-9a-fA-F]+$/.test(cleanHex) && cleanHex.length > 0) {
+    // Valid lengths for Ed25519 (32 bytes = 64 chars) or P-256 (33/65 bytes = 66/130 chars)
+    if (cleanHex.length === 64 || cleanHex.length === 66 || cleanHex.length === 130) {
+      return 'hex'
+    }
+    // Could still be hex but unusual length
+    if (cleanHex.length % 2 === 0) {
+      return 'hex'
+    }
+  }
+
+  return 'unknown'
+}
+
+/**
+ * Detect the format of an encryption key (AES).
+ * @param key - The key string to detect
+ * @returns 'hex', 'base64', or 'unknown'
+ */
+export function detectEncryptionKeyFormat(key: string): EncryptionKeyFormat {
+  const trimmed = key.trim()
+
+  // Empty string
+  if (!trimmed) {
+    return 'unknown'
+  }
+
+  // Hex format: only hex characters, even length, valid AES key size
+  const cleanHex = trimmed.replace(/\s/g, '').replace(/^0x/i, '')
+  if (/^[0-9a-fA-F]+$/.test(cleanHex) && cleanHex.length % 2 === 0) {
+    // AES-128 (16 bytes = 32 hex chars) or AES-256 (32 bytes = 64 hex chars)
+    if (cleanHex.length === 32 || cleanHex.length === 64) {
+      return 'hex'
+    }
+  }
+
+  // Base64 format: valid base64 characters, decodes to valid AES key size
+  try {
+    // Standard base64 or URL-safe base64
+    const normalized = trimmed.replace(/-/g, '+').replace(/_/g, '/')
+    const decoded = atob(normalized)
+    // AES-128 (16 bytes) or AES-256 (32 bytes)
+    if (decoded.length === 16 || decoded.length === 32) {
+      return 'base64'
+    }
+  } catch {
+    // Not valid base64
+  }
+
+  return 'unknown'
+}
+
+/**
+ * Parse an encryption key from either hex or base64 format.
+ * @param key - The key string (hex or base64)
+ * @param expectedLength - Expected key length in bytes (16 or 32)
+ * @returns The parsed key as Uint8Array
+ * @throws Error if the key format is invalid or length doesn't match
+ */
+export function parseEncryptionKey(key: string, expectedLength: 16 | 32): Uint8Array {
+  const format = detectEncryptionKeyFormat(key)
+  const trimmed = key.trim()
+
+  if (format === 'hex') {
+    const bytes = hexToBytes(trimmed)
+    if (bytes.length !== expectedLength) {
+      throw new Error(`Expected ${expectedLength} bytes, got ${bytes.length}`)
+    }
+    return bytes
+  }
+
+  if (format === 'base64') {
+    const normalized = trimmed.replace(/-/g, '+').replace(/_/g, '/')
+    const decoded = atob(normalized)
+    const bytes = new Uint8Array(decoded.length)
+    for (let i = 0; i < decoded.length; i++) {
+      bytes[i] = decoded.charCodeAt(i)
+    }
+    if (bytes.length !== expectedLength) {
+      throw new Error(`Expected ${expectedLength} bytes, got ${bytes.length}`)
+    }
+    return bytes
+  }
+
+  throw new Error('Invalid encryption key format. Expected hex or base64.')
+}

@@ -30,8 +30,19 @@ Used for credential encryption:
 |------|--------|------|
 | Private | Raw bytes | 32 bytes |
 | Public | Raw bytes | 32 bytes |
+| Public | PEM (SPKI) | ~110 chars |
 
-Ed25519 keys are simply raw byte arrays. No encoding wrapper is used.
+Ed25519 keys can be provided as:
+
+- **Raw bytes** — 32 bytes as hex string (64 hex characters)
+- **PEM format** — SPKI-encoded, with `-----BEGIN PUBLIC KEY-----` header
+
+Example PEM format:
+```
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapjJa8CCWX4cBURo=
+-----END PUBLIC KEY-----
+```
 
 ### ECDSA P-256
 
@@ -40,17 +51,40 @@ Ed25519 keys are simply raw byte arrays. No encoding wrapper is used.
 | Private | Raw scalar | 32 bytes |
 | Public (compressed) | SEC1 compressed | 33 bytes |
 | Public (uncompressed) | SEC1 uncompressed | 65 bytes |
+| Public | PEM (SPKI) | ~170 chars |
 
-Public keys start with:
-- `0x02` or `0x03` for compressed (33 bytes)
-- `0x04` for uncompressed (65 bytes)
+Public keys can be provided as:
+
+- **SEC1 hex** — Starts with `02`/`03` (compressed, 33 bytes) or `04` (uncompressed, 65 bytes)
+- **PEM format** — SPKI-encoded, with `-----BEGIN PUBLIC KEY-----` header
+
+Example PEM format:
+```
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+-----END PUBLIC KEY-----
+```
 
 ### AES Keys
 
 | Algorithm | Format | Size |
 |-----------|--------|------|
-| AES-256-GCM | Raw bytes | 32 bytes |
-| AES-128-GCM | Raw bytes | 16 bytes |
+| AES-256-GCM | Raw bytes or Base64 | 32 bytes |
+| AES-128-GCM | Raw bytes or Base64 | 16 bytes |
+
+AES keys can be provided as:
+
+- **Hex string** — 64 hex characters for AES-256, 32 for AES-128
+- **Base64 string** — 44 characters for AES-256, 24 for AES-128
+
+Example formats:
+```
+# Hex (AES-256)
+0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+# Base64 (AES-256)
+ASNFZ4mrze8BI0VniavN7wEjRWeJq83vASNFZ4mrze8=
+```
 
 ## Key Generation
 

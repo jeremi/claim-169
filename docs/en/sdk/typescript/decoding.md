@@ -32,6 +32,30 @@ const result = new Decoder(qrText)
   .decode();
 ```
 
+### With PEM Public Keys
+
+If you have public keys in PEM format (e.g., from OpenSSL), you can use the PEM verification methods:
+
+```typescript
+// Ed25519 with PEM
+const ed25519Pem = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapjJa8CCWX4cBURo=
+-----END PUBLIC KEY-----`;
+
+const result = new Decoder(qrText)
+  .verifyWithEd25519Pem(ed25519Pem)
+  .decode();
+
+// ECDSA P-256 with PEM
+const ecdsaPem = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+-----END PUBLIC KEY-----`;
+
+const result = new Decoder(qrText)
+  .verifyWithEcdsaP256Pem(ecdsaPem)
+  .decode();
+```
+
 ### Without Verification (Testing Only)
 
 ```typescript
