@@ -754,6 +754,96 @@ fn decode_with_ecdsa_p256(
     })
 }
 
+/// Decode a Claim 169 QR code with Ed25519 signature verification using PEM format
+///
+/// Args:
+///     qr_text: The QR code text content
+///     pem: PEM-encoded Ed25519 public key (SPKI format)
+///     skip_biometrics: If True, skip decoding biometric data (default: False)
+///     max_decompressed_bytes: Maximum decompressed size (default: 65536)
+///     validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+///     clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
+///
+/// Returns:
+///     DecodeResult with verification_status indicating if signature is valid
+#[pyfunction]
+#[pyo3(signature = (qr_text, pem, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+fn decode_with_ed25519_pem(
+    qr_text: &str,
+    pem: &str,
+    skip_biometrics: bool,
+    max_decompressed_bytes: usize,
+    validate_timestamps: bool,
+    clock_skew_tolerance_seconds: i64,
+) -> PyResult<DecodeResult> {
+    let mut decoder = Decoder::new(qr_text)
+        .verify_with_ed25519_pem(pem)
+        .map_err(|e| SignatureError::new_err(e.to_string()))?
+        .max_decompressed_bytes(max_decompressed_bytes)
+        .clock_skew_tolerance(clock_skew_tolerance_seconds);
+
+    if skip_biometrics {
+        decoder = decoder.skip_biometrics();
+    }
+
+    if !validate_timestamps {
+        decoder = decoder.without_timestamp_validation();
+    }
+
+    let result = decoder.decode().map_err(to_py_err)?;
+
+    Ok(DecodeResult {
+        claim169: Claim169::from(&result.claim169),
+        cwt_meta: CwtMeta::from(&result.cwt_meta),
+        verification_status: format!("{}", result.verification_status),
+    })
+}
+
+/// Decode a Claim 169 QR code with ECDSA P-256 signature verification using PEM format
+///
+/// Args:
+///     qr_text: The QR code text content
+///     pem: PEM-encoded ECDSA P-256 public key (SPKI format)
+///     skip_biometrics: If True, skip decoding biometric data (default: False)
+///     max_decompressed_bytes: Maximum decompressed size (default: 65536)
+///     validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+///     clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
+///
+/// Returns:
+///     DecodeResult with verification_status indicating if signature is valid
+#[pyfunction]
+#[pyo3(signature = (qr_text, pem, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+fn decode_with_ecdsa_p256_pem(
+    qr_text: &str,
+    pem: &str,
+    skip_biometrics: bool,
+    max_decompressed_bytes: usize,
+    validate_timestamps: bool,
+    clock_skew_tolerance_seconds: i64,
+) -> PyResult<DecodeResult> {
+    let mut decoder = Decoder::new(qr_text)
+        .verify_with_ecdsa_p256_pem(pem)
+        .map_err(|e| SignatureError::new_err(e.to_string()))?
+        .max_decompressed_bytes(max_decompressed_bytes)
+        .clock_skew_tolerance(clock_skew_tolerance_seconds);
+
+    if skip_biometrics {
+        decoder = decoder.skip_biometrics();
+    }
+
+    if !validate_timestamps {
+        decoder = decoder.without_timestamp_validation();
+    }
+
+    let result = decoder.decode().map_err(to_py_err)?;
+
+    Ok(DecodeResult {
+        claim169: Claim169::from(&result.claim169),
+        cwt_meta: CwtMeta::from(&result.cwt_meta),
+        verification_status: format!("{}", result.verification_status),
+    })
+}
+
 /// Decode a Claim 169 QR code with a custom verifier callback
 ///
 /// Use this for integration with external crypto providers such as:
@@ -1537,6 +1627,8 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(decode_unverified, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_ed25519, m)?)?;
     m.add_function(wrap_pyfunction!(decode_with_ecdsa_p256, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_with_ed25519_pem, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_with_ecdsa_p256_pem, m)?)?;
     m.add_function(wrap_pyfunction!(py_decode_with_verifier, m)?)?;
     m.add_function(wrap_pyfunction!(decode_encrypted_aes, m)?)?;
     m.add_function(wrap_pyfunction!(decode_encrypted_aes256, m)?)?;

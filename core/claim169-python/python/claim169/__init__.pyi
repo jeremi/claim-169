@@ -237,14 +237,19 @@ def decode(
     clock_skew_tolerance_seconds: int = 0,
     verify_with_ed25519: Optional[bytes] = None,
     verify_with_ecdsa_p256: Optional[bytes] = None,
+    verify_with_ed25519_pem: Optional[str] = None,
+    verify_with_ecdsa_p256_pem: Optional[str] = None,
     allow_unverified: bool = False,
 ) -> DecodeResult:
     """
     Decode a Claim 169 QR code.
 
     Security:
-    - By default, requires signature verification via `verify_with_ed25519` or
-      `verify_with_ecdsa_p256`.
+    - By default, requires signature verification via one of:
+      - `verify_with_ed25519` (32 bytes)
+      - `verify_with_ecdsa_p256` (33 or 65 bytes SEC1)
+      - `verify_with_ed25519_pem` (PEM string)
+      - `verify_with_ecdsa_p256_pem` (PEM string)
     - To explicitly decode without verification (testing only), set
       `allow_unverified=True`.
     """
@@ -281,6 +286,40 @@ def decode_with_ecdsa_p256(
     Args:
         qr_text: The QR code text content
         public_key: SEC1 encoded P-256 public key bytes (33 or 65 bytes)
+    """
+    ...
+
+def decode_with_ed25519_pem(
+    qr_text: str,
+    pem: str,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult:
+    """
+    Decode with Ed25519 signature verification using PEM format.
+
+    Args:
+        qr_text: The QR code text content
+        pem: PEM-encoded Ed25519 public key (SPKI format)
+    """
+    ...
+
+def decode_with_ecdsa_p256_pem(
+    qr_text: str,
+    pem: str,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult:
+    """
+    Decode with ECDSA P-256 signature verification using PEM format.
+
+    Args:
+        qr_text: The QR code text content
+        pem: PEM-encoded ECDSA P-256 public key (SPKI format)
     """
     ...
 
