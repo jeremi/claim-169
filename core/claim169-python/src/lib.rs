@@ -19,8 +19,9 @@ use claim169_core::crypto::traits::{
 };
 use claim169_core::error::{Claim169Error, CryptoError, CryptoResult};
 use claim169_core::model::{
-    Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta, Gender,
-    MaritalStatus, PhotoFormat,
+    Biometric as CoreBiometric, CertHashAlgorithm as CoreCertHashAlgorithm,
+    CertificateHash as CoreCertificateHash, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
+    Gender, MaritalStatus, PhotoFormat, X509Headers as CoreX509Headers,
 };
 use claim169_core::{Decoder, Encoder as CoreEncoder};
 use coset::iana;
@@ -162,6 +163,97 @@ impl From<&CoreCwtMeta> for CwtMeta {
             expires_at: m.expires_at,
             not_before: m.not_before,
             issued_at: m.issued_at,
+        }
+    }
+}
+
+/// X.509 certificate hash (COSE_CertHash)
+#[pyclass]
+#[derive(Clone)]
+pub struct CertificateHash {
+    /// Hash algorithm identifier (numeric COSE algorithm ID or string name)
+    #[pyo3(get)]
+    pub algorithm: String,
+    /// Hash value bytes
+    #[pyo3(get)]
+    pub hash_value: Vec<u8>,
+}
+
+#[pymethods]
+impl CertificateHash {
+    fn __repr__(&self) -> String {
+        format!(
+            "CertificateHash(algorithm={}, hash_len={})",
+            self.algorithm,
+            self.hash_value.len()
+        )
+    }
+}
+
+impl From<&CoreCertificateHash> for CertificateHash {
+    fn from(c: &CoreCertificateHash) -> Self {
+        let algorithm = match &c.algorithm {
+            CoreCertHashAlgorithm::Numeric(n) => n.to_string(),
+            CoreCertHashAlgorithm::Named(s) => s.clone(),
+        };
+        CertificateHash {
+            algorithm,
+            hash_value: c.hash_value.clone(),
+        }
+    }
+}
+
+/// X.509 headers extracted from COSE protected/unprotected headers
+#[pyclass]
+#[derive(Clone)]
+pub struct X509Headers {
+    /// x5bag (label 32): Unordered bag of X.509 certificates (DER-encoded)
+    #[pyo3(get)]
+    pub x5bag: Option<Vec<Vec<u8>>>,
+    /// x5chain (label 33): Ordered chain of X.509 certificates (DER-encoded)
+    #[pyo3(get)]
+    pub x5chain: Option<Vec<Vec<u8>>>,
+    /// x5t (label 34): Certificate thumbprint hash
+    #[pyo3(get)]
+    pub x5t: Option<CertificateHash>,
+    /// x5u (label 35): URI pointing to an X.509 certificate
+    #[pyo3(get)]
+    pub x5u: Option<String>,
+}
+
+#[pymethods]
+impl X509Headers {
+    fn __repr__(&self) -> String {
+        let parts: Vec<&str> = [
+            self.x5bag.as_ref().map(|_| "x5bag"),
+            self.x5chain.as_ref().map(|_| "x5chain"),
+            self.x5t.as_ref().map(|_| "x5t"),
+            self.x5u.as_ref().map(|_| "x5u"),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+
+        if parts.is_empty() {
+            "X509Headers(empty)".to_string()
+        } else {
+            format!("X509Headers({})", parts.join(", "))
+        }
+    }
+
+    /// Check if any X.509 headers are present
+    fn has_any(&self) -> bool {
+        self.x5bag.is_some() || self.x5chain.is_some() || self.x5t.is_some() || self.x5u.is_some()
+    }
+}
+
+impl From<&CoreX509Headers> for X509Headers {
+    fn from(h: &CoreX509Headers) -> Self {
+        X509Headers {
+            x5bag: h.x5bag.clone(),
+            x5chain: h.x5chain.clone(),
+            x5t: h.x5t.as_ref().map(CertificateHash::from),
+            x5u: h.x5u.clone(),
         }
     }
 }
@@ -386,6 +478,8 @@ pub struct DecodeResult {
     pub cwt_meta: CwtMeta,
     #[pyo3(get)]
     pub verification_status: String,
+    #[pyo3(get)]
+    pub x509_headers: X509Headers,
 }
 
 #[pymethods]
@@ -661,6 +755,7 @@ fn decode_unverified(
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -706,6 +801,7 @@ fn decode_with_ed25519(
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -751,6 +847,7 @@ fn decode_with_ecdsa_p256(
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -796,6 +893,7 @@ fn decode_with_ed25519_pem(
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -841,6 +939,7 @@ fn decode_with_ecdsa_p256_pem(
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -876,6 +975,7 @@ fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<Decod
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -924,6 +1024,7 @@ fn decode_encrypted_aes(
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -1030,6 +1131,7 @@ fn decode_with_decryptor(
         claim169: Claim169::from(&result.claim169),
         cwt_meta: CwtMeta::from(&result.cwt_meta),
         verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
     })
 }
 
@@ -1614,6 +1716,8 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add classes
     m.add_class::<Biometric>()?;
     m.add_class::<CwtMeta>()?;
+    m.add_class::<CertificateHash>()?;
+    m.add_class::<X509Headers>()?;
     m.add_class::<Claim169>()?;
     m.add_class::<DecodeResult>()?;
     m.add_class::<PySignatureVerifier>()?;

@@ -61,6 +61,28 @@ class CwtMeta:
         """Check if token is expired."""
         ...
 
+class CertificateHash:
+    """X.509 certificate hash (COSE_CertHash)."""
+    algorithm: str
+    """Hash algorithm identifier (numeric COSE algorithm ID as string or named algorithm)."""
+    hash_value: bytes
+    """Hash value bytes."""
+
+class X509Headers:
+    """X.509 headers extracted from COSE protected/unprotected headers."""
+    x5bag: Optional[list[bytes]]
+    """x5bag (label 32): Unordered bag of X.509 certificates (DER-encoded)."""
+    x5chain: Optional[list[bytes]]
+    """x5chain (label 33): Ordered chain of X.509 certificates (DER-encoded)."""
+    x5t: Optional[CertificateHash]
+    """x5t (label 34): Certificate thumbprint hash."""
+    x5u: Optional[str]
+    """x5u (label 35): URI pointing to an X.509 certificate."""
+
+    def has_any(self) -> bool:
+        """Check if any X.509 headers are present."""
+        ...
+
 class Claim169:
     """Decoded Claim 169 identity data."""
     id: Optional[str]
@@ -118,6 +140,8 @@ class DecodeResult:
     claim169: Claim169
     cwt_meta: CwtMeta
     verification_status: str
+    x509_headers: X509Headers
+    """X.509 headers from COSE protected/unprotected headers."""
 
     def is_verified(self) -> bool:
         """Check if signature was verified."""
