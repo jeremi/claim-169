@@ -266,6 +266,8 @@ fn generate_full_demographics() -> TestVector {
         (14, Value::Integer(2.into())), // Married
         (15, Value::Text("Guardian-ID-001".to_string())),
         (17, Value::Integer(1.into())), // JPEG
+        // Key 18: bestQualityFingers - right thumb (1), right index (2), left thumb (6)
+        (18, Value::Bytes(vec![1, 2, 6])),
         (19, Value::Text("Jane Marie Smith (Hindi)".to_string())),
         (20, Value::Text("hin".to_string())),
         (21, Value::Text("US-NY-NYC".to_string())),
@@ -307,6 +309,7 @@ fn generate_full_demographics() -> TestVector {
             "maritalStatus": 2,
             "guardian": "Guardian-ID-001",
             "photoFormat": 1,
+            "bestQualityFingers": [1, 2, 6],
             "secondaryFullName": "Jane Marie Smith (Hindi)",
             "secondaryLanguage": "hin",
             "locationCode": "US-NY-NYC",
