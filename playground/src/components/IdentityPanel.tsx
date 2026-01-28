@@ -294,6 +294,36 @@ export function IdentityPanel({
                 className="text-sm min-h-[60px] resize-none"
               />
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="locationCode" className="text-xs">{t("identity.locationCode")}</Label>
+              <Input
+                id="locationCode"
+                placeholder={t("identity.locationCodePlaceholder")}
+                value={claim169.locationCode || ""}
+                onChange={(e) => updateClaim("locationCode", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="legalStatus" className="text-xs">{t("identity.legalStatus")}</Label>
+              <Input
+                id="legalStatus"
+                placeholder={t("identity.legalStatusPlaceholder")}
+                value={claim169.legalStatus || ""}
+                onChange={(e) => updateClaim("legalStatus", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="countryOfIssuance" className="text-xs">{t("identity.countryOfIssuance")}</Label>
+              <Input
+                id="countryOfIssuance"
+                placeholder={t("identity.countryOfIssuancePlaceholder")}
+                value={claim169.countryOfIssuance || ""}
+                onChange={(e) => updateClaim("countryOfIssuance", e.target.value || undefined)}
+                className="text-sm h-8"
+              />
+            </div>
           </div>
         )}
       </div>

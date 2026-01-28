@@ -141,6 +141,9 @@ export function UnifiedPlayground() {
       if (claim169.address) claimInput.address = claim169.address
       if (claim169.nationality) claimInput.nationality = claim169.nationality
       if (claim169.maritalStatus !== undefined && claim169.maritalStatus !== 0) claimInput.maritalStatus = claim169.maritalStatus
+      if (claim169.locationCode) claimInput.locationCode = claim169.locationCode
+      if (claim169.legalStatus) claimInput.legalStatus = claim169.legalStatus
+      if (claim169.countryOfIssuance) claimInput.countryOfIssuance = claim169.countryOfIssuance
 
       // Build CWT metadata
       const metaInput: CwtMetaInput = {}

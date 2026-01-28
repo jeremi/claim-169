@@ -100,7 +100,13 @@
       "divorced": "Divorced"
     },
     "address": "Address",
-    "addressPlaceholder": "123 Main Street, City, Country"
+    "addressPlaceholder": "123 Main Street, City, Country",
+    "locationCode": "Location Code",
+    "locationCodePlaceholder": "849VCWC8+R9",
+    "legalStatus": "Legal Status",
+    "legalStatusPlaceholder": "citizen",
+    "countryOfIssuance": "Country of Issuance",
+    "countryOfIssuancePlaceholder": "US"
   },
   "verification": {
     "verified": "Signature Verified",
