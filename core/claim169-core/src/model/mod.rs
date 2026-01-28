@@ -38,6 +38,7 @@ mod biometrics;
 mod claim169;
 mod cwt_meta;
 mod enums;
+mod x509;
 
 pub use biometrics::Biometric;
 pub use claim169::Claim169;
@@ -46,3 +47,4 @@ pub use enums::{
     BiometricFormat, BiometricSubFormat, Gender, ImageSubFormat, MaritalStatus, PhotoFormat,
     SoundSubFormat, TemplateSubFormat, VerificationStatus,
 };
+pub use x509::{CertHashAlgorithm, CertificateHash, X509Headers};

@@ -454,6 +454,7 @@ impl Decoder {
             claim169,
             cwt_meta: cwt_result.meta,
             verification_status: cose_result.verification_status,
+            x509_headers: cose_result.x509_headers,
             warnings,
         })
     }
