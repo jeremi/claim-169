@@ -88,6 +88,7 @@ export type {
   Algorithm,
   AlgorithmName,
   Biometric,
+  CertificateHash,
   Claim169,
   Claim169Input,
   CwtMeta,
@@ -100,6 +101,7 @@ export type {
   SignerCallback,
   VerificationStatus,
   VerifierCallback,
+  X509Headers,
 } from "./types.js";
 
 export { Claim169Error } from "./types.js";
@@ -114,6 +116,7 @@ import type {
   IEncoder,
   SignerCallback,
   VerifierCallback,
+  X509Headers,
 } from "./types.js";
 import { Claim169Error } from "./types.js";
 
@@ -176,6 +179,36 @@ export function bytesToHex(bytes: Uint8Array): string {
 }
 
 /**
+ * Transform raw X.509 headers from WASM result
+ */
+function transformX509Headers(raw: Record<string, unknown> | undefined): X509Headers {
+  if (!raw) {
+    return {};
+  }
+
+  const headers: X509Headers = {};
+
+  if (raw.x5bag) {
+    headers.x5bag = (raw.x5bag as Array<number[]>).map((cert) => new Uint8Array(cert));
+  }
+  if (raw.x5chain) {
+    headers.x5chain = (raw.x5chain as Array<number[]>).map((cert) => new Uint8Array(cert));
+  }
+  if (raw.x5t) {
+    const x5t = raw.x5t as { algorithm: string; hashValue: number[] };
+    headers.x5t = {
+      algorithm: x5t.algorithm,
+      hashValue: new Uint8Array(x5t.hashValue),
+    };
+  }
+  if (raw.x5u) {
+    headers.x5u = raw.x5u as string;
+  }
+
+  return headers;
+}
+
+/**
  * Transform raw WASM result to typed DecodeResult
  */
 function transformResult(raw: unknown): DecodeResult {
@@ -183,6 +216,7 @@ function transformResult(raw: unknown): DecodeResult {
     claim169: Record<string, unknown>;
     cwtMeta: Record<string, unknown>;
     verificationStatus: string;
+    x509Headers: Record<string, unknown>;
   };
 
   return {
@@ -198,6 +232,7 @@ function transformResult(raw: unknown): DecodeResult {
       | "verified"
       | "skipped"
       | "failed",
+    x509Headers: transformX509Headers(result.x509Headers),
   };
 }
 

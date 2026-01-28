@@ -79,6 +79,69 @@ export interface CwtMeta {
 }
 
 /**
+ * X.509 certificate hash (COSE_CertHash).
+ *
+ * Contains a hash algorithm identifier and the hash value.
+ * Used in the x5t (thumbprint) header parameter.
+ */
+export interface CertificateHash {
+  /**
+   * Hash algorithm identifier.
+   * Can be a numeric COSE algorithm ID (e.g., "-16" for SHA-256) or a named algorithm.
+   */
+  algorithm: string;
+  /** Hash value bytes */
+  hashValue: Uint8Array;
+}
+
+/**
+ * X.509 headers extracted from COSE protected/unprotected headers.
+ *
+ * These headers provide X.509 certificate information for signature verification
+ * as defined in RFC 9360.
+ *
+ * @example
+ * ```typescript
+ * const result = new Decoder(qrText)
+ *   .verifyWithEd25519(publicKey)
+ *   .decode();
+ *
+ * // Check for certificate chain
+ * if (result.x509Headers.x5chain) {
+ *   console.log(`Certificate chain has ${result.x509Headers.x5chain.length} certificates`);
+ * }
+ *
+ * // Check for certificate URL
+ * if (result.x509Headers.x5u) {
+ *   console.log(`Certificate URL: ${result.x509Headers.x5u}`);
+ * }
+ * ```
+ */
+export interface X509Headers {
+  /**
+   * x5bag (COSE label 32): Unordered bag of X.509 certificates.
+   * Each certificate is DER-encoded.
+   */
+  x5bag?: Uint8Array[];
+  /**
+   * x5chain (COSE label 33): Ordered chain of X.509 certificates.
+   * The first certificate contains the public key used for verification.
+   * Each certificate is DER-encoded.
+   */
+  x5chain?: Uint8Array[];
+  /**
+   * x5t (COSE label 34): Certificate thumbprint hash.
+   * Used to identify the certificate by its hash.
+   */
+  x5t?: CertificateHash;
+  /**
+   * x5u (COSE label 35): URI pointing to an X.509 certificate.
+   * Can be used to fetch the certificate for verification.
+   */
+  x5u?: string;
+}
+
+/**
  * Decoded Claim 169 identity data.
  *
  * This interface contains all identity fields defined in the MOSIP Claim 169
@@ -346,6 +409,11 @@ export interface DecodeResult {
    * - "failed": Signature verification failed
    */
   verificationStatus: VerificationStatus;
+  /**
+   * X.509 headers from COSE protected/unprotected headers.
+   * Contains certificate information for signature verification.
+   */
+  x509Headers: X509Headers;
 }
 
 /**
