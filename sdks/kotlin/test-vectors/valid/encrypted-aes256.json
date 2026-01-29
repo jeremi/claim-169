@@ -1,0 +1,19 @@
+{
+  "name": "encrypted-aes256",
+  "description": "COSE_Encrypt0 with AES-256-GCM",
+  "category": "valid",
+  "qr_data": "6BFK80-20DFWXQG.FKTK06U0100KB0*M0DY0W016C1*7BKVS-:LI.LY2NW7WIFNO*RUH1-$UHRSHFIX.5VZBPPHLLFXH3-89J5MF/M5C84YE84R*JHQEC/TOC-5V31PZUXNFX+0A75LOUN-M%%KVPLQGABAFA5W2%JZ+5Q*BJNN1538*VQZK::H9WVLR253NM97BLFWKRS5",
+  "encryption_key": {
+    "algorithm": "A256GCM",
+    "symmetric_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+  },
+  "expected_claim169": {
+    "fullName": "Encrypted Test Person",
+    "id": "ID-ENCRYPTED-001"
+  },
+  "expected_cwt_meta": {
+    "issuer": "https://mosip.example.org",
+    "expiresAt": 1800000000,
+    "issuedAt": 1700000000
+  }
+}
