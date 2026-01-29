@@ -1216,7 +1216,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_claim169_jni_checksum_constructor_claim169decoder_new() != 8661.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_claim169_jni_checksum_constructor_claim169encoder_new() != 24834.toShort()) {
+    if (lib.uniffi_claim169_jni_checksum_constructor_claim169encoder_new() != 30646.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_claim169_jni_checksum_method_decryptorcallback_decrypt() != 60162.toShort()) {
@@ -2165,7 +2165,7 @@ open class Claim169Encoder: Disposable, AutoCloseable, Claim169EncoderInterface 
      */
     constructor(`claim169Data`: Claim169Data, `cwtMeta`: CwtMetaData) :
         this(
-    uniffiRustCall() { _status ->
+    uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_constructor_claim169encoder_new(
         FfiConverterTypeClaim169Data.lower(`claim169Data`),FfiConverterTypeCwtMetaData.lower(`cwtMeta`),_status)
 }

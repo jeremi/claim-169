@@ -61,7 +61,12 @@ class DecoderBuilder(qrText: String) {
                 data: ByteArray,
                 signature: ByteArray
             ) {
-                verifier.verify(algorithm, keyId, data, signature)
+                when (val result = verifier.verify(algorithm, keyId, data, signature)) {
+                    is VerificationResult.Valid -> { /* signature accepted */ }
+                    is VerificationResult.Invalid -> {
+                        throw CryptoException.VerificationFailed(result.reason)
+                    }
+                }
             }
         })
     }
@@ -124,6 +129,7 @@ class DecoderBuilder(qrText: String) {
      * Set clock skew tolerance for timestamp validation (in seconds).
      */
     fun clockSkewTolerance(seconds: Long) {
+        require(seconds >= 0) { "Clock skew tolerance must be non-negative, got $seconds" }
         decoder.clockSkewTolerance(seconds)
     }
 

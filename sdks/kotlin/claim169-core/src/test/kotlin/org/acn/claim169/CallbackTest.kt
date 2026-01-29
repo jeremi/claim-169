@@ -112,7 +112,7 @@ class CallbackTest {
                     keyId: ByteArray?,
                     data: ByteArray,
                     signature: ByteArray
-                ) {
+                ): VerificationResult {
                     verifyCalled = true
                     assertEquals("EdDSA", algorithm)
                     assertTrue(data.isNotEmpty())
@@ -121,6 +121,7 @@ class CallbackTest {
                     // (this verifies the callback is called with correct data)
                     // For a real test, we'd use a crypto library, but the callback mechanism
                     // is what we're testing here
+                    return VerificationResult.Valid
                 }
             })
             withoutTimestampValidation()
@@ -135,8 +136,6 @@ class CallbackTest {
         val vector = TestVectorLoader.loadVector("valid", "ed25519-signed")
         val qrData = vector.get("qr_data").asString
 
-        // UniFFI wraps callback exceptions as InternalException since the callback
-        // throws RuntimeException which isn't mapped to a UniFFI error type
         assertThrows(Exception::class.java) {
             Claim169.decode(qrData) {
                 verifyWith(object : SignatureVerifier {
@@ -145,8 +144,8 @@ class CallbackTest {
                         keyId: ByteArray?,
                         data: ByteArray,
                         signature: ByteArray
-                    ) {
-                        throw RuntimeException("Verification rejected by custom verifier")
+                    ): VerificationResult {
+                        return VerificationResult.Invalid("Verification rejected by custom verifier")
                     }
                 })
                 withoutTimestampValidation()
@@ -183,9 +182,9 @@ class CallbackTest {
                     keyId: ByteArray?,
                     data: ByteArray,
                     signature: ByteArray
-                ) {
+                ): VerificationResult {
                     receivedAlgorithm = algorithm
-                    // Accept all signatures for this test
+                    return VerificationResult.Valid
                 }
             })
             withoutTimestampValidation()
@@ -209,9 +208,9 @@ class CallbackTest {
                     keyId: ByteArray?,
                     data: ByteArray,
                     signature: ByteArray
-                ) {
+                ): VerificationResult {
                     receivedAlgorithm = algorithm
-                    // Accept all signatures for this test
+                    return VerificationResult.Valid
                 }
             })
             withoutTimestampValidation()
@@ -244,6 +243,45 @@ class CallbackTest {
                 }, "EdDSA")
             }
         }
+    }
+
+    @Test
+    fun `verifier returning Invalid causes decode to fail with reason`() {
+        val vector = TestVectorLoader.loadVector("valid", "ed25519-signed")
+        val signingKey = vector.getAsJsonObject("signing_key")
+        val privateKeyHex = signingKey.get("private_key_hex").asString
+        val privateKey = TestVectorLoader.hexToByteArray(privateKeyHex)
+
+        val data = claim169 {
+            id = "INVALID-RESULT-001"
+            fullName = "Invalid Result Test"
+        }
+        val meta = cwtMeta {
+            issuer = "https://test.example.com"
+            expiresAt = 2000000000L
+        }
+
+        val encoded = Claim169.encode(data, meta) {
+            signWithEd25519(privateKey)
+        }
+
+        val exception = assertThrows(Exception::class.java) {
+            Claim169.decode(encoded) {
+                verifyWith(object : SignatureVerifier {
+                    override fun verify(
+                        algorithm: String,
+                        keyId: ByteArray?,
+                        data: ByteArray,
+                        signature: ByteArray
+                    ): VerificationResult {
+                        return VerificationResult.Invalid("key revoked")
+                    }
+                })
+                withoutTimestampValidation()
+            }
+        }
+
+        assertNotNull(exception)
     }
 
     @Test

@@ -24,6 +24,12 @@ class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData) {
 
     /**
      * Sign with an Ed25519 private key (32 raw bytes).
+     *
+     * **Security note**: The [privateKey] bytes are passed into native code but the JVM copy
+     * remains in the caller's heap. Callers should zeroize the array after encoding completes:
+     * ```kotlin
+     * privateKey.fill(0)
+     * ```
      */
     fun signWithEd25519(privateKey: ByteArray) {
         encoder.signWithEd25519(privateKey)
@@ -31,6 +37,12 @@ class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData) {
 
     /**
      * Sign with an ECDSA P-256 private key (32-byte scalar).
+     *
+     * **Security note**: The [privateKey] bytes are passed into native code but the JVM copy
+     * remains in the caller's heap. Callers should zeroize the array after encoding completes:
+     * ```kotlin
+     * privateKey.fill(0)
+     * ```
      */
     fun signWithEcdsaP256(privateKey: ByteArray) {
         encoder.signWithEcdsaP256(privateKey)
@@ -38,6 +50,9 @@ class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData) {
 
     /**
      * Sign with a custom [Signer] implementation (for HSM/KMS).
+     *
+     * **Security note**: If the [Signer] holds in-memory key material, implementors should
+     * zeroize it when it is no longer needed to minimize exposure on the JVM heap.
      *
      * @param signer The signer implementation
      * @param algorithm COSE algorithm name (e.g., "EdDSA", "ES256")

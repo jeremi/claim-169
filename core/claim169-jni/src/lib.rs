@@ -6,7 +6,7 @@
 use std::sync::Mutex;
 
 use claim169_core as claim169;
-use coset::iana;
+use coset::iana::{self, EnumI64};
 
 uniffi::setup_scaffolding!();
 
@@ -473,15 +473,18 @@ impl From<&claim169::Claim169> for Claim169Data {
     }
 }
 
-impl From<&Claim169Data> for claim169::Claim169 {
-    fn from(c: &Claim169Data) -> Self {
-        let unknown_fields = c
-            .unknown_fields_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok())
-            .unwrap_or_default();
+impl TryFrom<&Claim169Data> for claim169::Claim169 {
+    type Error = Claim169Exception;
 
-        claim169::Claim169 {
+    fn try_from(c: &Claim169Data) -> Result<Self, Self::Error> {
+        let unknown_fields = match &c.unknown_fields_json {
+            Some(s) => serde_json::from_str(s).map_err(|e| {
+                Claim169Exception::Claim169Invalid(format!("invalid unknown_fields_json: {}", e))
+            })?,
+            None => Default::default(),
+        };
+
+        Ok(claim169::Claim169 {
             id: c.id.clone(),
             version: c.version.clone(),
             language: c.language.clone(),
@@ -528,7 +531,7 @@ impl From<&Claim169Data> for claim169::Claim169 {
             voice: convert_biometrics_back(&c.voice),
 
             unknown_fields,
-        }
+        })
     }
 }
 
@@ -629,7 +632,7 @@ fn algorithm_to_string(algorithm: iana::Algorithm) -> String {
         iana::Algorithm::A128GCM => "A128GCM".to_string(),
         iana::Algorithm::A192GCM => "A192GCM".to_string(),
         iana::Algorithm::A256GCM => "A256GCM".to_string(),
-        other => format!("{:?}", other),
+        other => format!("COSE_ALG_{}", other.to_i64()),
     }
 }
 
@@ -642,7 +645,24 @@ fn algorithm_from_string(s: &str) -> Result<iana::Algorithm, Claim169Exception> 
         "A128GCM" => Ok(iana::Algorithm::A128GCM),
         "A192GCM" => Ok(iana::Algorithm::A192GCM),
         "A256GCM" => Ok(iana::Algorithm::A256GCM),
-        _ => Err(Claim169Exception::UnsupportedAlgorithm(s.to_string())),
+        _ => {
+            if let Some(id_str) = s.strip_prefix("COSE_ALG_") {
+                let id: i64 = id_str.parse().map_err(|_| {
+                    Claim169Exception::UnsupportedAlgorithm(format!(
+                        "invalid numeric algorithm ID: {}",
+                        s
+                    ))
+                })?;
+                iana::Algorithm::from_i64(id).ok_or_else(|| {
+                    Claim169Exception::UnsupportedAlgorithm(format!(
+                        "unknown COSE algorithm ID: {}",
+                        id
+                    ))
+                })
+            } else {
+                Err(Claim169Exception::UnsupportedAlgorithm(s.to_string()))
+            }
+        }
     }
 }
 
@@ -909,6 +929,12 @@ impl Claim169Decoder {
 
     /// Set clock skew tolerance for timestamp validation (in seconds).
     pub fn clock_skew_tolerance(&self, seconds: i64) -> Result<(), Claim169Exception> {
+        if seconds < 0 {
+            return Err(Claim169Exception::DecodingConfig(format!(
+                "clock skew tolerance must be non-negative, got {}",
+                seconds
+            )));
+        }
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let decoder = guard.take().ok_or_else(|| {
             Claim169Exception::DecodingConfig("decoder already consumed".to_string())
@@ -923,7 +949,13 @@ impl Claim169Decoder {
         let decoder = guard.take().ok_or_else(|| {
             Claim169Exception::DecodingConfig("decoder already consumed".to_string())
         })?;
-        let max_bytes_usize = usize::try_from(max_bytes).unwrap_or(usize::MAX);
+        let max_bytes_usize = usize::try_from(max_bytes).map_err(|_| {
+            Claim169Exception::DecodingConfig(format!(
+                "max_decompressed_bytes value {} exceeds platform limit of {}",
+                max_bytes,
+                usize::MAX
+            ))
+        })?;
         *guard = Some(decoder.max_decompressed_bytes(max_bytes_usize));
         Ok(())
     }
@@ -963,12 +995,15 @@ pub struct Claim169Encoder {
 impl Claim169Encoder {
     /// Create an encoder with the given claim data and CWT metadata.
     #[uniffi::constructor]
-    pub fn new(claim169_data: Claim169Data, cwt_meta: CwtMetaData) -> Self {
-        let core_claim = claim169::Claim169::from(&claim169_data);
+    pub fn new(
+        claim169_data: Claim169Data,
+        cwt_meta: CwtMetaData,
+    ) -> Result<Self, Claim169Exception> {
+        let core_claim = claim169::Claim169::try_from(&claim169_data)?;
         let core_meta = claim169::CwtMeta::from(&cwt_meta);
-        Self {
+        Ok(Self {
             inner: Mutex::new(Some(claim169::Encoder::new(core_claim, core_meta))),
-        }
+        })
     }
 
     /// Sign with an Ed25519 private key (32 raw bytes).
@@ -1204,7 +1239,7 @@ mod tests {
             issued_at: None,
         };
 
-        let encoder = Claim169Encoder::new(claim_data, cwt_data);
+        let encoder = Claim169Encoder::new(claim_data, cwt_data).unwrap();
         encoder.allow_unsigned().unwrap();
         let qr_data = encoder.execute().unwrap();
 
@@ -1237,9 +1272,194 @@ mod tests {
     }
 
     #[test]
+    fn test_clock_skew_tolerance_rejects_negative() {
+        let decoder = Claim169Decoder::new("dummy".to_string());
+        let result = decoder.clock_skew_tolerance(-1);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            Claim169Exception::DecodingConfig(_)
+        ));
+    }
+
+    #[test]
+    fn test_clock_skew_tolerance_accepts_zero() {
+        let decoder = Claim169Decoder::new("dummy".to_string());
+        let result = decoder.clock_skew_tolerance(0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_error_conversion() {
         let err = claim169::Claim169Error::Base45Decode("test error".to_string());
         let exc = Claim169Exception::from(err);
         assert!(matches!(exc, Claim169Exception::Base45Decode(_)));
+    }
+
+    #[test]
+    fn test_algorithm_roundtrip_known() {
+        let known = vec![
+            (iana::Algorithm::EdDSA, "EdDSA"),
+            (iana::Algorithm::ES256, "ES256"),
+            (iana::Algorithm::ES384, "ES384"),
+            (iana::Algorithm::ES512, "ES512"),
+            (iana::Algorithm::A128GCM, "A128GCM"),
+            (iana::Algorithm::A192GCM, "A192GCM"),
+            (iana::Algorithm::A256GCM, "A256GCM"),
+        ];
+        for (alg, expected_str) in known {
+            let s = algorithm_to_string(alg);
+            assert_eq!(s, expected_str);
+            let roundtripped = algorithm_from_string(&s).unwrap();
+            assert_eq!(roundtripped, alg);
+        }
+    }
+
+    #[test]
+    fn test_algorithm_roundtrip_unknown() {
+        // PS256 is COSE algorithm -37, not in our named mapping
+        let alg = iana::Algorithm::PS256;
+        let s = algorithm_to_string(alg);
+        assert_eq!(s, "COSE_ALG_-37");
+        let roundtripped = algorithm_from_string(&s).unwrap();
+        assert_eq!(roundtripped, alg);
+    }
+
+    #[test]
+    fn test_algorithm_from_string_invalid_prefix() {
+        let result = algorithm_from_string("COSE_ALG_not_a_number");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_algorithm_from_string_unknown_name() {
+        let result = algorithm_from_string("UnknownAlg");
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            Claim169Exception::UnsupportedAlgorithm(_)
+        ));
+    }
+
+    #[test]
+    fn test_malformed_unknown_fields_json_returns_error() {
+        let claim_data = Claim169Data {
+            id: Some("test".to_string()),
+            full_name: Some("Test".to_string()),
+            version: None,
+            language: None,
+            first_name: None,
+            middle_name: None,
+            last_name: None,
+            date_of_birth: None,
+            gender: None,
+            address: None,
+            email: None,
+            phone: None,
+            nationality: None,
+            marital_status: None,
+            guardian: None,
+            photo: None,
+            photo_format: None,
+            best_quality_fingers: None,
+            secondary_full_name: None,
+            secondary_language: None,
+            location_code: None,
+            legal_status: None,
+            country_of_issuance: None,
+            right_thumb: None,
+            right_pointer_finger: None,
+            right_middle_finger: None,
+            right_ring_finger: None,
+            right_little_finger: None,
+            left_thumb: None,
+            left_pointer_finger: None,
+            left_middle_finger: None,
+            left_ring_finger: None,
+            left_little_finger: None,
+            right_iris: None,
+            left_iris: None,
+            face: None,
+            right_palm: None,
+            left_palm: None,
+            voice: None,
+            unknown_fields_json: Some("not valid json{{{".to_string()),
+        };
+        let cwt_data = CwtMetaData {
+            issuer: None,
+            subject: None,
+            expires_at: None,
+            not_before: None,
+            issued_at: None,
+        };
+
+        let result = Claim169Encoder::new(claim_data, cwt_data);
+        match result {
+            Err(Claim169Exception::Claim169Invalid(msg)) => {
+                assert!(
+                    msg.contains("unknown_fields_json"),
+                    "error should mention unknown_fields_json: {}",
+                    msg
+                );
+            }
+            Err(other) => panic!("expected Claim169Invalid, got: {:?}", other),
+            Ok(_) => panic!("expected error for malformed JSON, but got Ok"),
+        }
+    }
+
+    #[test]
+    fn test_valid_unknown_fields_json_accepted() {
+        let claim_data = Claim169Data {
+            id: Some("test".to_string()),
+            full_name: Some("Test".to_string()),
+            version: None,
+            language: None,
+            first_name: None,
+            middle_name: None,
+            last_name: None,
+            date_of_birth: None,
+            gender: None,
+            address: None,
+            email: None,
+            phone: None,
+            nationality: None,
+            marital_status: None,
+            guardian: None,
+            photo: None,
+            photo_format: None,
+            best_quality_fingers: None,
+            secondary_full_name: None,
+            secondary_language: None,
+            location_code: None,
+            legal_status: None,
+            country_of_issuance: None,
+            right_thumb: None,
+            right_pointer_finger: None,
+            right_middle_finger: None,
+            right_ring_finger: None,
+            right_little_finger: None,
+            left_thumb: None,
+            left_pointer_finger: None,
+            left_middle_finger: None,
+            left_ring_finger: None,
+            left_little_finger: None,
+            right_iris: None,
+            left_iris: None,
+            face: None,
+            right_palm: None,
+            left_palm: None,
+            voice: None,
+            unknown_fields_json: Some(r#"{"100":"extra_value"}"#.to_string()),
+        };
+        let cwt_data = CwtMetaData {
+            issuer: None,
+            subject: None,
+            expires_at: None,
+            not_before: None,
+            issued_at: None,
+        };
+
+        let result = Claim169Encoder::new(claim_data, cwt_data);
+        assert!(result.is_ok());
     }
 }

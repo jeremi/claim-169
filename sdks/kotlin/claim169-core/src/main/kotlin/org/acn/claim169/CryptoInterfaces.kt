@@ -1,6 +1,24 @@
 package org.acn.claim169
 
 /**
+ * Result of a signature verification operation.
+ *
+ * Forces implementors to make an explicit accept/reject decision,
+ * preventing accidental acceptance from empty method bodies.
+ */
+sealed interface VerificationResult {
+    /** The signature is valid. */
+    data object Valid : VerificationResult
+
+    /**
+     * The signature is invalid or verification failed.
+     *
+     * @property reason Human-readable description of why verification failed.
+     */
+    data class Invalid(val reason: String) : VerificationResult
+}
+
+/**
  * Interface for custom signature verification.
  *
  * Implement this for HSM, KMS, or other custom crypto backends.
@@ -10,8 +28,11 @@ package org.acn.claim169
  * ```kotlin
  * val result = Claim169.decode(qrText) {
  *     verifyWith(object : SignatureVerifier {
- *         override fun verify(algorithm: String, keyId: ByteArray?, data: ByteArray, signature: ByteArray) {
- *             hsmProvider.verify(keyId, data, signature)
+ *         override fun verify(algorithm: String, keyId: ByteArray?, data: ByteArray, signature: ByteArray): VerificationResult {
+ *             return if (hsmProvider.verify(keyId, data, signature))
+ *                 VerificationResult.Valid
+ *             else
+ *                 VerificationResult.Invalid("HSM rejected signature")
  *         }
  *     })
  * }
@@ -21,13 +42,18 @@ interface SignatureVerifier {
     /**
      * Verify a digital signature.
      *
+     * Implementations MUST return [VerificationResult.Valid] only after performing
+     * actual cryptographic verification. Returning [VerificationResult.Valid] without
+     * checking the signature defeats the security purpose of this library.
+     *
      * @param algorithm COSE algorithm name (e.g., "EdDSA", "ES256")
      * @param keyId Optional key identifier bytes
      * @param data The data that was signed (COSE Sig_structure)
      * @param signature The signature bytes to verify
-     * @throws Exception if verification fails
+     * @return [VerificationResult.Valid] if the signature is valid,
+     *         [VerificationResult.Invalid] if verification fails
      */
-    fun verify(algorithm: String, keyId: ByteArray?, data: ByteArray, signature: ByteArray)
+    fun verify(algorithm: String, keyId: ByteArray?, data: ByteArray, signature: ByteArray): VerificationResult
 }
 
 /**

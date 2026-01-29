@@ -112,6 +112,15 @@ class DecodeEdgeCaseTest {
     }
 
     @Test
+    fun `clockSkewTolerance rejects negative values`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            Claim169.decode("dummy") {
+                clockSkewTolerance(-1)
+            }
+        }
+    }
+
+    @Test
     fun `clock skew tolerance allows slightly expired tokens`() {
         val vector = TestVectorLoader.loadVector("edge", "expired")
         val qrData = vector.get("qr_data").asString

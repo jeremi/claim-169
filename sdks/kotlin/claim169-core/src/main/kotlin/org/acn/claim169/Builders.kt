@@ -61,6 +61,11 @@ class Claim169DataBuilder {
     var leftPalm: List<BiometricData>? = null
     var voice: List<BiometricData>? = null
 
+    /**
+     * JSON-encoded map of unknown CBOR fields for forward compatibility.
+     * Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause
+     * [uniffi.claim169_jni.Claim169Exception.Claim169Invalid] when encoding.
+     */
     var unknownFieldsJson: String? = null
 
     internal fun build(): Claim169Data = Claim169Data(
