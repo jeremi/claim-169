@@ -6,6 +6,9 @@ This guide covers the essential operations: encoding credentials and decoding QR
 
 The most common operation is decoding a QR code that was scanned from an identity credential.
 
+!!! warning "Do not trim Base45"
+    The Base45 alphabet includes a literal space character (`" "`). Preserve the scanned QR text exactly as-is (no `.trim()`, whitespace normalization, etc.), or you can corrupt valid credentials.
+
 ### With Ed25519 Verification
 
 ```kotlin
@@ -66,13 +69,14 @@ Create a signed credential that can be encoded in a QR code.
 import org.acn.claim169.Claim169
 import org.acn.claim169.claim169
 import org.acn.claim169.cwtMeta
+import org.acn.claim169.Gender
 
 // Create identity data using DSL builder
 val data = claim169 {
     id = "MOSIP-2024-001"
     fullName = "Jane Doe"
     dateOfBirth = "1990-05-15"
-    gender = 2  // Female
+    genderEnum = Gender.Female
     email = "jane.doe@example.org"
     nationality = "US"
 }

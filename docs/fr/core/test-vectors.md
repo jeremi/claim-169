@@ -33,24 +33,27 @@ Chaque vecteur est un fichier JSON :
 
 ```json
 {
-  "description": "Basic credential with Ed25519 signature",
+  "name": "ed25519-signed",
+  "description": "COSE_Sign1 with Ed25519 signature",
+  "category": "valid",
   "qr_data": "NCFKXE...",
-  "expected": {
-    "claim169": {
-      "id": "12345",
-      "fullName": "John Doe"
-    },
-    "cwtMeta": {
-      "issuer": "https://example.org",
-      "expiresAt": 1735689600
-    },
-    "verificationStatus": "Verified"
+  "signing_key": {
+    "algorithm": "EdDSA",
+    "public_key_hex": "d75a9801..."
   },
-  "keys": {
-    "ed25519_public": "b4f3..."
+  "expected_claim169": {
+    "id": "ID-12345-ABCDE",
+    "fullName": "Signed Test Person"
+  },
+  "expected_cwt_meta": {
+    "issuer": "https://mosip.example.org",
+    "expiresAt": 1800000000,
+    "issuedAt": 1700000000
   }
 }
 ```
+
+Les vecteurs `invalid` / `edge` incluent un champ `expected_error` (par exemple `Base45Decode`, `Decompress`, `CoseParse`, `Claim169NotFound`).
 
 ## Vecteurs valides
 
@@ -58,27 +61,21 @@ Chaque vecteur est un fichier JSON :
 
 | Vecteur | Description |
 |--------|-------------|
-| `basic_ed25519.json` | Identifiant minimal avec signature Ed25519 |
-| `basic_ecdsa.json` | Identifiant minimal avec signature ECDSA P-256 |
-| `full_demographics.json` | Tous les champs démographiques remplis |
-| `with_photo.json` | Identifiant avec photo embarquée |
-| `with_biometrics.json` | Identifiant avec données biométriques |
+| `minimal.json` | Claim minimal avec ID et nom complet uniquement |
+| `ed25519-signed.json` | COSE_Sign1 avec signature Ed25519 |
+| `ecdsa-p256-signed.json` | COSE_Sign1 avec signature ECDSA P-256 |
+| `demographics-full.json` | Tous les champs démographiques remplis |
+| `with-face.json` | Identifiant avec biométrie visage |
+| `with-fingerprints.json` | Identifiant avec biométrie empreintes digitales |
+| `with-all-biometrics.json` | Identifiant avec tous les champs biométriques |
+| `claim169-example.json` | Exemple de payload avec champs usuels |
 
 ### Identifiants chiffrés
 
 | Vecteur | Description |
 |--------|-------------|
-| `encrypted_aes256.json` | Identifiant chiffré AES-256-GCM |
-| `encrypted_aes128.json` | Identifiant chiffré AES-128-GCM |
-| `signed_then_encrypted.json` | Signé puis chiffré (COSE_Encrypt0 enveloppant COSE_Sign1) |
-
-### Variantes d’horodatages
-
-| Vecteur | Description |
-|--------|-------------|
-| `with_expiry.json` | Identifiant avec expiration |
-| `with_nbf.json` | Identifiant avec « not-before » |
-| `with_all_timestamps.json` | `exp`, `nbf` et `iat` définis |
+| `encrypted-aes256.json` | COSE_Encrypt0 avec AES-256-GCM |
+| `encrypted-signed.json` | COSE_Encrypt0 contenant un COSE_Sign1 signé |
 
 ## Vecteurs invalides
 
@@ -86,37 +83,18 @@ Chaque vecteur est un fichier JSON :
 
 | Vecteur | Erreur attendue |
 |--------|------------------|
-| `invalid_base45.json` | `Base45Decode` |
-| `truncated_data.json` | `Decompress` |
-| `invalid_cbor.json` | `CborParse` |
-| `invalid_cose.json` | `CoseParse` |
-| `missing_claim169.json` | `Claim169NotFound` |
-
-### Échecs de signature
-
-| Vecteur | Erreur attendue |
-|--------|------------------|
-| `wrong_signature.json` | `SignatureInvalid` |
-| `wrong_key.json` | `SignatureInvalid` |
-| `tampered_payload.json` | `SignatureInvalid` |
-
-### Échecs d’horodatages
-
-| Vecteur | Erreur attendue |
-|--------|------------------|
-| `expired.json` | `Expired` |
-| `not_yet_valid.json` | `NotYetValid` |
+| `bad-base45.json` | `Base45Decode` |
+| `bad-zlib.json` | `Decompress` |
+| `not-cose.json` | `CoseParse` |
+| `missing-169.json` | `Claim169NotFound` |
 
 ## Cas limites
 
 | Vecteur | Description |
 |--------|-------------|
-| `empty_fields.json` | Tous les champs optionnels absents |
-| `unicode_names.json` | Noms UTF-8 dans plusieurs écritures |
-| `max_photo_size.json` | Photo volumineuse proche de la limite |
 | `unknown_fields.json` | Contient des clés CBOR inconnues |
-| `zero_timestamps.json` | Horodatages à 0 |
-| `max_timestamps.json` | Horodatages proches du maximum i64 |
+| `expired.json` | Jeton avec `exp` dans le passé |
+| `not-yet-valid.json` | Jeton avec `nbf` dans le futur |
 
 ## Utiliser les vecteurs de test
 
@@ -130,11 +108,11 @@ use claim169_core::Decoder;
 #[test]
 fn test_basic_ed25519() {
     let json: Value = serde_json::from_str(
-        &fs::read_to_string("test-vectors/valid/basic_ed25519.json").unwrap()
+        &fs::read_to_string("test-vectors/valid/ed25519-signed.json").unwrap()
     ).unwrap();
 
     let qr_data = json["qr_data"].as_str().unwrap();
-    let public_key = hex::decode(json["keys"]["ed25519_public"].as_str().unwrap()).unwrap();
+    let public_key = hex::decode(json["signing_key"]["public_key_hex"].as_str().unwrap()).unwrap();
 
     let result = Decoder::new(qr_data)
         .verify_with_ed25519(&public_key)
@@ -144,7 +122,7 @@ fn test_basic_ed25519() {
 
     assert_eq!(
         result.claim169.id.as_deref(),
-        json["expected"]["claim169"]["id"].as_str()
+        json["expected_claim169"]["id"].as_str()
     );
 }
 ```
@@ -156,15 +134,15 @@ import json
 from claim169 import Decoder
 
 def test_basic_ed25519():
-    with open("test-vectors/valid/basic_ed25519.json") as f:
+    with open("test-vectors/valid/ed25519-signed.json") as f:
         vector = json.load(f)
 
     qr_data = vector["qr_data"]
-    public_key = bytes.fromhex(vector["keys"]["ed25519_public"])
+    public_key = bytes.fromhex(vector["signing_key"]["public_key_hex"])
 
     result = Decoder(qr_data).verify_with_ed25519(public_key).decode()
 
-    assert result.claim169.id == vector["expected"]["claim169"]["id"]
+    assert result.claim169.id == vector["expected_claim169"]["id"]
 ```
 
 ### TypeScript
@@ -175,16 +153,16 @@ import { Decoder } from 'claim169';
 
 test('basic_ed25519', () => {
   const vector = JSON.parse(
-    readFileSync('test-vectors/valid/basic_ed25519.json', 'utf-8')
+    readFileSync('test-vectors/valid/ed25519-signed.json', 'utf-8')
   );
 
-  const publicKey = Buffer.from(vector.keys.ed25519_public, 'hex');
+  const publicKey = Buffer.from(vector.signing_key.public_key_hex, 'hex');
 
   const result = new Decoder(vector.qr_data)
     .verifyWithEd25519(new Uint8Array(publicKey))
     .decode();
 
-  expect(result.claim169.id).toBe(vector.expected.claim169.id);
+  expect(result.claim169.id).toBe(vector.expected_claim169.id);
 });
 ```
 

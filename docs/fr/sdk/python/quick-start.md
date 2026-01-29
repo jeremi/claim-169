@@ -6,6 +6,9 @@ Ce guide couvre les opérations essentielles : encoder des identifiants et déco
 
 L’opération la plus courante est de décoder un QR code scanné depuis un identifiant.
 
+!!! warning "Ne pas modifier la chaîne Base45"
+    L’alphabet Base45 inclut un caractère espace (`" "`). Conservez le texte scanné tel quel (pas de `.strip()`, `.trim()`, ni normalisation des espaces), sinon vous risquez de corrompre des identifiants valides.
+
 ### Avec vérification Ed25519
 
 ```python

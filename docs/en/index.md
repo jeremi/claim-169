@@ -47,6 +47,13 @@ flowchart LR
 <code>npm install claim169</code>
 </div>
 
+<div class="sdk-card" markdown>
+<h3>Kotlin</h3>
+<p>Android & JVM via native bindings</p>
+<a href="sdk/kotlin/" class="md-button">Get Started</a>
+<code>implementation(&quot;org.acn.claim169:claim169-core:&lt;version&gt;&quot;)</code>
+</div>
+
 </div>
 
 ## Key Features

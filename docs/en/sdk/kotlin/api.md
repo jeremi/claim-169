@@ -185,7 +185,7 @@ fun allowUnverified()
 
 Allow decoding without signature verification.
 
-**Security warning**: Unverified credentials cannot be trusted.
+**Security warning**: Credentials decoded with verification skipped (status `Skipped`) cannot be trusted.
 
 ### clockSkewTolerance
 

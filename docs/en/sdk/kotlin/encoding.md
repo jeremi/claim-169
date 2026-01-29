@@ -20,6 +20,8 @@ The `claim169 {}` builder provides a type-safe DSL for creating identity data:
 
 ```kotlin
 import org.acn.claim169.claim169
+import org.acn.claim169.Gender
+import org.acn.claim169.MaritalStatus
 
 // Create with all demographics
 val data = claim169 {
@@ -31,12 +33,12 @@ val data = claim169 {
     middleName = "Marie"
     lastName = "Doe"
     dateOfBirth = "1990-05-15"
-    gender = 2  // 1=Male, 2=Female, 3=Other
+    genderEnum = Gender.Female
     address = "123 Main Street, Springfield, IL 62701"
     email = "jane.doe@example.org"
     phone = "+1-555-123-4567"
     nationality = "US"
-    maritalStatus = 1  // 1=Unmarried, 2=Married, 3=Divorced
+    maritalStatusEnum = MaritalStatus.Unmarried
     guardian = "John Doe Sr."
     secondaryFullName = "Juana Maria Doe"
     secondaryLanguage = "es"
@@ -58,15 +60,18 @@ val data = claim169 {
 | `middleName` | `String?` | Middle name |
 | `lastName` | `String?` | Last/family name |
 | `dateOfBirth` | `String?` | Date of birth (YYYY-MM-DD) |
-| `gender` | `Int?` | 1=Male, 2=Female, 3=Other |
+| `gender` | `Long?` | 1=Male, 2=Female, 3=Other (or use `genderEnum`) |
+| `genderEnum` | `Gender?` | Type-safe: `Gender.Male`, `Gender.Female`, `Gender.Other` |
 | `address` | `String?` | Full address |
 | `email` | `String?` | Email address |
 | `phone` | `String?` | Phone number |
 | `nationality` | `String?` | Nationality code |
-| `maritalStatus` | `Int?` | 1=Unmarried, 2=Married, 3=Divorced |
+| `maritalStatus` | `Long?` | 1=Unmarried, 2=Married, 3=Divorced (or use `maritalStatusEnum`) |
+| `maritalStatusEnum` | `MaritalStatus?` | Type-safe: `MaritalStatus.Unmarried`, `MaritalStatus.Married`, `MaritalStatus.Divorced` |
 | `guardian` | `String?` | Guardian name |
 | `photo` | `ByteArray?` | Photo data |
-| `photoFormat` | `Int?` | 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP |
+| `photoFormat` | `Long?` | 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP (or use `photoFormatEnum`) |
+| `photoFormatEnum` | `PhotoFormat?` | Type-safe: `PhotoFormat.Jpeg`, `PhotoFormat.Jpeg2000`, `PhotoFormat.Avif`, `PhotoFormat.Webp` |
 | `secondaryFullName` | `String?` | Name in secondary language |
 | `secondaryLanguage` | `String?` | Secondary language code |
 | `locationCode` | `String?` | Location code |
@@ -84,7 +89,7 @@ val data = claim169 {
     id = "PHOTO-001"
     fullName = "Jane Doe"
     photo = photoData
-    photoFormat = 1  // JPEG
+    photoFormatEnum = PhotoFormat.Jpeg
 }
 ```
 
@@ -220,20 +225,24 @@ For HSM or KMS signing, provide a `Signer` implementation:
 ```kotlin
 import org.acn.claim169.Claim169
 import org.acn.claim169.Signer
+import org.acn.claim169.CoseAlgorithm
 
 val customSigner = object : Signer {
-    override val algorithm: String = "EdDSA"
-    override val keyId: ByteArray? = null
-
-    override fun sign(data: ByteArray): ByteArray {
+    override fun sign(algorithm: String, keyId: ByteArray?, data: ByteArray): ByteArray {
         // Your HSM/KMS signing logic here
         return yourHsm.sign(data)
     }
 }
 
 val qrData = Claim169.encode(data, meta) {
-    signWith(customSigner)
+    signWith(customSigner, CoseAlgorithm.EdDSA)
 }
+```
+
+The `CoseAlgorithm` enum provides type-safe algorithm selection. You can also pass a raw string:
+
+```kotlin
+signWith(customSigner, "EdDSA")
 ```
 
 ## Full Example
@@ -255,12 +264,12 @@ val data = claim169 {
     middleName = "Marie"
     lastName = "Doe"
     dateOfBirth = "1990-05-15"
-    gender = 2
+    genderEnum = Gender.Female
     address = "123 Main Street, Springfield, IL 62701, USA"
     email = "jane.doe@example.org"
     phone = "+1-555-123-4567"
     nationality = "US"
-    maritalStatus = 2
+    maritalStatusEnum = MaritalStatus.Married
     secondaryFullName = "Juana Maria Doe"
     secondaryLanguage = "es"
     locationCode = "US-IL-SPR"

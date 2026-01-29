@@ -201,6 +201,31 @@ val result = Claim169.decode(qrData) {
 check(result.claim169.face == null)
 ```
 
+## Closeable Decode (Memory Zeroization)
+
+For applications handling sensitive biometric data, use `decodeCloseable()` to ensure
+byte arrays are zeroized when you're done:
+
+```kotlin
+import org.acn.claim169.Claim169
+
+Claim169.decodeCloseable(qrData) {
+    verifyWithEd25519(publicKey)
+}.use { result ->
+    val name = result.data.claim169.fullName
+    val face = result.data.claim169.face
+    // ... process credential
+}
+// All biometric and photo byte arrays are now zeroed
+```
+
+The `CloseableDecodeResult` implements `Closeable`, so Kotlin's `.use {}` block
+automatically calls `close()` which zeroizes photo, bestQualityFingers, and all
+biometric data byte arrays.
+
+!!! tip "Java Users"
+    For Java-specific examples and patterns, see the [Java Usage Guide](java-usage.md).
+
 ## Accessing Decoded Data
 
 ### DecodeResultData
@@ -223,6 +248,9 @@ val status = result.verificationStatus  // "verified", "skipped", etc.
 
 // Helper property
 val isVerified = result.isVerified  // true/false
+
+// Type-safe verification status enum
+val statusEnum = result.verificationStatusEnum()  // VerificationStatus.Verified, etc.
 ```
 
 ### Claim169Data Fields
@@ -239,15 +267,18 @@ claim.firstName             // String?
 claim.middleName            // String?
 claim.lastName              // String?
 claim.dateOfBirth           // String?
-claim.gender                // Int? (1=Male, 2=Female, 3=Other)
+claim.gender                // Long? (1=Male, 2=Female, 3=Other)
+// Use Gender.fromValue(claim.gender!!) for type-safe enum
 claim.address               // String?
 claim.email                 // String?
 claim.phone                 // String?
 claim.nationality           // String?
-claim.maritalStatus         // Int? (1=Unmarried, 2=Married, 3=Divorced)
+claim.maritalStatus         // Long? (1=Unmarried, 2=Married, 3=Divorced)
+// Use MaritalStatus.fromValue(claim.maritalStatus!!) for type-safe enum
 claim.guardian              // String?
 claim.photo                 // ByteArray?
-claim.photoFormat           // Int? (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP)
+claim.photoFormat           // Long? (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP)
+// Use PhotoFormat.fromValue(claim.photoFormat!!) for type-safe enum
 claim.secondaryFullName     // String?
 claim.secondaryLanguage     // String?
 claim.locationCode          // String?

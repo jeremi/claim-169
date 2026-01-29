@@ -533,7 +533,8 @@ export class Decoder implements IDecoder {
 
   /**
    * Allow decoding without signature verification.
-   * WARNING: Unverified credentials cannot be trusted. Use for testing only.
+   * WARNING: Credentials decoded with verification skipped (`verificationStatus === "skipped"`)
+   * cannot be trusted. Use for testing only.
    * @returns The decoder instance for chaining
    */
   allowUnverified(): Decoder {

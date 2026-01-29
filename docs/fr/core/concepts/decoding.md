@@ -12,6 +12,9 @@ QR Code → Base45 → zlib → COSE → CWT → Claim 169
 
 À chaque étape, la bibliothèque valide la structure et applique des contrôles de sécurité.
 
+!!! warning "Ne pas modifier la chaîne Base45"
+    L’alphabet Base45 inclut un caractère espace (`" "`). Ne pas utiliser `.trim()`, ne pas normaliser les espaces, sinon vous risquez de corrompre des identifiants valides.
+
 ## Modèle de vérification
 
 ### Décisions de confiance
@@ -32,8 +35,8 @@ Après décodage, vérifiez le statut :
 | Statut | Signification |
 |--------|---------------|
 | `Verified` | Signature valide avec la clé fournie |
-| `Unverified` | Décodé sans vérification (tests uniquement) |
-| Erreur | Signature invalide ou échec de vérification |
+| `Skipped` | Décodé sans vérification (tests uniquement) |
+| Erreur | Signature invalide / échec de vérification |
 
 ## Vérification de signature
 
@@ -41,7 +44,7 @@ Après décodage, vérifiez le statut :
 
 La bibliothèque exige la vérification par défaut car :
 
-- Des identifiants non vérifiés peuvent être falsifiés
+- Des identifiants décodés sans vérification peuvent être falsifiés
 - Un attaquant peut modifier des identifiants légitimes
 - Les hypothèses de confiance doivent être explicites
 
@@ -141,7 +144,7 @@ Un décodage réussi retourne :
 |-------|---------|
 | `claim169` | Données d’identité (id, nom, date de naissance, etc.) |
 | `cwt_meta` | Métadonnées du jeton (issuer, horodatages) |
-| `verification_status` | `Verified` ou `Unverified` |
+| `verification_status` | `Verified` ou `Skipped` |
 
 ## Gestion des erreurs
 

@@ -38,6 +38,9 @@ fn create_credential(private_key: &[u8]) -> claim169_core::Result<String> {
 
 Lire et vérifier un QR code :
 
+!!! warning "Ne pas modifier la chaîne Base45"
+    L’alphabet Base45 inclut un caractère espace (`" "`). Conservez le texte scanné tel quel (pas de `.trim()` ni normalisation des espaces), sinon vous risquez de corrompre des identifiants valides.
+
 ```rust
 use claim169_core::{Decoder, VerificationStatus};
 

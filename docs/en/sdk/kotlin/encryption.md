@@ -181,12 +181,12 @@ For HSM or KMS encryption during encoding:
 ```kotlin
 import org.acn.claim169.Claim169
 import org.acn.claim169.Encryptor
+import org.acn.claim169.CoseAlgorithm
 
 val customEncryptor = object : Encryptor {
-    override val algorithm: String = "A256GCM"
-    override val keyId: ByteArray? = null
-
     override fun encrypt(
+        algorithm: String,
+        keyId: ByteArray?,
         nonce: ByteArray,
         aad: ByteArray,
         plaintext: ByteArray
@@ -198,8 +198,14 @@ val customEncryptor = object : Encryptor {
 
 val qrData = Claim169.encode(data, meta) {
     signWithEd25519(signKey)
-    encryptWith(customEncryptor)
+    encryptWith(customEncryptor, CoseAlgorithm.A256GCM)
 }
+```
+
+The `CoseAlgorithm` enum provides type-safe algorithm selection. You can also pass a raw string:
+
+```kotlin
+encryptWith(customEncryptor, "A256GCM")
 ```
 
 ## Full Custom Crypto

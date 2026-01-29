@@ -6,6 +6,9 @@ This guide covers the essential operations: encoding credentials and decoding QR
 
 The most common operation is decoding a QR code that was scanned from an identity credential.
 
+!!! warning "Do not trim Base45"
+    The Base45 alphabet includes a literal space character (`" "`). Preserve the scanned QR text exactly as-is (no `.strip()`, `.trim()`, or whitespace normalization), or you can corrupt valid credentials.
+
 ### With Ed25519 Verification
 
 ```python
