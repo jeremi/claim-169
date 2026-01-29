@@ -22,7 +22,7 @@ class EncodeDecodeRoundtripTest {
             id = "ROUNDTRIP-001"
             fullName = "Roundtrip Test"
             dateOfBirth = "20000101"
-            gender = 1L
+            genderEnum = Gender.Male
         }
         val meta = cwtMeta {
             issuer = "https://test.example.com"
@@ -45,7 +45,7 @@ class EncodeDecodeRoundtripTest {
         assertEquals("ROUNDTRIP-001", result.claim169.id)
         assertEquals("Roundtrip Test", result.claim169.fullName)
         assertEquals("20000101", result.claim169.dateOfBirth)
-        assertEquals(1L, result.claim169.gender)
+        assertEquals(Gender.Male.value, result.claim169.gender)
         assertEquals("https://test.example.com", result.cwtMeta.issuer)
         assertEquals(2000000000L, result.cwtMeta.expiresAt)
         assertEquals("verified", result.verificationStatus)
@@ -197,12 +197,12 @@ class EncodeDecodeRoundtripTest {
             middleName = "Middle"
             lastName = "Person"
             dateOfBirth = "19850310"
-            gender = 1L
+            genderEnum = Gender.Male
             address = "456 Test St"
             email = "test@example.com"
             phone = "+1234567890"
             nationality = "GBR"
-            maritalStatus = 1L
+            maritalStatusEnum = MaritalStatus.Unmarried
             guardian = "GUARDIAN-001"
             secondaryFullName = "Secondary Name"
             secondaryLanguage = "fra"
@@ -236,12 +236,12 @@ class EncodeDecodeRoundtripTest {
         assertEquals("Middle", claim.middleName)
         assertEquals("Person", claim.lastName)
         assertEquals("19850310", claim.dateOfBirth)
-        assertEquals(1L, claim.gender)
+        assertEquals(Gender.Male.value, claim.gender)
         assertEquals("456 Test St", claim.address)
         assertEquals("test@example.com", claim.email)
         assertEquals("+1234567890", claim.phone)
         assertEquals("GBR", claim.nationality)
-        assertEquals(1L, claim.maritalStatus)
+        assertEquals(MaritalStatus.Unmarried.value, claim.maritalStatus)
         assertEquals("GUARDIAN-001", claim.guardian)
         assertEquals("Secondary Name", claim.secondaryFullName)
         assertEquals("fra", claim.secondaryLanguage)

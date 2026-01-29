@@ -124,7 +124,7 @@ class EdgeCaseDataTest {
             id = "PHOTO-001"
             fullName = "Photo Test"
             photo = photoData
-            photoFormat = 1L // JPEG
+            photoFormatEnum = PhotoFormat.Jpeg
         }
         val meta = cwtMeta {
             issuer = "https://test.example.com"
@@ -143,7 +143,7 @@ class EdgeCaseDataTest {
         assertEquals("PHOTO-001", result.claim169.id)
         assertNotNull(result.claim169.photo)
         assertArrayEquals(photoData, result.claim169.photo)
-        assertEquals(1L, result.claim169.photoFormat)
+        assertEquals(PhotoFormat.Jpeg.value, result.claim169.photoFormat)
     }
 
     @Test
