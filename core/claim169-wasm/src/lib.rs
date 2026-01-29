@@ -29,7 +29,9 @@ use claim169_core::crypto::traits::{
 };
 use claim169_core::error::{CryptoError, CryptoResult};
 use claim169_core::model::{
-    Biometric as CoreBiometric, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
+    Biometric as CoreBiometric, CertHashAlgorithm as CoreCertHashAlgorithm,
+    CertificateHash as CoreCertificateHash, Claim169 as CoreClaim169, CwtMeta as CoreCwtMeta,
+    X509Headers as CoreX509Headers,
 };
 use claim169_core::{Decoder, Encoder};
 use coset::iana;
@@ -329,6 +331,58 @@ impl From<&CoreCwtMeta> for JsCwtMeta {
     }
 }
 
+/// X.509 certificate hash (COSE_CertHash)
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsCertificateHash {
+    /// Hash algorithm identifier (numeric COSE algorithm ID or string name)
+    pub algorithm: String,
+    /// Hash value bytes
+    pub hash_value: Vec<u8>,
+}
+
+impl From<&CoreCertificateHash> for JsCertificateHash {
+    fn from(c: &CoreCertificateHash) -> Self {
+        let algorithm = match &c.algorithm {
+            CoreCertHashAlgorithm::Numeric(n) => n.to_string(),
+            CoreCertHashAlgorithm::Named(s) => s.clone(),
+        };
+        JsCertificateHash {
+            algorithm,
+            hash_value: c.hash_value.clone(),
+        }
+    }
+}
+
+/// X.509 headers from COSE protected/unprotected headers
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsX509Headers {
+    /// x5bag (label 32): Unordered bag of X.509 certificates (DER-encoded)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x5bag: Option<Vec<Vec<u8>>>,
+    /// x5chain (label 33): Ordered chain of X.509 certificates (DER-encoded)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x5chain: Option<Vec<Vec<u8>>>,
+    /// x5t (label 34): Certificate thumbprint hash
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x5t: Option<JsCertificateHash>,
+    /// x5u (label 35): URI pointing to an X.509 certificate
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x5u: Option<String>,
+}
+
+impl From<&CoreX509Headers> for JsX509Headers {
+    fn from(h: &CoreX509Headers) -> Self {
+        JsX509Headers {
+            x5bag: h.x5bag.clone(),
+            x5chain: h.x5chain.clone(),
+            x5t: h.x5t.as_ref().map(JsCertificateHash::from),
+            x5u: h.x5u.clone(),
+        }
+    }
+}
+
 /// Claim 169 identity data
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -474,6 +528,7 @@ pub struct JsDecodeResult {
     pub claim169: JsClaim169,
     pub cwt_meta: JsCwtMeta,
     pub verification_status: String,
+    pub x509_headers: JsX509Headers,
 }
 
 // ============================================================================
@@ -735,6 +790,7 @@ impl WasmDecoder {
             claim169: JsClaim169::from(&result.claim169),
             cwt_meta: JsCwtMeta::from(&result.cwt_meta),
             verification_status: format!("{}", result.verification_status),
+            x509_headers: JsX509Headers::from(&result.x509_headers),
         };
 
         serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))

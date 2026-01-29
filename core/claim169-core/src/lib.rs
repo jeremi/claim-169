@@ -139,6 +139,7 @@ pub mod encode;
 pub mod error;
 pub mod model;
 pub mod pipeline;
+pub mod serde_utils;
 
 // Re-export builder pattern API (primary interface)
 pub use decode::Decoder;
@@ -156,8 +157,8 @@ pub use error::{Claim169Error, CryptoError, CryptoResult, Result};
 
 // Re-export model types
 pub use model::{
-    Biometric, BiometricFormat, BiometricSubFormat, Claim169, CwtMeta, Gender, MaritalStatus,
-    PhotoFormat, VerificationStatus,
+    Biometric, BiometricFormat, BiometricSubFormat, CertHashAlgorithm, CertificateHash, Claim169,
+    CwtMeta, Gender, MaritalStatus, PhotoFormat, VerificationStatus, X509Headers,
 };
 
 // Re-export software crypto implementations when feature is enabled
@@ -219,6 +220,12 @@ pub struct DecodeResult {
     /// - `Skipped`: No verifier was provided (only if `allow_unverified` was set)
     /// - `Failed`: Signature verification failed (this typically returns an error instead)
     pub verification_status: VerificationStatus,
+
+    /// X.509 certificate headers from the COSE structure.
+    ///
+    /// Contains any X.509 certificate information present in the COSE
+    /// protected/unprotected headers (x5bag, x5chain, x5t, x5u).
+    pub x509_headers: X509Headers,
 
     /// Warnings generated during decoding.
     ///

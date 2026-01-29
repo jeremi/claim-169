@@ -100,7 +100,13 @@
       "divorced": "Divorcé(e)"
     },
     "address": "Adresse",
-    "addressPlaceholder": "123 Rue Principale, Ville, Pays"
+    "addressPlaceholder": "123 Rue Principale, Ville, Pays",
+    "locationCode": "Code de localisation",
+    "locationCodePlaceholder": "849VCWC8+R9",
+    "legalStatus": "Statut légal",
+    "legalStatusPlaceholder": "citoyen",
+    "countryOfIssuance": "Pays d'émission",
+    "countryOfIssuancePlaceholder": "FR"
   },
   "verification": {
     "verified": "Signature vérifiée",

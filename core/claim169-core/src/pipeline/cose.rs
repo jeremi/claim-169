@@ -1,8 +1,11 @@
-use coset::{iana, CborSerializable, CoseEncrypt0, CoseSign1, Header, TaggedCborSerializable};
+use ciborium::Value;
+use coset::{
+    iana, CborSerializable, CoseEncrypt0, CoseSign1, Header, Label, TaggedCborSerializable,
+};
 
 use crate::crypto::traits::{Decryptor, KeyResolver, SignatureVerifier};
 use crate::error::{Claim169Error, CryptoError, Result};
-use crate::model::VerificationStatus;
+use crate::model::{CertHashAlgorithm, CertificateHash, VerificationStatus, X509Headers};
 
 /// Result of parsing and optionally verifying/decrypting a COSE structure
 #[derive(Debug)]
@@ -18,6 +21,9 @@ pub struct CoseResult {
 
     /// Key ID from COSE header (if present)
     pub key_id: Option<Vec<u8>>,
+
+    /// X.509 certificate headers from COSE protected/unprotected headers
+    pub x509_headers: X509Headers,
 }
 
 /// Detected COSE message type
@@ -99,6 +105,7 @@ fn process_sign1_with_resolver<R: KeyResolver>(
 ) -> Result<CoseResult> {
     let algorithm = get_algorithm(&sign1.protected.header);
     let key_id = get_key_id(&sign1.protected.header, &sign1.unprotected);
+    let x509_headers = get_x509_headers(&sign1.protected.header, &sign1.unprotected);
 
     let payload = sign1
         .payload
@@ -132,6 +139,7 @@ fn process_sign1_with_resolver<R: KeyResolver>(
         verification_status,
         algorithm,
         key_id,
+        x509_headers,
     })
 }
 
@@ -142,6 +150,7 @@ fn process_encrypt0_with_resolver<R: KeyResolver>(
 ) -> Result<CoseResult> {
     let algorithm = get_algorithm(&encrypt0.protected.header);
     let key_id = get_key_id(&encrypt0.protected.header, &encrypt0.unprotected);
+    let x509_headers = get_x509_headers(&encrypt0.protected.header, &encrypt0.unprotected);
 
     // Require explicit algorithm
     let alg = algorithm.ok_or_else(|| {
@@ -172,7 +181,7 @@ fn process_encrypt0_with_resolver<R: KeyResolver>(
     })?;
 
     // Build AAD
-    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default());
+    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default())?;
 
     // Decrypt
     let plaintext = decryptor
@@ -189,20 +198,26 @@ fn process_encrypt0_with_resolver<R: KeyResolver>(
             Ok(inner_result) => return Ok(inner_result),
             Err(Claim169Error::SignatureInvalid(_)) => {
                 // Inner signature verification explicitly failed
-                // Extract the signature algorithm from the inner COSE_Sign1
-                let inner_alg = CoseSign1::from_tagged_slice(&plaintext)
+                // Extract from inner COSE_Sign1
+                let inner_sign1 = CoseSign1::from_tagged_slice(&plaintext)
                     .or_else(|_| CoseSign1::from_slice(&plaintext))
-                    .ok()
-                    .and_then(|sign1| get_algorithm(&sign1.protected.header));
-                let inner_kid = CoseSign1::from_tagged_slice(&plaintext)
-                    .or_else(|_| CoseSign1::from_slice(&plaintext))
-                    .ok()
-                    .and_then(|sign1| get_key_id(&sign1.protected.header, &sign1.unprotected));
+                    .ok();
+                let inner_alg = inner_sign1
+                    .as_ref()
+                    .and_then(|s| get_algorithm(&s.protected.header));
+                let inner_kid = inner_sign1
+                    .as_ref()
+                    .and_then(|s| get_key_id(&s.protected.header, &s.unprotected));
+                let inner_x509 = inner_sign1
+                    .as_ref()
+                    .map(|s| get_x509_headers(&s.protected.header, &s.unprotected))
+                    .unwrap_or_default();
                 return Ok(CoseResult {
                     payload: plaintext,
                     verification_status: VerificationStatus::Failed,
                     algorithm: inner_alg,
                     key_id: inner_kid,
+                    x509_headers: inner_x509,
                 });
             }
             Err(e) => return Err(e),
@@ -215,6 +230,7 @@ fn process_encrypt0_with_resolver<R: KeyResolver>(
         verification_status: VerificationStatus::Skipped,
         algorithm: Some(alg),
         key_id,
+        x509_headers,
     })
 }
 
@@ -222,6 +238,7 @@ fn process_encrypt0_with_resolver<R: KeyResolver>(
 fn process_sign1(sign1: CoseSign1, verifier: Option<&dyn SignatureVerifier>) -> Result<CoseResult> {
     let algorithm = get_algorithm(&sign1.protected.header);
     let key_id = get_key_id(&sign1.protected.header, &sign1.unprotected);
+    let x509_headers = get_x509_headers(&sign1.protected.header, &sign1.unprotected);
 
     let payload = sign1
         .payload
@@ -255,6 +272,7 @@ fn process_sign1(sign1: CoseSign1, verifier: Option<&dyn SignatureVerifier>) -> 
         verification_status,
         algorithm,
         key_id,
+        x509_headers,
     })
 }
 
@@ -266,6 +284,7 @@ fn process_encrypt0(
 ) -> Result<CoseResult> {
     let algorithm = get_algorithm(&encrypt0.protected.header);
     let key_id = get_key_id(&encrypt0.protected.header, &encrypt0.unprotected);
+    let x509_headers = get_x509_headers(&encrypt0.protected.header, &encrypt0.unprotected);
 
     let decryptor = decryptor
         .ok_or_else(|| Claim169Error::DecryptionFailed("no decryptor provided".to_string()))?;
@@ -288,7 +307,7 @@ fn process_encrypt0(
 
     // Build AAD (Additional Authenticated Data) - Enc_structure
     // For COSE_Encrypt0, this is ["Encrypt0", protected, external_aad]
-    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default());
+    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default())?;
 
     // Require explicit algorithm when decryption is requested - no defaults allowed
     // This prevents algorithm confusion attacks
@@ -314,20 +333,26 @@ fn process_encrypt0(
             Ok(inner_result) => return Ok(inner_result),
             Err(Claim169Error::SignatureInvalid(_)) => {
                 // Inner signature verification explicitly failed
-                // Extract the signature algorithm from the inner COSE_Sign1
-                let inner_alg = CoseSign1::from_tagged_slice(&plaintext)
+                // Extract from inner COSE_Sign1
+                let inner_sign1 = CoseSign1::from_tagged_slice(&plaintext)
                     .or_else(|_| CoseSign1::from_slice(&plaintext))
-                    .ok()
-                    .and_then(|sign1| get_algorithm(&sign1.protected.header));
-                let inner_kid = CoseSign1::from_tagged_slice(&plaintext)
-                    .or_else(|_| CoseSign1::from_slice(&plaintext))
-                    .ok()
-                    .and_then(|sign1| get_key_id(&sign1.protected.header, &sign1.unprotected));
+                    .ok();
+                let inner_alg = inner_sign1
+                    .as_ref()
+                    .and_then(|s| get_algorithm(&s.protected.header));
+                let inner_kid = inner_sign1
+                    .as_ref()
+                    .and_then(|s| get_key_id(&s.protected.header, &s.unprotected));
+                let inner_x509 = inner_sign1
+                    .as_ref()
+                    .map(|s| get_x509_headers(&s.protected.header, &s.unprotected))
+                    .unwrap_or_default();
                 return Ok(CoseResult {
                     payload: plaintext,
                     verification_status: VerificationStatus::Failed,
                     algorithm: inner_alg,
                     key_id: inner_kid,
+                    x509_headers: inner_x509,
                 });
             }
             Err(e) => return Err(e), // Other errors propagate
@@ -340,14 +365,13 @@ fn process_encrypt0(
         verification_status: VerificationStatus::Skipped,
         algorithm: Some(alg),
         key_id,
+        x509_headers,
     })
 }
 
 /// Build the Enc_structure AAD for COSE_Encrypt0
 /// Structure: ["Encrypt0", protected, external_aad]
-fn build_encrypt0_aad(protected_bytes: &[u8]) -> Vec<u8> {
-    use ciborium::Value;
-
+fn build_encrypt0_aad(protected_bytes: &[u8]) -> Result<Vec<u8>> {
     let enc_structure = Value::Array(vec![
         Value::Text("Encrypt0".to_string()),
         Value::Bytes(protected_bytes.to_vec()),
@@ -355,8 +379,9 @@ fn build_encrypt0_aad(protected_bytes: &[u8]) -> Vec<u8> {
     ]);
 
     let mut aad = Vec::new();
-    ciborium::into_writer(&enc_structure, &mut aad).expect("CBOR encoding should not fail");
-    aad
+    ciborium::into_writer(&enc_structure, &mut aad)
+        .map_err(|e| Claim169Error::CborEncode(format!("failed to encode AAD: {}", e)))?;
+    Ok(aad)
 }
 
 /// Extract algorithm from COSE header
@@ -377,6 +402,122 @@ fn get_key_id(protected: &Header, unprotected: &Header) -> Option<Vec<u8>> {
     } else {
         None
     }
+}
+
+/// Extract X.509 certificate headers from COSE protected/unprotected headers.
+///
+/// COSE X.509 header labels (RFC 9360):
+/// - 32: x5bag - unordered bag of X.509 certificates
+/// - 33: x5chain - ordered certificate chain
+/// - 34: x5t - certificate thumbprint (hash)
+/// - 35: x5u - URI to X.509 certificate
+///
+/// Protected header values take precedence over unprotected.
+fn get_x509_headers(protected: &Header, unprotected: &Header) -> X509Headers {
+    let mut headers = X509Headers::default();
+
+    // Process both headers, protected takes precedence
+    for header in [protected, unprotected] {
+        for (label, value) in &header.rest {
+            match label {
+                // x5bag (32): Unordered bag of X.509 certificates
+                Label::Int(32) if headers.x5bag.is_none() => {
+                    headers.x5bag = parse_x509_certs(value);
+                }
+                // x5chain (33): Ordered certificate chain
+                Label::Int(33) if headers.x5chain.is_none() => {
+                    headers.x5chain = parse_x509_certs(value);
+                }
+                // x5t (34): Certificate thumbprint
+                Label::Int(34) if headers.x5t.is_none() => {
+                    headers.x5t = parse_cert_hash(value);
+                }
+                // x5u (35): URI to certificate
+                Label::Int(35) if headers.x5u.is_none() => {
+                    if let Value::Text(uri) = value {
+                        headers.x5u = Some(uri.clone());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    headers
+}
+
+/// Maximum number of certificates allowed in x5bag/x5chain arrays.
+const MAX_CERTIFICATES: usize = 10;
+
+/// Maximum size of a single DER-encoded certificate (16KB).
+const MAX_CERTIFICATE_SIZE: usize = 16 * 1024;
+
+/// Parse X.509 certificates from CBOR value.
+///
+/// Can be either a single certificate (bstr) or an array of certificates.
+/// Enforces size limits to prevent resource exhaustion from malicious inputs.
+fn parse_x509_certs(value: &Value) -> Option<Vec<Vec<u8>>> {
+    match value {
+        // Single certificate
+        Value::Bytes(cert) => {
+            if cert.len() > MAX_CERTIFICATE_SIZE {
+                return None;
+            }
+            Some(vec![cert.clone()])
+        }
+        // Array of certificates
+        Value::Array(certs) => {
+            if certs.len() > MAX_CERTIFICATES {
+                return None;
+            }
+            let result: Vec<Vec<u8>> = certs
+                .iter()
+                .filter_map(|v| match v {
+                    Value::Bytes(cert) if cert.len() <= MAX_CERTIFICATE_SIZE => Some(cert.clone()),
+                    _ => None,
+                })
+                .collect();
+            if result.is_empty() {
+                None
+            } else {
+                Some(result)
+            }
+        }
+        _ => None,
+    }
+}
+
+/// Parse certificate hash (COSE_CertHash) from CBOR value.
+///
+/// COSE_CertHash is an array: [algorithm, hash_value]
+/// where algorithm can be an int or tstr.
+fn parse_cert_hash(value: &Value) -> Option<CertificateHash> {
+    if let Value::Array(arr) = value {
+        if arr.len() >= 2 {
+            let algorithm = match &arr[0] {
+                Value::Integer(i) => {
+                    let n: i128 = (*i).into();
+                    i64::try_from(n).ok().map(CertHashAlgorithm::Numeric)
+                }
+                Value::Text(s) => Some(CertHashAlgorithm::Named(s.clone())),
+                _ => None,
+            };
+
+            let hash_value = if let Value::Bytes(h) = &arr[1] {
+                Some(h.clone())
+            } else {
+                None
+            };
+
+            if let (Some(alg), Some(hash)) = (algorithm, hash_value) {
+                return Some(CertificateHash {
+                    algorithm: alg,
+                    hash_value: hash,
+                });
+            }
+        }
+    }
+    None
 }
 
 /// Create a COSE_Sign1 structure for encoding (used in test vector generation)
@@ -1119,10 +1260,183 @@ mod tests {
             verification_status: VerificationStatus::Verified,
             algorithm: Some(iana::Algorithm::EdDSA),
             key_id: Some(vec![4, 5, 6]),
+            x509_headers: X509Headers::default(),
         };
 
         let debug_str = format!("{:?}", result);
         assert!(debug_str.contains("payload"));
         assert!(debug_str.contains("verification_status"));
+        assert!(debug_str.contains("x509_headers"));
+    }
+
+    // ========== X.509 Header Tests ==========
+    #[test]
+    fn test_sign1_with_x5chain() {
+        // Create a COSE_Sign1 with x5chain (label 33) in the protected header
+        let cert = vec![0x30, 0x82, 0x01, 0x22]; // Mock DER certificate header
+
+        let header_builder = coset::HeaderBuilder::new().algorithm(iana::Algorithm::EdDSA);
+
+        // Add x5chain (label 33) with single certificate
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(header_builder.build())
+            .unprotected(
+                coset::HeaderBuilder::new()
+                    .value(33, Value::Bytes(cert.clone()))
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        assert!(result.x509_headers.x5chain.is_some());
+        assert_eq!(result.x509_headers.x5chain.as_ref().unwrap().len(), 1);
+        assert_eq!(result.x509_headers.x5chain.as_ref().unwrap()[0], cert);
+    }
+
+    #[test]
+    fn test_sign1_with_x5chain_array() {
+        // Create a COSE_Sign1 with x5chain as an array of certificates
+        let cert1 = vec![0x30, 0x82, 0x01, 0x22]; // Mock leaf cert
+        let cert2 = vec![0x30, 0x82, 0x02, 0x33]; // Mock root cert
+
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .unprotected(
+                coset::HeaderBuilder::new()
+                    .value(
+                        33,
+                        Value::Array(vec![
+                            Value::Bytes(cert1.clone()),
+                            Value::Bytes(cert2.clone()),
+                        ]),
+                    )
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        assert!(result.x509_headers.x5chain.is_some());
+        let chain = result.x509_headers.x5chain.as_ref().unwrap();
+        assert_eq!(chain.len(), 2);
+        assert_eq!(chain[0], cert1);
+        assert_eq!(chain[1], cert2);
+    }
+
+    #[test]
+    fn test_sign1_with_x5u() {
+        // Create a COSE_Sign1 with x5u (label 35) URI
+        let uri = "https://example.com/cert.pem";
+
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .value(35, Value::Text(uri.to_string()))
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        assert_eq!(result.x509_headers.x5u, Some(uri.to_string()));
+    }
+
+    #[test]
+    fn test_sign1_with_x5t_numeric_algorithm() {
+        // Create a COSE_Sign1 with x5t (label 34) certificate thumbprint
+        // x5t is COSE_CertHash: [algorithm, hash]
+        let hash = vec![0xab; 32]; // 256-bit hash
+
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .unprotected(
+                coset::HeaderBuilder::new()
+                    .value(
+                        34,
+                        Value::Array(vec![
+                            Value::Integer((-16).into()), // SHA-256
+                            Value::Bytes(hash.clone()),
+                        ]),
+                    )
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        assert!(result.x509_headers.x5t.is_some());
+        let x5t = result.x509_headers.x5t.as_ref().unwrap();
+        assert_eq!(x5t.algorithm, CertHashAlgorithm::Numeric(-16));
+        assert_eq!(x5t.hash_value, hash);
+    }
+
+    #[test]
+    fn test_sign1_protected_x509_takes_precedence() {
+        // Protected header values should take precedence over unprotected
+        let protected_uri = "https://protected.example.com/cert.pem";
+        let unprotected_uri = "https://unprotected.example.com/cert.pem";
+
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .value(35, Value::Text(protected_uri.to_string()))
+                    .build(),
+            )
+            .unprotected(
+                coset::HeaderBuilder::new()
+                    .value(35, Value::Text(unprotected_uri.to_string()))
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        // Protected should win
+        assert_eq!(result.x509_headers.x5u, Some(protected_uri.to_string()));
+    }
+
+    #[test]
+    fn test_sign1_no_x509_headers() {
+        // COSE_Sign1 without any X.509 headers
+        let sign1 = coset::CoseSign1Builder::new()
+            .protected(
+                coset::HeaderBuilder::new()
+                    .algorithm(iana::Algorithm::EdDSA)
+                    .build(),
+            )
+            .payload(b"test payload".to_vec())
+            .signature(vec![0u8; 64])
+            .build();
+
+        let tagged = sign1.to_tagged_vec().unwrap();
+        let result = parse_and_verify(&tagged, None, None).unwrap();
+
+        assert!(result.x509_headers.is_empty());
     }
 }
