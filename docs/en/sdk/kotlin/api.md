@@ -1,770 +1,1510 @@
 # API Reference
 
-Complete API documentation for the claim169 Kotlin SDK.
+Complete API documentation for the claim169 Kotlin SDK, auto-generated from source code using [Dokka](https://kotl.in/dokka).
 
-## Claim169 Object
-
-The `Claim169` singleton is the main entry point for encoding and decoding.
-
-### version()
-
-Get the library version.
+## Claim169
 
 ```kotlin
-fun version(): String
+object Claim169
 ```
 
-**Returns:** Version string in semver format (e.g., "0.1.0-alpha.2")
+Main entry point for the MOSIP Claim 169 SDK.
 
-**Example:**
-```kotlin
-import org.acn.claim169.Claim169
+Provides DSL-style decode and encode operations for Claim 169 QR codes.
 
-println(Claim169.version())  // "0.1.0-alpha.2"
-```
-
----
-
-### decode()
-
-Decode a Base45-encoded QR code string using a builder DSL.
+### Decoding
 
 ```kotlin
-fun decode(qrText: String, builder: DecoderBuilder.() -> Unit): DecodeResultData
-```
-
-**Parameters:**
-
-| Name | Type | Description |
-|------|------|-------------|
-| `qrText` | `String` | Base45-encoded QR content |
-| `builder` | `DecoderBuilder.() -> Unit` | DSL block to configure decoding options |
-
-**Returns:** `DecodeResultData`
-
-**Throws:** `Claim169Exception` (sealed class with specific subtypes)
-
-**Example:**
-```kotlin
-val result = Claim169.decode("NCFOXN...") {
+val result = Claim169.decode(qrText) {
     verifyWithEd25519(publicKey)
 }
+println(result.claim169.fullName)
 ```
 
----
-
-### encode()
-
-Encode identity data into a Base45-encoded string using a builder DSL.
+### Encoding
 
 ```kotlin
-fun encode(data: Claim169Data, meta: CwtMetaData, builder: EncoderBuilder.() -> Unit): String
-```
-
-**Parameters:**
-
-| Name | Type | Description |
-|------|------|-------------|
-| `data` | `Claim169Data` | Identity data (created with `claim169 {}` builder) |
-| `meta` | `CwtMetaData` | CWT metadata (created with `cwtMeta {}` builder) |
-| `builder` | `EncoderBuilder.() -> Unit` | DSL block to configure encoding options |
-
-**Returns:** Base45-encoded string
-
-**Throws:** `Claim169Exception`, `IllegalArgumentException`
-
-**Example:**
-```kotlin
-val qrData = Claim169.encode(data, meta) {
+val qrData = Claim169.encode(
+    claim169 {
+        id = "ID-12345"
+        fullName = "Jane Doe"
+    },
+    cwtMeta {
+        issuer = "https://issuer.example.com"
+    }
+) {
     signWithEd25519(privateKey)
 }
 ```
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| decode | fun decode(qrText: `String`, configure: DecoderBuilder.() -> `Unit`): DecodeResultData<br>Decode a Claim 169 QR code string. |
+| decodeCloseable | fun decodeCloseable(qrText: `String`, configure: DecoderBuilder.() -> `Unit`): CloseableDecodeResult<br>Decode a Claim 169 QR code string and return a closeable wrapper that zeroizes sensitive byte arrays when closed. |
+| decodeWith | fun decodeWith(qrText: `String`, configure: DecoderConfigurer): DecodeResultData |
+| encode | fun encode(claim169: Claim169Data, cwtMeta: CwtMetaData, configure: EncoderBuilder.() -> `Unit`): `String`<br>Encode Claim 169 data into a QR-ready Base45 string. |
+| version | fun version(): `String`<br>Get the native library version. |
+
+### decodeCloseableWith
+
+```kotlin
+fun decodeCloseableWith(qrText: `String`, configure: DecoderConfigurer): CloseableDecodeResult
+```
+
+### decodeCloseable
+
+```kotlin
+fun decodeCloseable(qrText: `String`, configure: DecoderBuilder.() -> `Unit`): CloseableDecodeResult
+```
+
+Decode a Claim 169 QR code string and return a closeable wrapper that zeroizes sensitive byte arrays when closed.
+
+### decodeWith
+
+```kotlin
+fun decodeWith(qrText: `String`, configure: DecoderConfigurer): DecodeResultData
+```
+
+### decode
+
+```kotlin
+fun decode(qrText: `String`, configure: DecoderBuilder.() -> `Unit`): DecodeResultData
+```
+
+Decode a Claim 169 QR code string.
+
+###### Return
+
+The decoded result containing claim data, CWT metadata, and verification status
+
+###### Parameters
+
+| | |
+|---|---|
+| qrText | The Base45-encoded QR code content |
+| configure | DSL block to configure verification, decryption, and options |
+
+###### Throws
+
+| | |
+|---|---|
+| Claim169Exception | on decode errors |
+
+### encodeWith
+
+```kotlin
+fun encodeWith(claim169: Claim169Data, cwtMeta: CwtMetaData, configure: EncoderConfigurer): `String`
+```
+
+### encode
+
+```kotlin
+fun encode(claim169: Claim169Data, cwtMeta: CwtMetaData, configure: EncoderBuilder.() -> `Unit`): `String`
+```
+
+Encode Claim 169 data into a QR-ready Base45 string.
+
+###### Return
+
+The Base45-encoded QR string
+
+###### Parameters
+
+| | |
+|---|---|
+| claim169 | The identity claim data |
+| cwtMeta | The CWT metadata (issuer, expiration, etc.) |
+| configure | DSL block to configure signing, encryption, and options |
+
+###### Throws
+
+| | |
+|---|---|
+| Claim169Exception | on encode errors |
+
+### version
+
+```kotlin
+fun version(): `String`
+```
+
+Get the native library version.
 
 ---
 
 ## DecoderBuilder
 
-Builder class for configuring decode options. Used within `Claim169.decode() {}`.
-
-### verifyWithEd25519()
-
-Configure Ed25519 signature verification with a raw 32-byte public key.
-
 ```kotlin
-fun verifyWithEd25519(publicKey: ByteArray)
+class DecoderBuilder(qrText: `String`)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `publicKey` | `ByteArray` | 32-byte Ed25519 public key |
+DSL builder for decoding Claim 169 QR codes.
 
----
+Wraps the UniFFI-generated Claim169Decoder with an idiomatic Kotlin API.
 
-### verifyWithEcdsaP256()
-
-Configure ECDSA P-256 signature verification with a raw public key.
+### Usage
 
 ```kotlin
-fun verifyWithEcdsaP256(publicKey: ByteArray)
+val result = Claim169.decode(qrText) {
+    verifyWithEd25519(publicKey)
+    skipBiometrics()
+}
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `publicKey` | `ByteArray` | SEC1 encoded P-256 public key (33 or 65 bytes) |
+### Functions
 
----
+| Name | Summary |
+|---|---|
+| allowUnverified | fun allowUnverified()<br>Allow decoding without signature verification. |
+| clockSkewTolerance | fun clockSkewTolerance(seconds: `Long`)<br>Set clock skew tolerance for timestamp validation (in seconds). |
+| decryptWith | fun decryptWith(decryptor: Decryptor)<br>Decrypt with a custom Decryptor implementation (for HSM/KMS). |
+| decryptWithAes128 | fun decryptWithAes128(key: `ByteArray`)<br>Decrypt with AES-128-GCM (16-byte key). |
+| decryptWithAes256 | fun decryptWithAes256(key: `ByteArray`)<br>Decrypt with AES-256-GCM (32-byte key). |
+| maxDecompressedBytes | fun maxDecompressedBytes(maxBytes: `Long`)<br>Set maximum decompressed size in bytes (default: 65536). |
+| skipBiometrics | fun skipBiometrics()<br>Skip biometric data parsing for faster decoding. |
+| verifyWith | fun verifyWith(verifier: SignatureVerifier)<br>Verify with a custom SignatureVerifier implementation (for HSM/KMS). |
+| verifyWithEcdsaP256 | fun verifyWithEcdsaP256(publicKey: `ByteArray`)<br>Verify with an ECDSA P-256 public key (SEC1-encoded, 33 or 65 bytes). |
+| verifyWithEcdsaP256Pem | fun verifyWithEcdsaP256Pem(pem: `String`)<br>Verify with an ECDSA P-256 public key in PEM format. |
+| verifyWithEd25519 | fun verifyWithEd25519(publicKey: `ByteArray`)<br>Verify with an Ed25519 public key (32 raw bytes). |
+| verifyWithEd25519Pem | fun verifyWithEd25519Pem(pem: `String`)<br>Verify with an Ed25519 public key in PEM format. |
+| withoutTimestampValidation | fun withoutTimestampValidation()<br>Disable timestamp validation (expiration and not-before checks). |
 
-### verifyWithEd25519Pem()
-
-Configure Ed25519 signature verification with a PEM-encoded public key.
+### DecoderBuilder
 
 ```kotlin
-fun verifyWithEd25519Pem(pem: String)
+constructor(qrText: `String`)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `pem` | `String` | PEM-encoded Ed25519 public key |
-
----
-
-### verifyWithEcdsaP256Pem()
-
-Configure ECDSA P-256 signature verification with a PEM-encoded public key.
-
-```kotlin
-fun verifyWithEcdsaP256Pem(pem: String)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `pem` | `String` | PEM-encoded ECDSA P-256 public key |
-
----
-
-### verifyWith()
-
-Configure custom signature verification using a `SignatureVerifier` implementation.
-
-```kotlin
-fun verifyWith(verifier: SignatureVerifier)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `verifier` | `SignatureVerifier` | Custom verifier implementation |
-
----
-
-### allowUnverified()
-
-Skip signature verification. **INSECURE -- testing only.**
+### allowUnverified
 
 ```kotlin
 fun allowUnverified()
 ```
 
----
+Allow decoding without signature verification.
 
-### decryptWithAes256()
+**Security warning**: Unverified credentials cannot be trusted.
 
-Configure AES-256-GCM decryption.
-
-```kotlin
-fun decryptWithAes256(key: ByteArray)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `key` | `ByteArray` | 32-byte AES-256 key |
-
----
-
-### decryptWithAes128()
-
-Configure AES-128-GCM decryption.
+### clockSkewTolerance
 
 ```kotlin
-fun decryptWithAes128(key: ByteArray)
+fun clockSkewTolerance(seconds: `Long`)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `key` | `ByteArray` | 16-byte AES-128 key |
+Set clock skew tolerance for timestamp validation (in seconds).
 
----
+### decryptWithAes128
 
-### decryptWith()
+```kotlin
+fun decryptWithAes128(key: `ByteArray`)
+```
 
-Configure custom decryption using a `Decryptor` implementation.
+Decrypt with AES-128-GCM (16-byte key).
+
+### decryptWithAes256
+
+```kotlin
+fun decryptWithAes256(key: `ByteArray`)
+```
+
+Decrypt with AES-256-GCM (32-byte key).
+
+### decryptWith
 
 ```kotlin
 fun decryptWith(decryptor: Decryptor)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `decryptor` | `Decryptor` | Custom decryptor implementation |
+Decrypt with a custom Decryptor implementation (for HSM/KMS).
 
----
+### maxDecompressedBytes
 
-### skipBiometrics()
+```kotlin
+fun maxDecompressedBytes(maxBytes: `Long`)
+```
 
-Skip parsing biometric data for faster decoding.
+Set maximum decompressed size in bytes (default: 65536).
+
+### skipBiometrics
 
 ```kotlin
 fun skipBiometrics()
 ```
 
----
+Skip biometric data parsing for faster decoding.
 
-### maxDecompressedBytes()
-
-Set the maximum decompressed size limit (default: 65536).
+### verifyWithEcdsaP256Pem
 
 ```kotlin
-fun maxDecompressedBytes(limit: Int)
+fun verifyWithEcdsaP256Pem(pem: `String`)
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `limit` | `Int` | `65536` | Maximum decompressed size in bytes |
+Verify with an ECDSA P-256 public key in PEM format.
 
----
+### verifyWithEcdsaP256
 
-### withoutTimestampValidation()
+```kotlin
+fun verifyWithEcdsaP256(publicKey: `ByteArray`)
+```
 
-Disable exp/nbf timestamp validation.
+Verify with an ECDSA P-256 public key (SEC1-encoded, 33 or 65 bytes).
+
+### verifyWithEd25519Pem
+
+```kotlin
+fun verifyWithEd25519Pem(pem: `String`)
+```
+
+Verify with an Ed25519 public key in PEM format.
+
+### verifyWithEd25519
+
+```kotlin
+fun verifyWithEd25519(publicKey: `ByteArray`)
+```
+
+Verify with an Ed25519 public key (32 raw bytes).
+
+### verifyWith
+
+```kotlin
+fun verifyWith(verifier: SignatureVerifier)
+```
+
+Verify with a custom SignatureVerifier implementation (for HSM/KMS).
+
+### withoutTimestampValidation
 
 ```kotlin
 fun withoutTimestampValidation()
 ```
 
----
-
-### clockSkewTolerance()
-
-Set clock skew tolerance for timestamp validation.
-
-```kotlin
-fun clockSkewTolerance(seconds: Int)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `seconds` | `Int` | Number of seconds of clock drift to tolerate |
+Disable timestamp validation (expiration and not-before checks).
 
 ---
 
 ## EncoderBuilder
 
-Builder class for configuring encode options. Used within `Claim169.encode() {}`.
-
-### signWithEd25519()
-
-Configure Ed25519 signing.
-
 ```kotlin
-fun signWithEd25519(privateKey: ByteArray)
+class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `privateKey` | `ByteArray` | 32-byte Ed25519 private key |
+DSL builder for encoding Claim 169 credentials into QR-ready strings.
 
----
+Wraps the UniFFI-generated Claim169Encoder with an idiomatic Kotlin API.
 
-### signWithEcdsaP256()
-
-Configure ECDSA P-256 signing.
+### Usage
 
 ```kotlin
-fun signWithEcdsaP256(privateKey: ByteArray)
+val qrData = Claim169.encode(claim, meta) {
+    signWithEd25519(privateKey)
+}
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `privateKey` | `ByteArray` | 32-byte ECDSA P-256 private key |
+### Functions
 
----
+| Name | Summary |
+|---|---|
+| allowUnsigned | fun allowUnsigned()<br>Allow encoding without a signature. |
+| encryptWith | fun encryptWith(encryptor: Encryptor, algorithm: `String`)<br>Encrypt with a custom Encryptor implementation (for HSM/KMS).<br>fun encryptWith(encryptor: Encryptor, algorithm: CoseAlgorithm)<br>Encrypt with a custom Encryptor implementation using a known COSE algorithm. |
+| encryptWithAes128 | fun encryptWithAes128(key: `ByteArray`)<br>Encrypt with AES-128-GCM (16-byte key). Nonce is generated randomly. |
+| encryptWithAes256 | fun encryptWithAes256(key: `ByteArray`)<br>Encrypt with AES-256-GCM (32-byte key). Nonce is generated randomly. |
+| signWith | fun signWith(signer: Signer, algorithm: `String`)<br>Sign with a custom Signer implementation (for HSM/KMS).<br>fun signWith(signer: Signer, algorithm: CoseAlgorithm)<br>Sign with a custom Signer implementation using a known COSE algorithm. |
+| signWithEcdsaP256 | fun signWithEcdsaP256(privateKey: `ByteArray`)<br>Sign with an ECDSA P-256 private key (32-byte scalar). |
+| signWithEd25519 | fun signWithEd25519(privateKey: `ByteArray`)<br>Sign with an Ed25519 private key (32 raw bytes). |
+| skipBiometrics | fun skipBiometrics()<br>Skip biometric data during encoding. |
 
-### signWith()
-
-Configure custom signing using a `Signer` implementation.
+### EncoderBuilder
 
 ```kotlin
-fun signWith(signer: Signer)
+constructor(claim169: Claim169Data, cwtMeta: CwtMetaData)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `signer` | `Signer` | Custom signer implementation |
-
----
-
-### encryptWithAes256()
-
-Configure AES-256-GCM encryption.
+### allowUnsigned
 
 ```kotlin
-fun encryptWithAes256(key: ByteArray)
+fun allowUnsigned()
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `key` | `ByteArray` | 32-byte AES-256 key |
+Allow encoding without a signature.
 
----
+**Security warning**: Unsigned credentials cannot be verified.
 
-### encryptWithAes128()
-
-Configure AES-128-GCM encryption.
+### encryptWithAes128
 
 ```kotlin
-fun encryptWithAes128(key: ByteArray)
+fun encryptWithAes128(key: `ByteArray`)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `key` | `ByteArray` | 16-byte AES-128 key |
+Encrypt with AES-128-GCM (16-byte key). Nonce is generated randomly.
 
----
-
-### encryptWith()
-
-Configure custom encryption using an `Encryptor` implementation.
+### encryptWithAes256
 
 ```kotlin
-fun encryptWith(encryptor: Encryptor)
+fun encryptWithAes256(key: `ByteArray`)
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `encryptor` | `Encryptor` | Custom encryptor implementation |
+Encrypt with AES-256-GCM (32-byte key). Nonce is generated randomly.
 
----
+### encryptWith
 
-### skipBiometrics()
+```kotlin
+fun encryptWith(encryptor: Encryptor, algorithm: `String`)
+```
 
-Exclude biometric data from the encoded output.
+Encrypt with a custom Encryptor implementation (for HSM/KMS).
+
+###### Parameters
+
+| | |
+|---|---|
+| encryptor | The encryptor implementation |
+| algorithm | COSE algorithm name (e.g., "A256GCM") |
+
+```kotlin
+fun encryptWith(encryptor: Encryptor, algorithm: CoseAlgorithm)
+```
+
+Encrypt with a custom Encryptor implementation using a known COSE algorithm.
+
+### signWithEcdsaP256
+
+```kotlin
+fun signWithEcdsaP256(privateKey: `ByteArray`)
+```
+
+Sign with an ECDSA P-256 private key (32-byte scalar).
+
+**Security note**: The privateKey bytes are passed into native code but the JVM copy remains in the caller's heap. Callers should zeroize the array after encoding completes:
+
+```kotlin
+privateKey.fill(0)
+```
+
+### signWithEd25519
+
+```kotlin
+fun signWithEd25519(privateKey: `ByteArray`)
+```
+
+Sign with an Ed25519 private key (32 raw bytes).
+
+**Security note**: The privateKey bytes are passed into native code but the JVM copy remains in the caller's heap. Callers should zeroize the array after encoding completes:
+
+```kotlin
+privateKey.fill(0)
+```
+
+### signWith
+
+```kotlin
+fun signWith(signer: Signer, algorithm: `String`)
+```
+
+Sign with a custom Signer implementation (for HSM/KMS).
+
+**Security note**: If the Signer holds in-memory key material, implementors should zeroize it when it is no longer needed to minimize exposure on the JVM heap.
+
+###### Parameters
+
+| | |
+|---|---|
+| signer | The signer implementation |
+| algorithm | COSE algorithm name (e.g., "EdDSA", "ES256") |
+
+```kotlin
+fun signWith(signer: Signer, algorithm: CoseAlgorithm)
+```
+
+Sign with a custom Signer implementation using a known COSE algorithm.
+
+### skipBiometrics
 
 ```kotlin
 fun skipBiometrics()
 ```
 
+Skip biometric data during encoding.
+
 ---
 
 ## Claim169DataBuilder
 
-Builder for creating identity data. Used via the `claim169 {}` DSL function.
+```kotlin
+class Claim169DataBuilder
+```
 
-### DSL Function
+DSL builder for creating Claim169Data instances.
+
+### Usage
 
 ```kotlin
-fun claim169(block: Claim169DataBuilder.() -> Unit): Claim169Data
+val data = claim169 {
+    id = "ID-12345"
+    fullName = "Jane Doe"
+    dateOfBirth = "19900115"
+    genderEnum = Gender.Female
+    email = "jane@example.com"
+}
 ```
 
 ### Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | `String?` | Unique identifier |
-| `version` | `String?` | Credential version |
-| `language` | `String?` | Primary language code (ISO 639-1) |
-| `fullName` | `String?` | Full name |
-| `firstName` | `String?` | First/given name |
-| `middleName` | `String?` | Middle name |
-| `lastName` | `String?` | Last/family name |
-| `dateOfBirth` | `String?` | Date of birth (YYYY-MM-DD) |
-| `gender` | `Int?` | Gender (see Gender values table) |
-| `address` | `String?` | Full address |
-| `email` | `String?` | Email address |
-| `phone` | `String?` | Phone number |
-| `nationality` | `String?` | Nationality code |
-| `maritalStatus` | `Int?` | Marital status (see Marital Status values table) |
-| `guardian` | `String?` | Guardian name |
-| `photo` | `ByteArray?` | Photo data |
-| `photoFormat` | `Int?` | Photo format (see Photo Format values table) |
-| `bestQualityFingers` | `ByteArray?` | Best quality finger indices |
-| `secondaryFullName` | `String?` | Name in secondary language |
-| `secondaryLanguage` | `String?` | Secondary language code |
-| `locationCode` | `String?` | Location code |
-| `legalStatus` | `String?` | Legal status |
-| `countryOfIssuance` | `String?` | Issuing country code |
+| Name | Summary |
+|---|---|
+| address | var address: `String`? |
+| bestQualityFingers | var bestQualityFingers: `ByteArray`? |
+| countryOfIssuance | var countryOfIssuance: `String`? |
+| dateOfBirth | var dateOfBirth: `String`? |
+| email | var email: `String`? |
+| face | var face: `List`<BiometricData>? |
+| firstName | var firstName: `String`? |
+| fullName | var fullName: `String`? |
+| gender | var gender: `Long`? |
+| genderEnum | var genderEnum: Gender? |
+| guardian | var guardian: `String`? |
+| id | var id: `String`? |
+| language | var language: `String`? |
+| lastName | var lastName: `String`? |
+| leftIris | var leftIris: `List`<BiometricData>? |
+| leftLittleFinger | var leftLittleFinger: `List`<BiometricData>? |
+| leftMiddleFinger | var leftMiddleFinger: `List`<BiometricData>? |
+| leftPalm | var leftPalm: `List`<BiometricData>? |
+| leftPointerFinger | var leftPointerFinger: `List`<BiometricData>? |
+| leftRingFinger | var leftRingFinger: `List`<BiometricData>? |
+| leftThumb | var leftThumb: `List`<BiometricData>? |
+| legalStatus | var legalStatus: `String`? |
+| locationCode | var locationCode: `String`? |
+| maritalStatus | var maritalStatus: `Long`? |
+| maritalStatusEnum | var maritalStatusEnum: MaritalStatus? |
+| middleName | var middleName: `String`? |
+| nationality | var nationality: `String`? |
+| phone | var phone: `String`? |
+| photo | var photo: `ByteArray`? |
+| photoFormat | var photoFormat: `Long`? |
+| photoFormatEnum | var photoFormatEnum: PhotoFormat? |
+| rightIris | var rightIris: `List`<BiometricData>? |
+| rightLittleFinger | var rightLittleFinger: `List`<BiometricData>? |
+| rightMiddleFinger | var rightMiddleFinger: `List`<BiometricData>? |
+| rightPalm | var rightPalm: `List`<BiometricData>? |
+| rightPointerFinger | var rightPointerFinger: `List`<BiometricData>? |
+| rightRingFinger | var rightRingFinger: `List`<BiometricData>? |
+| rightThumb | var rightThumb: `List`<BiometricData>? |
+| secondaryFullName | var secondaryFullName: `String`? |
+| secondaryLanguage | var secondaryLanguage: `String`? |
+| unknownFieldsJson | var unknownFieldsJson: `String`?<br>JSON-encoded map of unknown CBOR fields for forward compatibility. Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause uniffi.claim169_jni.Claim169Exception.Claim169Invalid when encoding. |
+| version | var version: `String`? |
+| voice | var voice: `List`<BiometricData>? |
+
+### Claim169DataBuilder
+
+```kotlin
+constructor()
+```
+
+### address
+
+```kotlin
+var address: `String`?
+```
+
+### bestQualityFingers
+
+```kotlin
+var bestQualityFingers: `ByteArray`?
+```
+
+### countryOfIssuance
+
+```kotlin
+var countryOfIssuance: `String`?
+```
+
+### dateOfBirth
+
+```kotlin
+var dateOfBirth: `String`?
+```
+
+### email
+
+```kotlin
+var email: `String`?
+```
+
+### face
+
+```kotlin
+var face: `List`<BiometricData>?
+```
+
+### firstName
+
+```kotlin
+var firstName: `String`?
+```
+
+### fullName
+
+```kotlin
+var fullName: `String`?
+```
+
+### genderEnum
+
+```kotlin
+var genderEnum: Gender?
+```
+
+### gender
+
+```kotlin
+var gender: `Long`?
+```
+
+### guardian
+
+```kotlin
+var guardian: `String`?
+```
+
+### id
+
+```kotlin
+var id: `String`?
+```
+
+### language
+
+```kotlin
+var language: `String`?
+```
+
+### lastName
+
+```kotlin
+var lastName: `String`?
+```
+
+### leftIris
+
+```kotlin
+var leftIris: `List`<BiometricData>?
+```
+
+### leftLittleFinger
+
+```kotlin
+var leftLittleFinger: `List`<BiometricData>?
+```
+
+### leftMiddleFinger
+
+```kotlin
+var leftMiddleFinger: `List`<BiometricData>?
+```
+
+### leftPalm
+
+```kotlin
+var leftPalm: `List`<BiometricData>?
+```
+
+### leftPointerFinger
+
+```kotlin
+var leftPointerFinger: `List`<BiometricData>?
+```
+
+### leftRingFinger
+
+```kotlin
+var leftRingFinger: `List`<BiometricData>?
+```
+
+### leftThumb
+
+```kotlin
+var leftThumb: `List`<BiometricData>?
+```
+
+### legalStatus
+
+```kotlin
+var legalStatus: `String`?
+```
+
+### locationCode
+
+```kotlin
+var locationCode: `String`?
+```
+
+### maritalStatusEnum
+
+```kotlin
+var maritalStatusEnum: MaritalStatus?
+```
+
+### maritalStatus
+
+```kotlin
+var maritalStatus: `Long`?
+```
+
+### middleName
+
+```kotlin
+var middleName: `String`?
+```
+
+### nationality
+
+```kotlin
+var nationality: `String`?
+```
+
+### phone
+
+```kotlin
+var phone: `String`?
+```
+
+### photoFormatEnum
+
+```kotlin
+var photoFormatEnum: PhotoFormat?
+```
+
+### photoFormat
+
+```kotlin
+var photoFormat: `Long`?
+```
+
+### photo
+
+```kotlin
+var photo: `ByteArray`?
+```
+
+### rightIris
+
+```kotlin
+var rightIris: `List`<BiometricData>?
+```
+
+### rightLittleFinger
+
+```kotlin
+var rightLittleFinger: `List`<BiometricData>?
+```
+
+### rightMiddleFinger
+
+```kotlin
+var rightMiddleFinger: `List`<BiometricData>?
+```
+
+### rightPalm
+
+```kotlin
+var rightPalm: `List`<BiometricData>?
+```
+
+### rightPointerFinger
+
+```kotlin
+var rightPointerFinger: `List`<BiometricData>?
+```
+
+### rightRingFinger
+
+```kotlin
+var rightRingFinger: `List`<BiometricData>?
+```
+
+### rightThumb
+
+```kotlin
+var rightThumb: `List`<BiometricData>?
+```
+
+### secondaryFullName
+
+```kotlin
+var secondaryFullName: `String`?
+```
+
+### secondaryLanguage
+
+```kotlin
+var secondaryLanguage: `String`?
+```
+
+### unknownFieldsJson
+
+```kotlin
+var unknownFieldsJson: `String`?
+```
+
+JSON-encoded map of unknown CBOR fields for forward compatibility. Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause uniffi.claim169_jni.Claim169Exception.Claim169Invalid when encoding.
+
+### version
+
+```kotlin
+var version: `String`?
+```
+
+### voice
+
+```kotlin
+var voice: `List`<BiometricData>?
+```
 
 ---
 
 ## CwtMetaDataBuilder
 
-Builder for creating CWT metadata. Used via the `cwtMeta {}` DSL function.
+```kotlin
+class CwtMetaDataBuilder
+```
 
-### DSL Function
+DSL builder for creating CwtMetaData instances.
+
+### Usage
 
 ```kotlin
-fun cwtMeta(block: CwtMetaDataBuilder.() -> Unit): CwtMetaData
+val meta = cwtMeta {
+    issuer = "https://issuer.example.com"
+    expiresAt = 1800000000L
+}
 ```
 
 ### Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `issuer` | `String?` | Credential issuer (URL or identifier) |
-| `subject` | `String?` | Subject identifier |
-| `expiresAt` | `Long?` | Expiration timestamp (Unix epoch seconds) |
-| `notBefore` | `Long?` | Not valid before timestamp (Unix epoch seconds) |
-| `issuedAt` | `Long?` | Issuance timestamp (Unix epoch seconds) |
+| Name | Summary |
+|---|---|
+| expiresAt | var expiresAt: `Long`? |
+| issuedAt | var issuedAt: `Long`? |
+| issuer | var issuer: `String`? |
+| notBefore | var notBefore: `Long`? |
+| subject | var subject: `String`? |
+
+### CwtMetaDataBuilder
+
+```kotlin
+constructor()
+```
+
+### expiresAt
+
+```kotlin
+var expiresAt: `Long`?
+```
+
+### issuedAt
+
+```kotlin
+var issuedAt: `Long`?
+```
+
+### issuer
+
+```kotlin
+var issuer: `String`?
+```
+
+### notBefore
+
+```kotlin
+var notBefore: `Long`?
+```
+
+### subject
+
+```kotlin
+var subject: `String`?
+```
 
 ---
 
-## Crypto Interfaces
+## CloseableDecodeResult
 
-### SignatureVerifier
+```kotlin
+class CloseableDecodeResult(val data: DecodeResultData) : [Closeable](https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html)
+```
+
+A [Closeable](https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html) wrapper around DecodeResultData that zeroizes sensitive byte arrays (biometric templates, photos, and other binary fields) when close is called.
+
+The Rust core library uses the `zeroize` crate to scrub secrets from memory. On the JVM side, decoded credential data containing biometric templates and photos persists in the heap until garbage collected. This wrapper provides deterministic zeroization so callers can limit the window of exposure.
+
+### Usage
+
+```kotlin
+CloseableDecodeResult(
+    Claim169.decode(qrText) { verifyWithEd25519(publicKey) }
+).use { result ->
+    val name = result.data.claim169.fullName
+    // ... process credential
+}
+// All biometric and photo byte arrays are now zeroed.
+```
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| data | val data: DecodeResultData<br>The underlying decode result. |
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| close | open override fun close()<br>Zeroizes all sensitive byte arrays within the decoded credential. |
+
+### CloseableDecodeResult
+
+```kotlin
+constructor(data: DecodeResultData)
+```
+
+### close
+
+```kotlin
+open override fun close()
+```
+
+Zeroizes all sensitive byte arrays within the decoded credential.
+
+This fills photo, bestQualityFingers, and all biometric data byte arrays with zeros. After calling this method the byte arrays still exist but contain only zero bytes. Callers should not read the data after closing.
+
+### data
+
+```kotlin
+val data: DecodeResultData
+```
+
+The underlying decode result.
+
+---
+
+## DecoderConfigurer
+
+```kotlin
+fun interface DecoderConfigurer
+```
+
+### configure
+
+```kotlin
+abstract fun configure(builder: DecoderBuilder)
+```
+
+---
+
+## EncoderConfigurer
+
+```kotlin
+fun interface EncoderConfigurer
+```
+
+### configure
+
+```kotlin
+abstract fun configure(builder: EncoderBuilder)
+```
+
+---
+
+## SignatureVerifier
+
+```kotlin
+interface SignatureVerifier
+```
 
 Interface for custom signature verification.
 
+Implement this for HSM, KMS, or other custom crypto backends. Uses `ByteArray` instead of the UniFFI-generated `List<UByte>` for idiomatic Kotlin.
+
+### Usage
+
 ```kotlin
-interface SignatureVerifier {
-    fun verify(
-        algorithm: String,
-        keyId: ByteArray?,
-        data: ByteArray,
-        signature: ByteArray
-    )
+val result = Claim169.decode(qrText) {
+    verifyWith(object : SignatureVerifier {
+        override fun verify(algorithm: String, keyId: ByteArray?, data: ByteArray, signature: ByteArray): VerificationResult {
+            return if (hsmProvider.verify(keyId, data, signature))
+                VerificationResult.Valid
+            else
+                VerificationResult.Invalid("HSM rejected signature")
+        }
+    })
 }
 ```
 
-The `verify` method should throw an exception if verification fails. Returning normally indicates success.
+### Functions
 
-**Parameters:**
+| Name | Summary |
+|---|---|
+| verify | abstract fun verify(algorithm: `String`, keyId: `ByteArray`?, data: `ByteArray`, signature: `ByteArray`): VerificationResult<br>Verify a digital signature. |
 
-| Name | Type | Description |
-|------|------|-------------|
-| `algorithm` | `String` | Algorithm name ("EdDSA" or "ES256") |
-| `keyId` | `ByteArray?` | Optional key identifier from COSE header |
-| `data` | `ByteArray` | Data that was signed |
-| `signature` | `ByteArray` | Signature to verify |
+### verify
+
+```kotlin
+abstract fun verify(algorithm: `String`, keyId: `ByteArray`?, data: `ByteArray`, signature: `ByteArray`): VerificationResult
+```
+
+Verify a digital signature.
+
+Implementations MUST return VerificationResult.Valid only after performing actual cryptographic verification. Returning VerificationResult.Valid without checking the signature defeats the security purpose of this library.
+
+###### Return
+
+VerificationResult.Valid if the signature is valid,     VerificationResult.Invalid if verification fails
+
+###### Parameters
+
+| | |
+|---|---|
+| algorithm | COSE algorithm name (e.g., "EdDSA", "ES256") |
+| keyId | Optional key identifier bytes |
+| data | The data that was signed (COSE Sig_structure) |
+| signature | The signature bytes to verify |
 
 ---
 
-### Signer
+## Signer
+
+```kotlin
+interface Signer
+```
 
 Interface for custom signing.
 
-```kotlin
-interface Signer {
-    val algorithm: String
-    val keyId: ByteArray?
+Implement this for HSM, KMS, or other custom crypto backends.
 
-    fun sign(data: ByteArray): ByteArray
-}
+### Functions
+
+| Name | Summary |
+|---|---|
+| keyId | open fun keyId(): `ByteArray`?<br>Get the key ID for this signer. Returns null if no key ID. |
+| sign | abstract fun sign(algorithm: `String`, keyId: `ByteArray`?, data: `ByteArray`): `ByteArray`<br>Sign data and return the signature. |
+
+### keyId
+
+```kotlin
+open fun keyId(): `ByteArray`?
 ```
 
-**Properties:**
+Get the key ID for this signer. Returns null if no key ID.
 
-| Name | Type | Description |
-|------|------|-------------|
-| `algorithm` | `String` | Algorithm name ("EdDSA" or "ES256") |
-| `keyId` | `ByteArray?` | Optional key identifier for COSE header |
+### sign
 
-**Methods:**
+```kotlin
+abstract fun sign(algorithm: `String`, keyId: `ByteArray`?, data: `ByteArray`): `ByteArray`
+```
 
-- `sign(data: ByteArray): ByteArray` -- Sign the data and return the signature bytes
+Sign data and return the signature.
+
+###### Return
+
+The signature bytes
+
+###### Parameters
+
+| | |
+|---|---|
+| algorithm | COSE algorithm name (e.g., "EdDSA", "ES256") |
+| keyId | Optional key identifier bytes |
+| data | The data to sign (COSE Sig_structure) |
+
+###### Throws
+
+| | |
+|---|---|
+| `Exception` | if signing fails |
 
 ---
 
-### Decryptor
+## Decryptor
+
+```kotlin
+interface Decryptor
+```
 
 Interface for custom decryption.
 
+Implement this for HSM, KMS, or other custom crypto backends.
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| decrypt | abstract fun decrypt(algorithm: `String`, keyId: `ByteArray`?, nonce: `ByteArray`, aad: `ByteArray`, ciphertext: `ByteArray`): `ByteArray`<br>Decrypt ciphertext using AEAD. |
+
+### decrypt
+
 ```kotlin
-interface Decryptor {
-    fun decrypt(
-        algorithm: String,
-        keyId: ByteArray?,
-        nonce: ByteArray,
-        aad: ByteArray,
-        ciphertext: ByteArray
-    ): ByteArray
-}
+abstract fun decrypt(algorithm: `String`, keyId: `ByteArray`?, nonce: `ByteArray`, aad: `ByteArray`, ciphertext: `ByteArray`): `ByteArray`
 ```
 
-**Parameters:**
+Decrypt ciphertext using AEAD.
 
-| Name | Type | Description |
-|------|------|-------------|
-| `algorithm` | `String` | Algorithm name ("A256GCM" or "A128GCM") |
-| `keyId` | `ByteArray?` | Optional key identifier from COSE header |
-| `nonce` | `ByteArray` | 12-byte nonce |
-| `aad` | `ByteArray` | Additional authenticated data |
-| `ciphertext` | `ByteArray` | Encrypted data with authentication tag |
+###### Return
 
-**Returns:** Decrypted plaintext bytes
+The decrypted plaintext bytes
+
+###### Parameters
+
+| | |
+|---|---|
+| algorithm | COSE algorithm name (e.g., "A256GCM") |
+| keyId | Optional key identifier bytes |
+| nonce | The IV/nonce |
+| aad | Additional authenticated data |
+| ciphertext | The ciphertext to decrypt (includes auth tag for AEAD) |
+
+###### Throws
+
+| | |
+|---|---|
+| `Exception` | if decryption fails |
 
 ---
 
-### Encryptor
+## Encryptor
+
+```kotlin
+interface Encryptor
+```
 
 Interface for custom encryption.
 
-```kotlin
-interface Encryptor {
-    val algorithm: String
-    val keyId: ByteArray?
+Implement this for HSM, KMS, or other custom crypto backends.
 
-    fun encrypt(
-        nonce: ByteArray,
-        aad: ByteArray,
-        plaintext: ByteArray
-    ): ByteArray
-}
+### Functions
+
+| Name | Summary |
+|---|---|
+| encrypt | abstract fun encrypt(algorithm: `String`, keyId: `ByteArray`?, nonce: `ByteArray`, aad: `ByteArray`, plaintext: `ByteArray`): `ByteArray`<br>Encrypt plaintext using AEAD. |
+
+### encrypt
+
+```kotlin
+abstract fun encrypt(algorithm: `String`, keyId: `ByteArray`?, nonce: `ByteArray`, aad: `ByteArray`, plaintext: `ByteArray`): `ByteArray`
 ```
 
-**Properties:**
+Encrypt plaintext using AEAD.
 
-| Name | Type | Description |
-|------|------|-------------|
-| `algorithm` | `String` | Algorithm name ("A256GCM" or "A128GCM") |
-| `keyId` | `ByteArray?` | Optional key identifier for COSE header |
+###### Return
 
-**Methods:**
+The ciphertext bytes (includes auth tag for AEAD)
 
-- `encrypt(nonce, aad, plaintext): ByteArray` -- Encrypt the data and return ciphertext with authentication tag
+###### Parameters
+
+| | |
+|---|---|
+| algorithm | COSE algorithm name (e.g., "A256GCM") |
+| keyId | Optional key identifier bytes |
+| nonce | The IV/nonce |
+| aad | Additional authenticated data |
+| plaintext | The plaintext to encrypt |
+
+###### Throws
+
+| | |
+|---|---|
+| `Exception` | if encryption fails |
 
 ---
 
-## Data Classes
-
-### DecodeResultData
-
-Result of decoding a credential.
+## Gender
 
 ```kotlin
-data class DecodeResultData(
-    val claim169: Claim169Data,
-    val cwtMeta: CwtMetaData,
-    val verificationStatus: String
-) {
-    val isVerified: Boolean
-}
+enum Gender : `Enum`<Gender>
 ```
 
-**Properties:**
+### Properties
 
-| Name | Type | Description |
-|------|------|-------------|
-| `claim169` | `Claim169Data` | Decoded identity data |
-| `cwtMeta` | `CwtMetaData` | CWT metadata |
-| `verificationStatus` | `String` | "verified", "skipped", etc. |
-| `isVerified` | `Boolean` | `true` if signature was verified |
+| Name | Summary |
+|---|---|
+| entries | val entries: `EnumEntries`<Gender><br>Returns a representation of an immutable list of all enum entries, in the order they're declared. |
 
----
+### Functions
 
-### Claim169Data
+| Name | Summary |
+|---|---|
+| values | fun values(): `Array`<Gender><br>Returns an array containing the constants of this enum type, in the order they're declared. |
 
-Decoded identity claim data.
+### entries
 
 ```kotlin
-data class Claim169Data(
-    val id: String?,
-    val version: String?,
-    val language: String?,
-    val fullName: String?,
-    val firstName: String?,
-    val middleName: String?,
-    val lastName: String?,
-    val dateOfBirth: String?,
-    val gender: Int?,
-    val address: String?,
-    val email: String?,
-    val phone: String?,
-    val nationality: String?,
-    val maritalStatus: Int?,
-    val guardian: String?,
-    val photo: ByteArray?,
-    val photoFormat: Int?,
-    val bestQualityFingers: ByteArray?,
-    val secondaryFullName: String?,
-    val secondaryLanguage: String?,
-    val locationCode: String?,
-    val legalStatus: String?,
-    val countryOfIssuance: String?,
-    val rightThumb: List<BiometricData>?,
-    val rightPointerFinger: List<BiometricData>?,
-    val rightMiddleFinger: List<BiometricData>?,
-    val rightRingFinger: List<BiometricData>?,
-    val rightLittleFinger: List<BiometricData>?,
-    val leftThumb: List<BiometricData>?,
-    val leftPointerFinger: List<BiometricData>?,
-    val leftMiddleFinger: List<BiometricData>?,
-    val leftRingFinger: List<BiometricData>?,
-    val leftLittleFinger: List<BiometricData>?,
-    val rightIris: List<BiometricData>?,
-    val leftIris: List<BiometricData>?,
-    val face: List<BiometricData>?,
-    val rightPalm: List<BiometricData>?,
-    val leftPalm: List<BiometricData>?,
-    val voice: List<BiometricData>?
-)
+val entries: `EnumEntries`<Gender>
 ```
 
-**Methods:**
+Returns a representation of an immutable list of all enum entries, in the order they're declared.
 
-- `hasBiometrics(): Boolean` -- Returns `true` if any biometric data is present
+This method may be used to iterate over the enum entries.
 
----
-
-### CwtMetaData
-
-CWT metadata from decoded credential.
+### valueOf
 
 ```kotlin
-data class CwtMetaData(
-    val issuer: String?,
-    val subject: String?,
-    val expiresAt: Long?,
-    val notBefore: Long?,
-    val issuedAt: Long?
-)
+fun valueOf(value: `String`): Gender
+```
+
+Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)
+
+###### Throws
+
+| | |
+|---|---|
+| `IllegalArgumentException` | if this enum type has no constant with the specified name |
+
+### value
+
+```kotlin
+val value: `Long`
+```
+
+### values
+
+```kotlin
+fun values(): `Array`<Gender>
+```
+
+Returns an array containing the constants of this enum type, in the order they're declared.
+
+This method may be used to iterate over the constants.
+
+### fromValue
+
+```kotlin
+fun fromValue(value: `Long`): Gender?
 ```
 
 ---
 
-### BiometricData
-
-Biometric data container.
+## MaritalStatus
 
 ```kotlin
-data class BiometricData(
-    val data: ByteArray,
-    val format: Int?,
-    val subFormat: Int?,
-    val issuer: String?
-)
+enum MaritalStatus : `Enum`<MaritalStatus>
 ```
 
-**Properties:**
+### Properties
 
-| Name | Type | Description |
-|------|------|-------------|
-| `data` | `ByteArray` | Raw biometric data |
-| `format` | `Int?` | Format code |
-| `subFormat` | `Int?` | Sub-format code |
-| `issuer` | `String?` | Biometric issuer |
+| Name | Summary |
+|---|---|
+| entries | val entries: `EnumEntries`<MaritalStatus><br>Returns a representation of an immutable list of all enum entries, in the order they're declared. |
 
----
+### Functions
 
-## Exception Hierarchy
+| Name | Summary |
+|---|---|
+| values | fun values(): `Array`<MaritalStatus><br>Returns an array containing the constants of this enum type, in the order they're declared. |
 
-All exceptions are subclasses of `Claim169Exception`, which is a sealed class enabling exhaustive `when` expressions.
-
-### Claim169Exception
+### entries
 
 ```kotlin
-sealed class Claim169Exception(message: String) : Exception(message)
+val entries: `EnumEntries`<MaritalStatus>
 ```
 
-### Base45DecodeError
+Returns a representation of an immutable list of all enum entries, in the order they're declared.
 
-Raised when Base45 decoding fails.
+This method may be used to iterate over the enum entries.
+
+### valueOf
 
 ```kotlin
-class Base45DecodeError(message: String) : Claim169Exception(message)
+fun valueOf(value: `String`): MaritalStatus
 ```
 
-### DecompressError
+Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)
 
-Raised when zlib decompression fails or size limit is exceeded.
+###### Throws
+
+| | |
+|---|---|
+| `IllegalArgumentException` | if this enum type has no constant with the specified name |
+
+### value
 
 ```kotlin
-class DecompressError(message: String) : Claim169Exception(message)
+val value: `Long`
 ```
 
-### CoseParseError
-
-Raised when COSE structure parsing fails.
+### values
 
 ```kotlin
-class CoseParseError(message: String) : Claim169Exception(message)
+fun values(): `Array`<MaritalStatus>
 ```
 
-### CwtParseError
+Returns an array containing the constants of this enum type, in the order they're declared.
 
-Raised when CWT parsing fails.
+This method may be used to iterate over the constants.
 
-```kotlin
-class CwtParseError(message: String) : Claim169Exception(message)
-```
-
-### Claim169NotFoundError
-
-Raised when Claim 169 is not present in the CWT.
+### fromValue
 
 ```kotlin
-class Claim169NotFoundError(message: String) : Claim169Exception(message)
-```
-
-### SignatureError
-
-Raised when signature verification fails.
-
-```kotlin
-class SignatureError(message: String) : Claim169Exception(message)
-```
-
-### DecryptionError
-
-Raised when decryption fails.
-
-```kotlin
-class DecryptionError(message: String) : Claim169Exception(message)
-```
-
-### TimestampValidationError
-
-Raised when token timestamp validation fails (expired or not yet valid).
-
-```kotlin
-class TimestampValidationError(message: String) : Claim169Exception(message)
+fun fromValue(value: `Long`): MaritalStatus?
 ```
 
 ---
 
-## Enum Values
+## PhotoFormat
 
-### Gender
+```kotlin
+enum PhotoFormat : `Enum`<PhotoFormat>
+```
 
-| Value | Meaning |
-|-------|---------|
-| 1 | Male |
-| 2 | Female |
-| 3 | Other |
+### Properties
 
-### Marital Status
+| Name | Summary |
+|---|---|
+| entries | val entries: `EnumEntries`<PhotoFormat><br>Returns a representation of an immutable list of all enum entries, in the order they're declared. |
 
-| Value | Meaning |
-|-------|---------|
-| 1 | Unmarried |
-| 2 | Married |
-| 3 | Divorced |
+### Functions
 
-### Photo Format
+| Name | Summary |
+|---|---|
+| values | fun values(): `Array`<PhotoFormat><br>Returns an array containing the constants of this enum type, in the order they're declared. |
 
-| Value | Meaning |
-|-------|---------|
-| 0 | Image (unspecified) |
-| 1 | JPEG |
-| 2 | JPEG2000 |
-| 3 | AVIF |
-| 4 | WebP |
+### entries
 
-### Algorithm Names
+```kotlin
+val entries: `EnumEntries`<PhotoFormat>
+```
 
-**Signing:**
+Returns a representation of an immutable list of all enum entries, in the order they're declared.
 
-- `"EdDSA"` -- Ed25519
-- `"ES256"` -- ECDSA P-256
+This method may be used to iterate over the enum entries.
 
-**Encryption:**
+### valueOf
 
-- `"A256GCM"` -- AES-256-GCM
-- `"A128GCM"` -- AES-128-GCM
+```kotlin
+fun valueOf(value: `String`): PhotoFormat
+```
+
+Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)
+
+###### Throws
+
+| | |
+|---|---|
+| `IllegalArgumentException` | if this enum type has no constant with the specified name |
+
+### value
+
+```kotlin
+val value: `Long`
+```
+
+### values
+
+```kotlin
+fun values(): `Array`<PhotoFormat>
+```
+
+Returns an array containing the constants of this enum type, in the order they're declared.
+
+This method may be used to iterate over the constants.
+
+### fromValue
+
+```kotlin
+fun fromValue(value: `Long`): PhotoFormat?
+```
+
+---
+
+## CoseAlgorithm
+
+```kotlin
+enum CoseAlgorithm : `Enum`<CoseAlgorithm>
+```
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| entries | val entries: `EnumEntries`<CoseAlgorithm><br>Returns a representation of an immutable list of all enum entries, in the order they're declared. |
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| values | fun values(): `Array`<CoseAlgorithm><br>Returns an array containing the constants of this enum type, in the order they're declared. |
+
+### coseName
+
+```kotlin
+val coseName: `String`
+```
+
+### entries
+
+```kotlin
+val entries: `EnumEntries`<CoseAlgorithm>
+```
+
+Returns a representation of an immutable list of all enum entries, in the order they're declared.
+
+This method may be used to iterate over the enum entries.
+
+### valueOf
+
+```kotlin
+fun valueOf(value: `String`): CoseAlgorithm
+```
+
+Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)
+
+###### Throws
+
+| | |
+|---|---|
+| `IllegalArgumentException` | if this enum type has no constant with the specified name |
+
+### values
+
+```kotlin
+fun values(): `Array`<CoseAlgorithm>
+```
+
+Returns an array containing the constants of this enum type, in the order they're declared.
+
+This method may be used to iterate over the constants.
+
+---
+
+## VerificationStatus
+
+```kotlin
+enum VerificationStatus : `Enum`<VerificationStatus>
+```
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| entries | val entries: `EnumEntries`<VerificationStatus><br>Returns a representation of an immutable list of all enum entries, in the order they're declared. |
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| values | fun values(): `Array`<VerificationStatus><br>Returns an array containing the constants of this enum type, in the order they're declared. |
+
+### entries
+
+```kotlin
+val entries: `EnumEntries`<VerificationStatus>
+```
+
+Returns a representation of an immutable list of all enum entries, in the order they're declared.
+
+This method may be used to iterate over the enum entries.
+
+### valueOf
+
+```kotlin
+fun valueOf(value: `String`): VerificationStatus
+```
+
+Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)
+
+###### Throws
+
+| | |
+|---|---|
+| `IllegalArgumentException` | if this enum type has no constant with the specified name |
+
+### value
+
+```kotlin
+val value: `String`
+```
+
+### values
+
+```kotlin
+fun values(): `Array`<VerificationStatus>
+```
+
+Returns an array containing the constants of this enum type, in the order they're declared.
+
+This method may be used to iterate over the constants.
+
+### fromValue
+
+```kotlin
+fun fromValue(value: `String`): VerificationStatus
+```
+
+---
+
+## VerificationResult
+
+```kotlin
+sealed interface VerificationResult
+```
+
+Result of a signature verification operation.
+
+Forces implementors to make an explicit accept/reject decision, preventing accidental acceptance from empty method bodies.
+
+### Types
+
+| Name | Summary |
+|---|---|
+| Invalid | data class Invalid(val reason: `String`) : VerificationResult<br>The signature is invalid or verification failed. |
+| Valid | data object Valid : VerificationResult<br>The signature is valid. |
+
+### Invalid
+
+```kotlin
+constructor(reason: `String`)
+```
+
+### reason
+
+```kotlin
+val reason: `String`
+```
+
+---
+
+## Top-Level Functions
+
+### claim169
+
+```kotlin
+fun claim169(configure: Claim169DataBuilder.() -> `Unit`): Claim169Data
+```
+
+Create a Claim169Data using DSL syntax.
+
+### cwtMeta
+
+```kotlin
+fun cwtMeta(configure: CwtMetaDataBuilder.() -> `Unit`): CwtMetaData
+```
+
+Create a CwtMetaData using DSL syntax.
+
+### verificationStatusEnum
+
+```kotlin
+fun DecodeResultData.verificationStatusEnum(): VerificationStatus
+```
+
+### zeroizeClaim169Data
+
+```kotlin
+fun zeroizeClaim169Data(claim: Claim169Data)
+```
+
+Zeroizes all sensitive byte arrays within a Claim169Data instance.
+
+Fills photo, bestQualityFingers, and every biometric data byte array with zeros.
