@@ -181,7 +181,7 @@ fn process_encrypt0_with_resolver<R: KeyResolver>(
     })?;
 
     // Build AAD
-    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default());
+    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default())?;
 
     // Decrypt
     let plaintext = decryptor
@@ -307,7 +307,7 @@ fn process_encrypt0(
 
     // Build AAD (Additional Authenticated Data) - Enc_structure
     // For COSE_Encrypt0, this is ["Encrypt0", protected, external_aad]
-    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default());
+    let aad = build_encrypt0_aad(&encrypt0.protected.original_data.clone().unwrap_or_default())?;
 
     // Require explicit algorithm when decryption is requested - no defaults allowed
     // This prevents algorithm confusion attacks
@@ -371,7 +371,7 @@ fn process_encrypt0(
 
 /// Build the Enc_structure AAD for COSE_Encrypt0
 /// Structure: ["Encrypt0", protected, external_aad]
-fn build_encrypt0_aad(protected_bytes: &[u8]) -> Vec<u8> {
+fn build_encrypt0_aad(protected_bytes: &[u8]) -> Result<Vec<u8>> {
     let enc_structure = Value::Array(vec![
         Value::Text("Encrypt0".to_string()),
         Value::Bytes(protected_bytes.to_vec()),
@@ -379,8 +379,9 @@ fn build_encrypt0_aad(protected_bytes: &[u8]) -> Vec<u8> {
     ]);
 
     let mut aad = Vec::new();
-    ciborium::into_writer(&enc_structure, &mut aad).expect("CBOR encoding should not fail");
-    aad
+    ciborium::into_writer(&enc_structure, &mut aad)
+        .map_err(|e| Claim169Error::CborEncode(format!("failed to encode AAD: {}", e)))?;
+    Ok(aad)
 }
 
 /// Extract algorithm from COSE header
@@ -445,23 +446,35 @@ fn get_x509_headers(protected: &Header, unprotected: &Header) -> X509Headers {
     headers
 }
 
+/// Maximum number of certificates allowed in x5bag/x5chain arrays.
+const MAX_CERTIFICATES: usize = 10;
+
+/// Maximum size of a single DER-encoded certificate (16KB).
+const MAX_CERTIFICATE_SIZE: usize = 16 * 1024;
+
 /// Parse X.509 certificates from CBOR value.
 ///
 /// Can be either a single certificate (bstr) or an array of certificates.
+/// Enforces size limits to prevent resource exhaustion from malicious inputs.
 fn parse_x509_certs(value: &Value) -> Option<Vec<Vec<u8>>> {
     match value {
         // Single certificate
-        Value::Bytes(cert) => Some(vec![cert.clone()]),
+        Value::Bytes(cert) => {
+            if cert.len() > MAX_CERTIFICATE_SIZE {
+                return None;
+            }
+            Some(vec![cert.clone()])
+        }
         // Array of certificates
         Value::Array(certs) => {
+            if certs.len() > MAX_CERTIFICATES {
+                return None;
+            }
             let result: Vec<Vec<u8>> = certs
                 .iter()
-                .filter_map(|v| {
-                    if let Value::Bytes(cert) = v {
-                        Some(cert.clone())
-                    } else {
-                        None
-                    }
+                .filter_map(|v| match v {
+                    Value::Bytes(cert) if cert.len() <= MAX_CERTIFICATE_SIZE => Some(cert.clone()),
+                    _ => None,
                 })
                 .collect();
             if result.is_empty() {
@@ -484,7 +497,7 @@ fn parse_cert_hash(value: &Value) -> Option<CertificateHash> {
             let algorithm = match &arr[0] {
                 Value::Integer(i) => {
                     let n: i128 = (*i).into();
-                    Some(CertHashAlgorithm::Numeric(n as i64))
+                    i64::try_from(n).ok().map(CertHashAlgorithm::Numeric)
                 }
                 Value::Text(s) => Some(CertHashAlgorithm::Named(s.clone())),
                 _ => None,

@@ -407,7 +407,9 @@ impl Decoder {
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.as_secs() as i64)
-                .unwrap_or(0);
+                .map_err(|_| {
+                    Claim169Error::DecodingConfig("system clock is before Unix epoch".to_string())
+                })?;
 
             let skew = self.clock_skew_tolerance_seconds;
 

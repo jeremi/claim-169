@@ -179,30 +179,77 @@ export function bytesToHex(bytes: Uint8Array): string {
 }
 
 /**
- * Transform raw X.509 headers from WASM result
+ * Check if a value is a valid byte array (array of integers 0-255).
  */
-function transformX509Headers(raw: Record<string, unknown> | undefined): X509Headers {
+function isByteArray(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        typeof item === "number" &&
+        Number.isInteger(item) &&
+        item >= 0 &&
+        item <= 255,
+    )
+  );
+}
+
+/**
+ * Check if a value is a valid array of certificate byte arrays.
+ */
+function isCertificateArray(value: unknown): value is Array<number[]> {
+  return Array.isArray(value) && value.every(isByteArray);
+}
+
+/**
+ * Check if a value is a valid COSE_CertHash structure.
+ */
+function isCertificateHash(
+  value: unknown,
+): value is { algorithm: string; hashValue: number[] } {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return typeof obj.algorithm === "string" && isByteArray(obj.hashValue);
+}
+
+/**
+ * Transform raw X.509 headers from WASM result with runtime type validation.
+ */
+function transformX509Headers(
+  raw: Record<string, unknown> | undefined,
+): X509Headers {
   if (!raw) {
     return {};
   }
 
   const headers: X509Headers = {};
 
-  if (raw.x5bag) {
-    headers.x5bag = (raw.x5bag as Array<number[]>).map((cert) => new Uint8Array(cert));
+  if (raw.x5bag !== undefined) {
+    if (!isCertificateArray(raw.x5bag)) {
+      throw new Claim169Error("Malformed x509Headers.x5bag");
+    }
+    headers.x5bag = raw.x5bag.map((cert) => new Uint8Array(cert));
   }
-  if (raw.x5chain) {
-    headers.x5chain = (raw.x5chain as Array<number[]>).map((cert) => new Uint8Array(cert));
+  if (raw.x5chain !== undefined) {
+    if (!isCertificateArray(raw.x5chain)) {
+      throw new Claim169Error("Malformed x509Headers.x5chain");
+    }
+    headers.x5chain = raw.x5chain.map((cert) => new Uint8Array(cert));
   }
-  if (raw.x5t) {
-    const x5t = raw.x5t as { algorithm: string; hashValue: number[] };
+  if (raw.x5t !== undefined) {
+    if (!isCertificateHash(raw.x5t)) {
+      throw new Claim169Error("Malformed x509Headers.x5t");
+    }
     headers.x5t = {
-      algorithm: x5t.algorithm,
-      hashValue: new Uint8Array(x5t.hashValue),
+      algorithm: raw.x5t.algorithm,
+      hashValue: new Uint8Array(raw.x5t.hashValue),
     };
   }
-  if (raw.x5u) {
-    headers.x5u = raw.x5u as string;
+  if (raw.x5u !== undefined) {
+    if (typeof raw.x5u !== "string") {
+      throw new Claim169Error("Malformed x509Headers.x5u");
+    }
+    headers.x5u = raw.x5u;
   }
 
   return headers;
@@ -240,7 +287,7 @@ function transformResult(raw: unknown): DecodeResult {
  * Transform raw claim169 object to typed Claim169
  */
 function transformClaim169(
-  raw: Record<string, unknown>
+  raw: Record<string, unknown>,
 ): import("./types.js").Claim169 {
   return {
     id: raw.id as string | undefined,
@@ -289,7 +336,7 @@ function transformClaim169(
  * Transform raw biometrics array
  */
 function transformBiometrics(
-  raw: unknown
+  raw: unknown,
 ): import("./types.js").Biometric[] | undefined {
   if (!raw || !Array.isArray(raw)) {
     return undefined;
@@ -305,20 +352,20 @@ function transformBiometrics(
 
 function validateTimestampsHost(
   cwtMeta: { expiresAt?: number; notBefore?: number },
-  clockSkewToleranceSeconds: number
+  clockSkewToleranceSeconds: number,
 ): void {
   const skew = Math.max(0, Math.floor(clockSkewToleranceSeconds));
   const now = Math.floor(Date.now() / 1000);
 
   if (cwtMeta.expiresAt !== undefined && now > cwtMeta.expiresAt + skew) {
     throw new Claim169Error(
-      `Credential expired at timestamp ${cwtMeta.expiresAt} (now ${now})`
+      `Credential expired at timestamp ${cwtMeta.expiresAt} (now ${now})`,
     );
   }
 
   if (cwtMeta.notBefore !== undefined && now + skew < cwtMeta.notBefore) {
     throw new Claim169Error(
-      `Credential not valid until timestamp ${cwtMeta.notBefore} (now ${now})`
+      `Credential not valid until timestamp ${cwtMeta.notBefore} (now ${now})`,
     );
   }
 }
@@ -330,7 +377,7 @@ function validateTimestampsHost(
  */
 function validateDateFormat(
   date: string | null | undefined,
-  fieldName: string
+  fieldName: string,
 ): void {
   if (!date) return;
 
@@ -353,7 +400,7 @@ function validateDateFormat(
     day = Number.parseInt(date.substring(6, 8), 10);
   } else {
     throw new Claim169Error(
-      `Invalid ${fieldName} format: "${date}". Expected YYYY-MM-DD or YYYYMMDD.`
+      `Invalid ${fieldName} format: "${date}". Expected YYYY-MM-DD or YYYYMMDD.`,
     );
   }
 
@@ -365,7 +412,7 @@ function validateDateFormat(
     parsed.getDate() !== day
   ) {
     throw new Claim169Error(
-      `Invalid ${fieldName} value: "${date}" is not a valid calendar date.`
+      `Invalid ${fieldName} value: "${date}" is not a valid calendar date.`,
     );
   }
 }
@@ -659,7 +706,7 @@ export class Decoder implements IDecoder {
       if (this.validateTimestamps) {
         validateTimestampsHost(
           transformed.cwtMeta,
-          this.clockSkewToleranceSeconds
+          this.clockSkewToleranceSeconds,
         );
       }
       return transformed;
@@ -698,7 +745,10 @@ export interface DecodeOptions {
  * Security:
  * - If you do not pass a verification key, you must set `allowUnverified: true` (testing only).
  */
-export function decode(qrText: string, options: DecodeOptions = {}): DecodeResult {
+export function decode(
+  qrText: string,
+  options: DecodeOptions = {},
+): DecodeResult {
   let decoder = new Decoder(qrText);
 
   if (options.decryptWithAes256) {
@@ -732,7 +782,7 @@ export function decode(qrText: string, options: DecodeOptions = {}): DecodeResul
     decoder = decoder.allowUnverified();
   } else {
     throw new Claim169Error(
-      "decode() requires a verification key or allowUnverified: true"
+      "decode() requires a verification key or allowUnverified: true",
     );
   }
 
@@ -890,7 +940,7 @@ export class Encoder implements IEncoder {
   signWith(
     signer: SignerCallback,
     algorithm: "EdDSA" | "ES256",
-    keyId?: Uint8Array | null
+    keyId?: Uint8Array | null,
   ): Encoder {
     try {
       // Wrap the callback so callers can optionally provide a keyId even if the
@@ -928,7 +978,7 @@ export class Encoder implements IEncoder {
    */
   encryptWith(
     encryptor: EncryptorCallback,
-    algorithm: "A256GCM" | "A128GCM"
+    algorithm: "A256GCM" | "A128GCM",
   ): Encoder {
     try {
       this.wasmEncoder = this.wasmEncoder.encryptWith(encryptor, algorithm);

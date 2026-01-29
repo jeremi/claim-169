@@ -48,6 +48,25 @@ pub struct CertificateHash {
     pub hash_value: Vec<u8>,
 }
 
+impl CertificateHash {
+    /// Validate that the hash value length matches the expected length for known algorithms.
+    ///
+    /// Returns `true` if the hash length is correct for the algorithm, or if the
+    /// algorithm is unknown (in which case no validation is performed).
+    /// Returns `false` if the length does not match a known algorithm's expected output.
+    pub fn validate_length(&self) -> bool {
+        let expected = match &self.algorithm {
+            CertHashAlgorithm::Numeric(-16) => Some(32), // SHA-256
+            CertHashAlgorithm::Numeric(-43) => Some(48), // SHA-384
+            CertHashAlgorithm::Numeric(-44) => Some(64), // SHA-512
+            _ => None,
+        };
+        expected
+            .map(|length| self.hash_value.len() == length)
+            .unwrap_or(true)
+    }
+}
+
 /// X.509 headers extracted from COSE protected/unprotected headers.
 ///
 /// These headers provide certificate information for signature verification.
@@ -93,6 +112,10 @@ pub struct X509Headers {
     /// URI pointing to an X.509 certificate or certificate chain.
     ///
     /// COSE label: 35 (x5u)
+    ///
+    /// **Security warning**: Fetching this URI can expose the system to SSRF attacks.
+    /// Always validate that the URI uses HTTPS before making any network requests.
+    /// Use [`X509Headers::x5u_is_https`] to check.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x5u: Option<String>,
 }
@@ -111,6 +134,17 @@ impl X509Headers {
     /// Check if any certificates are present (x5bag or x5chain).
     pub fn has_certificates(&self) -> bool {
         self.x5bag.is_some() || self.x5chain.is_some()
+    }
+
+    /// Check if the x5u URI uses the HTTPS scheme.
+    ///
+    /// Returns `false` if a non-HTTPS URI is present (potential SSRF risk).
+    /// Returns `true` if no URI is set or if the URI uses HTTPS.
+    pub fn x5u_is_https(&self) -> bool {
+        self.x5u
+            .as_ref()
+            .map(|uri| uri.starts_with("https://"))
+            .unwrap_or(true)
     }
 }
 
@@ -213,5 +247,83 @@ mod tests {
 
         assert_eq!(h1, h2);
         assert_ne!(h1, h3);
+    }
+
+    #[test]
+    fn test_certificate_hash_validate_length_sha256() {
+        let hash = CertificateHash {
+            algorithm: CertHashAlgorithm::Numeric(-16),
+            hash_value: vec![0xab; 32],
+        };
+        assert!(hash.validate_length());
+    }
+
+    #[test]
+    fn test_certificate_hash_validate_length_sha256_wrong() {
+        let hash = CertificateHash {
+            algorithm: CertHashAlgorithm::Numeric(-16),
+            hash_value: vec![0xab; 16], // wrong length
+        };
+        assert!(!hash.validate_length());
+    }
+
+    #[test]
+    fn test_certificate_hash_validate_length_sha384() {
+        let hash = CertificateHash {
+            algorithm: CertHashAlgorithm::Numeric(-43),
+            hash_value: vec![0xab; 48],
+        };
+        assert!(hash.validate_length());
+    }
+
+    #[test]
+    fn test_certificate_hash_validate_length_sha512() {
+        let hash = CertificateHash {
+            algorithm: CertHashAlgorithm::Numeric(-44),
+            hash_value: vec![0xab; 64],
+        };
+        assert!(hash.validate_length());
+    }
+
+    #[test]
+    fn test_certificate_hash_validate_length_unknown_algorithm() {
+        let hash = CertificateHash {
+            algorithm: CertHashAlgorithm::Named("custom-hash".to_string()),
+            hash_value: vec![0xab; 20],
+        };
+        assert!(hash.validate_length()); // unknown algorithms pass
+    }
+
+    #[test]
+    fn test_x5u_is_https_with_https() {
+        let headers = X509Headers {
+            x5u: Some("https://example.com/cert.pem".to_string()),
+            ..Default::default()
+        };
+        assert!(headers.x5u_is_https());
+    }
+
+    #[test]
+    fn test_x5u_is_https_with_http() {
+        let headers = X509Headers {
+            x5u: Some("http://example.com/cert.pem".to_string()),
+            ..Default::default()
+        };
+        assert!(!headers.x5u_is_https());
+    }
+
+    #[test]
+    fn test_x5u_is_https_with_no_uri() {
+        let headers = X509Headers::default();
+        assert!(headers.x5u_is_https());
+    }
+
+    #[test]
+    fn test_x5u_is_https_with_ftp() {
+        let headers = X509Headers {
+            x5u: Some("ftp://example.com/cert.pem".to_string()),
+            ..Default::default()
+        };
+        assert!(!headers.x5u_is_https());
     }
 }
