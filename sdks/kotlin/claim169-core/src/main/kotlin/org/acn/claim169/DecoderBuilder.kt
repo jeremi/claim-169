@@ -61,11 +61,19 @@ class DecoderBuilder(qrText: String) {
                 data: ByteArray,
                 signature: ByteArray
             ) {
-                when (val result = verifier.verify(algorithm, keyId, data, signature)) {
-                    is VerificationResult.Valid -> { /* signature accepted */ }
-                    is VerificationResult.Invalid -> {
-                        throw CryptoException.VerificationFailed(result.reason)
+                try {
+                    when (val result = verifier.verify(algorithm, keyId, data, signature)) {
+                        is VerificationResult.Valid -> { /* signature accepted */ }
+                        is VerificationResult.Invalid -> {
+                            throw RuntimeException("signature verification failed: ${result.reason}")
+                        }
                     }
+                } catch (e: CryptoException) {
+                    throw RuntimeException(e.message ?: "signature verification failed", e)
+                } catch (e: RuntimeException) {
+                    throw e
+                } catch (e: Exception) {
+                    throw RuntimeException(e.message ?: "signature verification failed", e)
                 }
             }
         })
@@ -106,7 +114,15 @@ class DecoderBuilder(qrText: String) {
                 aad: ByteArray,
                 ciphertext: ByteArray
             ): ByteArray {
-                return decryptor.decrypt(algorithm, keyId, nonce, aad, ciphertext)
+                return try {
+                    decryptor.decrypt(algorithm, keyId, nonce, aad, ciphertext)
+                } catch (e: CryptoException) {
+                    throw RuntimeException(e.message ?: "decryption failed", e)
+                } catch (e: RuntimeException) {
+                    throw e
+                } catch (e: Exception) {
+                    throw RuntimeException(e.message ?: "decryption failed", e)
+                }
             }
         })
     }
@@ -138,6 +154,11 @@ class DecoderBuilder(qrText: String) {
      */
     fun maxDecompressedBytes(maxBytes: Long) {
         require(maxBytes > 0) { "maxDecompressedBytes must be positive, got $maxBytes" }
+        if (isLikely32BitJvm() && maxBytes > UInt.MAX_VALUE.toLong()) {
+            throw IllegalArgumentException(
+                "maxDecompressedBytes exceeds 32-bit platform limit, got $maxBytes"
+            )
+        }
         decoder.maxDecompressedBytes(maxBytes.toULong())
     }
 
@@ -147,4 +168,12 @@ class DecoderBuilder(qrText: String) {
     internal fun execute(): DecodeResultData {
         return decoder.execute()
     }
+}
+
+private fun isLikely32BitJvm(): Boolean {
+    val dataModel = System.getProperty("sun.arch.data.model")
+    if (dataModel == "32") return true
+    if (dataModel == "64") return false
+    val arch = (System.getProperty("os.arch") ?: "").lowercase()
+    return !(arch.contains("64") || arch.contains("x86_64") || arch.contains("amd64") || arch.contains("aarch64"))
 }

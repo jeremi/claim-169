@@ -13,7 +13,7 @@ import uniffi.claim169_jni.CwtMetaData
  *     id = "ID-12345"
  *     fullName = "Jane Doe"
  *     dateOfBirth = "19900115"
- *     gender = 2L  // Female
+ *     genderEnum = Gender.Female
  *     email = "jane@example.com"
  * }
  * ```
@@ -28,14 +28,29 @@ class Claim169DataBuilder {
     var lastName: String? = null
     var dateOfBirth: String? = null
     var gender: Long? = null
+    var genderEnum: Gender?
+        get() = gender?.let(Gender::fromValue)
+        set(value) {
+            gender = value?.value
+        }
     var address: String? = null
     var email: String? = null
     var phone: String? = null
     var nationality: String? = null
     var maritalStatus: Long? = null
+    var maritalStatusEnum: MaritalStatus?
+        get() = maritalStatus?.let(MaritalStatus::fromValue)
+        set(value) {
+            maritalStatus = value?.value
+        }
     var guardian: String? = null
     var photo: ByteArray? = null
     var photoFormat: Long? = null
+    var photoFormatEnum: PhotoFormat?
+        get() = photoFormat?.let(PhotoFormat::fromValue)
+        set(value) {
+            photoFormat = value?.value
+        }
     var bestQualityFingers: ByteArray? = null
     var secondaryFullName: String? = null
     var secondaryLanguage: String? = null

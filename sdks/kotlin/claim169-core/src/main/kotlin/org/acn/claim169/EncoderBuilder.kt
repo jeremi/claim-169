@@ -64,13 +64,36 @@ class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData) {
                 keyId: ByteArray?,
                 data: ByteArray
             ): ByteArray {
-                return signer.sign(algorithm, keyId, data)
+                return try {
+                    signer.sign(algorithm, keyId, data)
+                } catch (e: CryptoException) {
+                    throw RuntimeException(e.message ?: "signing failed", e)
+                } catch (e: RuntimeException) {
+                    throw e
+                } catch (e: Exception) {
+                    throw RuntimeException(e.message ?: "signing failed", e)
+                }
             }
 
             override fun keyId(): ByteArray? {
-                return signer.keyId()
+                return try {
+                    signer.keyId()
+                } catch (e: CryptoException) {
+                    throw RuntimeException(e.message ?: "key id lookup failed", e)
+                } catch (e: RuntimeException) {
+                    throw e
+                } catch (e: Exception) {
+                    throw RuntimeException(e.message ?: "key id lookup failed", e)
+                }
             }
         }, algorithm)
+    }
+
+    /**
+     * Sign with a custom [Signer] implementation using a known COSE algorithm.
+     */
+    fun signWith(signer: Signer, algorithm: CoseAlgorithm) {
+        signWith(signer, algorithm.coseName)
     }
 
     /**
@@ -111,9 +134,24 @@ class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData) {
                 aad: ByteArray,
                 plaintext: ByteArray
             ): ByteArray {
-                return encryptor.encrypt(algorithm, keyId, nonce, aad, plaintext)
+                return try {
+                    encryptor.encrypt(algorithm, keyId, nonce, aad, plaintext)
+                } catch (e: CryptoException) {
+                    throw RuntimeException(e.message ?: "encryption failed", e)
+                } catch (e: RuntimeException) {
+                    throw e
+                } catch (e: Exception) {
+                    throw RuntimeException(e.message ?: "encryption failed", e)
+                }
             }
         }, algorithm)
+    }
+
+    /**
+     * Encrypt with a custom [Encryptor] implementation using a known COSE algorithm.
+     */
+    fun encryptWith(encryptor: Encryptor, algorithm: CoseAlgorithm) {
+        encryptWith(encryptor, algorithm.coseName)
     }
 
     /**

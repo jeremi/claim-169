@@ -188,6 +188,12 @@ impl From<CryptoException> for claim169::CryptoError {
     }
 }
 
+impl From<uniffi::UnexpectedUniFFICallbackError> for CryptoException {
+    fn from(err: uniffi::UnexpectedUniFFICallbackError) -> Self {
+        CryptoException::Other(err.reason)
+    }
+}
+
 // ============================================================
 // Data records (UniFFI value types)
 // ============================================================

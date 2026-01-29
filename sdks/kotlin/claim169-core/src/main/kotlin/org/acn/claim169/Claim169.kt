@@ -7,6 +7,14 @@ import uniffi.claim169_jni.CwtMetaData
 import uniffi.claim169_jni.DecodeResultData
 import uniffi.claim169_jni.version as nativeVersion
 
+fun interface DecoderConfigurer {
+    fun configure(builder: DecoderBuilder)
+}
+
+fun interface EncoderConfigurer {
+    fun configure(builder: EncoderBuilder)
+}
+
 /**
  * Main entry point for the MOSIP Claim 169 SDK.
  *
@@ -54,6 +62,37 @@ object Claim169 {
         return builder.execute()
     }
 
+    @JvmStatic
+    @JvmName("decode")
+    fun decodeWith(
+        qrText: String,
+        configure: DecoderConfigurer
+    ): DecodeResultData {
+        val builder = DecoderBuilder(qrText)
+        configure.configure(builder)
+        return builder.execute()
+    }
+
+    /**
+     * Decode a Claim 169 QR code string and return a closeable wrapper that zeroizes
+     * sensitive byte arrays when closed.
+     */
+    fun decodeCloseable(
+        qrText: String,
+        configure: DecoderBuilder.() -> Unit
+    ): CloseableDecodeResult {
+        return CloseableDecodeResult(decode(qrText, configure))
+    }
+
+    @JvmStatic
+    @JvmName("decodeCloseable")
+    fun decodeCloseableWith(
+        qrText: String,
+        configure: DecoderConfigurer
+    ): CloseableDecodeResult {
+        return CloseableDecodeResult(decodeWith(qrText, configure))
+    }
+
     /**
      * Encode Claim 169 data into a QR-ready Base45 string.
      *
@@ -70,6 +109,18 @@ object Claim169 {
     ): String {
         val builder = EncoderBuilder(claim169, cwtMeta)
         builder.configure()
+        return builder.execute()
+    }
+
+    @JvmStatic
+    @JvmName("encode")
+    fun encodeWith(
+        claim169: Claim169Data,
+        cwtMeta: CwtMetaData,
+        configure: EncoderConfigurer
+    ): String {
+        val builder = EncoderBuilder(claim169, cwtMeta)
+        configure.configure(builder)
         return builder.execute()
     }
 
