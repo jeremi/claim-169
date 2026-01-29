@@ -155,6 +155,98 @@ class CallbackTest {
     }
 
     @Test
+    fun `custom verifier receives correct EdDSA algorithm`() {
+        val vector = TestVectorLoader.loadVector("valid", "ed25519-signed")
+        val signingKey = vector.getAsJsonObject("signing_key")
+        val privateKeyHex = signingKey.get("private_key_hex").asString
+        val privateKey = TestVectorLoader.hexToByteArray(privateKeyHex)
+
+        var receivedAlgorithm: String? = null
+
+        val data = claim169 {
+            id = "ALG-EDDSA-001"
+            fullName = "EdDSA Algorithm Test"
+        }
+        val meta = cwtMeta {
+            issuer = "https://test.example.com"
+            expiresAt = 2000000000L
+        }
+
+        val encoded = Claim169.encode(data, meta) {
+            signWithEd25519(privateKey)
+        }
+
+        Claim169.decode(encoded) {
+            verifyWith(object : SignatureVerifier {
+                override fun verify(
+                    algorithm: String,
+                    keyId: ByteArray?,
+                    data: ByteArray,
+                    signature: ByteArray
+                ) {
+                    receivedAlgorithm = algorithm
+                    // Accept all signatures for this test
+                }
+            })
+            withoutTimestampValidation()
+        }
+
+        assertEquals("EdDSA", receivedAlgorithm)
+    }
+
+    @Test
+    fun `custom verifier receives correct ES256 algorithm from test vector`() {
+        val vector = TestVectorLoader.loadVector("valid", "ecdsa-p256-signed")
+        val qrData = vector.get("qr_data").asString
+
+        var receivedAlgorithm: String? = null
+
+        // Decode the pre-signed ECDSA vector with a custom verifier to check the algorithm
+        Claim169.decode(qrData) {
+            verifyWith(object : SignatureVerifier {
+                override fun verify(
+                    algorithm: String,
+                    keyId: ByteArray?,
+                    data: ByteArray,
+                    signature: ByteArray
+                ) {
+                    receivedAlgorithm = algorithm
+                    // Accept all signatures for this test
+                }
+            })
+            withoutTimestampValidation()
+        }
+
+        assertEquals("ES256", receivedAlgorithm)
+    }
+
+    @Test
+    fun `custom signer error propagation`() {
+        val data = claim169 {
+            id = "ERR-PROP-001"
+            fullName = "Error Propagation Test"
+        }
+        val meta = cwtMeta {
+            issuer = "https://test.example.com"
+            expiresAt = 2000000000L
+        }
+
+        assertThrows(Exception::class.java) {
+            Claim169.encode(data, meta) {
+                signWith(object : Signer {
+                    override fun sign(
+                        algorithm: String,
+                        keyId: ByteArray?,
+                        data: ByteArray
+                    ): ByteArray {
+                        throw RuntimeException("HSM unavailable")
+                    }
+                }, "EdDSA")
+            }
+        }
+    }
+
+    @Test
     fun `custom decryptor callback`() {
         // We can't easily test a custom decryptor without implementing AES-GCM,
         // but we can verify the callback is invoked and that errors propagate
