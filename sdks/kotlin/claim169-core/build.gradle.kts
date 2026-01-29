@@ -97,9 +97,13 @@ publishing {
 }
 
 signing {
-    val signingKey = System.getenv("GPG_SIGNING_KEY")
-    val signingPassword = System.getenv("GPG_SIGNING_PASSWORD")
-    if (signingKey != null && signingPassword != null) {
+    // Prefer the new env var name `GPG_PRIVATE_KEY` (Central Portal docs),
+    // but keep `GPG_SIGNING_KEY` for backwards compatibility.
+    val signingKey = System.getenv("GPG_PRIVATE_KEY") ?: System.getenv("GPG_SIGNING_KEY")
+    // Password is optional: unencrypted keys can be used with an empty passphrase.
+    val signingPassword = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
+
+    if (!signingKey.isNullOrBlank()) {
         useInMemoryPgpKeys(signingKey, signingPassword)
         sign(publishing.publications["maven"])
     }
