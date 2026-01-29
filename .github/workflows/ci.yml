@@ -179,12 +179,17 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
+          cache-dependency-path: sdks/kotlin/**/build.gradle.kts
 
       - name: Download test vectors
         uses: actions/download-artifact@v4
         with:
           name: test-vectors
           path: test-vectors/
+
+      - name: Sync test vectors for Kotlin
+        run: rsync -a test-vectors/ sdks/kotlin/test-vectors/
 
       - name: Build native library
         run: cargo build -p claim169-jni
@@ -229,6 +234,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
+          cache-dependency-path: sdks/kotlin/**/build.gradle.kts
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -357,6 +364,31 @@ jobs:
           test -f package/wasm/claim169_wasm.js || (echo "Missing wasm/claim169_wasm.js" && exit 1)
           test -f package/wasm/claim169_wasm_bg.wasm || (echo "Missing wasm/claim169_wasm_bg.wasm" && exit 1)
           echo "npm package structure is correct"
+
+      # Test Kotlin/Maven packaging
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+          cache-dependency-path: sdks/kotlin/**/build.gradle.kts
+
+      - name: Build Kotlin native library
+        run: cargo build -p claim169-jni
+
+      - name: Test Maven publication (local)
+        working-directory: sdks/kotlin
+        run: |
+          ./gradlew :claim169-core:publishToMavenLocal
+          # Verify published artifacts
+          GROUP_PATH="org/acn/claim169"
+          LOCAL_REPO="$HOME/.m2/repository/$GROUP_PATH/claim169-core"
+          VERSION=$(grep -m1 'version = ' build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          test -f "$LOCAL_REPO/$VERSION/claim169-core-$VERSION.jar" || (echo "Missing JAR" && exit 1)
+          test -f "$LOCAL_REPO/$VERSION/claim169-core-$VERSION.pom" || (echo "Missing POM" && exit 1)
+          test -f "$LOCAL_REPO/$VERSION/claim169-core-$VERSION-sources.jar" || (echo "Missing sources JAR" && exit 1)
+          echo "Maven packaging is correct"
 
   # Code coverage (only on push to main)
   coverage:

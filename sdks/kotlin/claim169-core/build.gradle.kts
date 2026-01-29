@@ -49,7 +49,7 @@ publishing {
             pom {
                 name.set("Claim 169 SDK")
                 description.set("Kotlin/Java SDK for encoding and decoding Claim 169 QR codes")
-                url.set("https://github.com/niclas-AptusGlobal/claim-169")
+                url.set("https://github.com/jeremi/claim-169")
 
                 licenses {
                     license {
@@ -59,9 +59,9 @@ publishing {
                 }
 
                 scm {
-                    connection.set("scm:git:git://github.com/niclas-AptusGlobal/claim-169.git")
-                    developerConnection.set("scm:git:ssh://github.com:niclas-AptusGlobal/claim-169.git")
-                    url.set("https://github.com/niclas-AptusGlobal/claim-169")
+                    connection.set("scm:git:git://github.com/jeremi/claim-169.git")
+                    developerConnection.set("scm:git:ssh://github.com:jeremi/claim-169.git")
+                    url.set("https://github.com/jeremi/claim-169")
                 }
             }
         }
