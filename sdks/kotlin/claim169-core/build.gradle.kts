@@ -2,6 +2,20 @@ plugins {
     kotlin("jvm")
     `maven-publish`
     signing
+    id("org.jetbrains.dokka")
+}
+
+tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
+    moduleName.set("claim169-core")
+    dokkaSourceSets {
+        configureEach {
+            // Suppress auto-generated UniFFI JNI bindings from documentation
+            perPackageOption {
+                matchingRegex.set("uniffi\\..*")
+                suppress.set(true)
+            }
+        }
+    }
 }
 
 dependencies {
