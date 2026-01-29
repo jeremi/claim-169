@@ -202,7 +202,7 @@ The status of the credential, when represented using CWT, is outside the scope o
       1: 1 # Image
       2: 6 # WSQ
       3: VendorX # Biometric data issuer
-    # Right Iris image 
+    # Right Iris image
     - 0: 36F2C546(...)CB90378C58 # Data
       1: 1 # Image
       2: 6 # WSQ
