@@ -47,8 +47,8 @@ publishing {
             from(components["java"])
 
             pom {
-                name.set("MOSIP Claim 169 SDK")
-                description.set("Kotlin/Java SDK for encoding and decoding MOSIP Claim 169 QR codes")
+                name.set("Claim 169 SDK")
+                description.set("Kotlin/Java SDK for encoding and decoding Claim 169 QR codes")
                 url.set("https://github.com/niclas-AptusGlobal/claim-169")
 
                 licenses {

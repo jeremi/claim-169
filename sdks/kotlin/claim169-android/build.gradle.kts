@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mosip.claim169"
+    namespace = "org.acn.claim169"
     compileSdk = 34
 
     defaultConfig {

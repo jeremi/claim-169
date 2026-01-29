@@ -1,4 +1,4 @@
-package org.mosip.claim169
+package org.acn.claim169
 
 /**
  * Interface for custom signature verification.

@@ -1,4 +1,4 @@
-package org.mosip.claim169
+package org.acn.claim169
 
 import uniffi.claim169_jni.Claim169Data
 import uniffi.claim169_jni.Claim169Encoder
