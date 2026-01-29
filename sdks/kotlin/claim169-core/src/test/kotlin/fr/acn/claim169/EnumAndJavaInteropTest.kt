@@ -1,4 +1,4 @@
-package org.acn.claim169
+package fr.acn.claim169
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*

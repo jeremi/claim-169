@@ -67,7 +67,7 @@ cargo build -p claim169-jni
 cd sdks/kotlin && ./gradlew :claim169-core:test
 
 # Run a single test class
-cd sdks/kotlin && ./gradlew :claim169-core:test --tests "org.acn.claim169.DecodeValidTest"
+cd sdks/kotlin && ./gradlew :claim169-core:test --tests "fr.acn.claim169.DecodeValidTest"
 
 # Publish to local Maven repo (for testing)
 cd sdks/kotlin && ./gradlew :claim169-core:publishToMavenLocal

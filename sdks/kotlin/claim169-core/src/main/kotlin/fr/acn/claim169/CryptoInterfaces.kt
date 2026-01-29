@@ -1,4 +1,4 @@
-package org.acn.claim169
+package fr.acn.claim169
 
 /**
  * Result of a signature verification operation.

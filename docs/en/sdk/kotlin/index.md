@@ -1,7 +1,7 @@
 # Kotlin SDK
 
 <div class="badges" markdown>
-[![Maven Central](https://img.shields.io/maven-central/v/org.acn.claim169/claim169-core)](https://central.sonatype.com/artifact/org.acn.claim169/claim169-core)
+[![Maven Central](https://img.shields.io/maven-central/v/fr.acn.claim169/claim169-core)](https://central.sonatype.com/artifact/fr.acn.claim169/claim169-core)
 [![Kotlin](https://img.shields.io/badge/kotlin-1.9+-7F52FF.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jeremi/claim-169/blob/main/LICENSE)
 </div>
@@ -22,7 +22,7 @@ The Kotlin SDK provides native bindings for encoding and decoding MOSIP Claim 16
 
     ```kotlin
     dependencies {
-        implementation("org.acn.claim169:claim169-core:0.1.0-alpha.2")
+        implementation("fr.acn.claim169:claim169-core:0.1.0-alpha.2")
     }
     ```
 
@@ -30,7 +30,7 @@ The Kotlin SDK provides native bindings for encoding and decoding MOSIP Claim 16
 
     ```xml
     <dependency>
-        <groupId>org.acn.claim169</groupId>
+        <groupId>fr.acn.claim169</groupId>
         <artifactId>claim169-core</artifactId>
         <version>0.1.0-alpha.2</version>
     </dependency>
@@ -39,7 +39,7 @@ The Kotlin SDK provides native bindings for encoding and decoding MOSIP Claim 16
 ## Quick Start
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 // Decode a QR code with Ed25519 verification
 val qrData = "NCFOXN..."  // Base45 string from QR scanner

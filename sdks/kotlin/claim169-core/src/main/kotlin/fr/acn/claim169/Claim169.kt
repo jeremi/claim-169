@@ -1,4 +1,4 @@
-package org.acn.claim169
+package fr.acn.claim169
 
 import uniffi.claim169_jni.Claim169Decoder
 import uniffi.claim169_jni.Claim169Encoder

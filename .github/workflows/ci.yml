@@ -382,7 +382,7 @@ jobs:
         run: |
           ./gradlew :claim169-core:publishToMavenLocal
           # Verify published artifacts
-          GROUP_PATH="org/acn/claim169"
+          GROUP_PATH="fr/acn/claim169"
           LOCAL_REPO="$HOME/.m2/repository/$GROUP_PATH/claim169-core"
           VERSION=$(grep -m1 'version = ' build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
           test -f "$LOCAL_REPO/$VERSION/claim169-core-$VERSION.jar" || (echo "Missing JAR" && exit 1)

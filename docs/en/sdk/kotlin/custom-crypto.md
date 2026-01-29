@@ -20,7 +20,7 @@ This can help meet security requirements that mandate private key material stays
 Implement this interface to provide custom signature verification:
 
 ```kotlin
-import org.acn.claim169.SignatureVerifier
+import fr.acn.claim169.SignatureVerifier
 
 class MyVerifier : SignatureVerifier {
     override fun verify(
@@ -40,7 +40,7 @@ class MyVerifier : SignatureVerifier {
 Implement this interface to provide custom signing:
 
 ```kotlin
-import org.acn.claim169.Signer
+import fr.acn.claim169.Signer
 
 class MySigner : Signer {
     override val algorithm: String = "EdDSA"  // or "ES256"
@@ -58,7 +58,7 @@ class MySigner : Signer {
 Implement this interface to provide custom decryption:
 
 ```kotlin
-import org.acn.claim169.Decryptor
+import fr.acn.claim169.Decryptor
 
 class MyDecryptor : Decryptor {
     override fun decrypt(
@@ -79,7 +79,7 @@ class MyDecryptor : Decryptor {
 Implement this interface to provide custom encryption:
 
 ```kotlin
-import org.acn.claim169.Encryptor
+import fr.acn.claim169.Encryptor
 
 class MyEncryptor : Encryptor {
     override val algorithm: String = "A256GCM"  // or "A128GCM"
@@ -105,8 +105,8 @@ Android Keystore provides hardware-backed key storage on Android devices.
 ```kotlin
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import org.acn.claim169.Claim169
-import org.acn.claim169.Signer
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.Signer
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.Signature
@@ -157,8 +157,8 @@ val qrData = Claim169.encode(data, meta) {
 ### Verifying with Android Keystore
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.SignatureVerifier
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.SignatureVerifier
 import java.security.KeyStore
 import java.security.Signature
 
@@ -258,8 +258,8 @@ fun rawToDerEcdsa(rawSignature: ByteArray): ByteArray {
 ### Signing with AWS KMS
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.Signer
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.Signer
 import software.amazon.awssdk.services.kms.KmsClient
 import software.amazon.awssdk.services.kms.model.MessageType
 import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec
@@ -296,7 +296,7 @@ val qrData = Claim169.encode(data, meta) {
 ### Verifying with AWS KMS
 
 ```kotlin
-import org.acn.claim169.SignatureVerifier
+import fr.acn.claim169.SignatureVerifier
 import software.amazon.awssdk.services.kms.KmsClient
 import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec
 
@@ -337,7 +337,7 @@ import com.azure.identity.DefaultAzureCredentialBuilder
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient
 import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder
 import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm
-import org.acn.claim169.Signer
+import fr.acn.claim169.Signer
 import java.security.MessageDigest
 
 class AzureKeyVaultSigner(
@@ -377,7 +377,7 @@ import com.google.cloud.kms.v1.CryptoKeyVersionName
 import com.google.cloud.kms.v1.Digest
 import com.google.cloud.kms.v1.KeyManagementServiceClient
 import com.google.protobuf.ByteString
-import org.acn.claim169.Signer
+import fr.acn.claim169.Signer
 import java.security.MessageDigest
 
 class GcpKmsSigner(
@@ -422,7 +422,7 @@ val qrData = Claim169.encode(data, meta) {
 For PKCS#11 HSMs using a JCA provider:
 
 ```kotlin
-import org.acn.claim169.Signer
+import fr.acn.claim169.Signer
 import java.security.KeyStore
 import java.security.Signature
 
@@ -460,7 +460,7 @@ val qrData = Claim169.encode(data, meta) {
 Wrap provider-specific exceptions so they surface as meaningful messages:
 
 ```kotlin
-import org.acn.claim169.Signer
+import fr.acn.claim169.Signer
 
 class SafeSigner(private val delegate: Signer) : Signer {
     override val algorithm: String = delegate.algorithm

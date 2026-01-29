@@ -11,7 +11,7 @@ Le SDK Kotlin/Java permet d’encoder et décoder des QR codes Claim 169 sur JVM
 
 ```kotlin
 dependencies {
-  implementation("org.acn.claim169:claim169-core:<version>")
+  implementation("fr.acn.claim169:claim169-core:<version>")
 }
 ```
 

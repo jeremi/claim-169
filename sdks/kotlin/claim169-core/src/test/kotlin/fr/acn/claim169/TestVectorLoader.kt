@@ -1,4 +1,4 @@
-package org.acn.claim169
+package fr.acn.claim169
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject

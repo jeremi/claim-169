@@ -5,9 +5,9 @@ Ce guide montre comment produire une chaîne Base45 prête à être mise dans un
 ## Encodage minimal (Ed25519)
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.claim169
-import org.acn.claim169.cwtMeta
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.claim169
+import fr.acn.claim169.cwtMeta
 
 val claim = claim169 {
   id = "ID-12345"

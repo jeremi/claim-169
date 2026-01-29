@@ -16,7 +16,7 @@ Decoding follows these steps:
 The most common case using Ed25519 signatures:
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 val qrData = "NCFOXN..."  // From QR scanner
 val publicKey = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
@@ -42,7 +42,7 @@ println("Status: ${result.verificationStatus}")
 For credentials signed with ECDSA P-256:
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 val qrData = "NCFOXN..."
 // SEC1 encoded P-256 public key (33 bytes compressed, or 65 bytes uncompressed)
@@ -63,7 +63,7 @@ If you have public keys in PEM format (e.g., from OpenSSL or X.509 certificates)
 ### Ed25519 with PEM
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 val qrData = "NCFOXN..."
 val pemKey = """
@@ -82,7 +82,7 @@ println("Verified: ${result.isVerified}")
 ### ECDSA P-256 with PEM
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 val qrData = "NCFOXN..."
 val pemKey = """
@@ -103,8 +103,8 @@ println("Verified: ${result.isVerified}")
 For HSM, KMS, or custom crypto providers:
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.SignatureVerifier
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.SignatureVerifier
 
 val customVerifier = object : SignatureVerifier {
     override fun verify(
@@ -131,7 +131,7 @@ println("Verified: ${result.isVerified}")
 For testing and development only. Never use in production.
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 // WARNING: INSECURE - skips signature verification
 val result = Claim169.decode(qrData) {
@@ -207,7 +207,7 @@ For applications handling sensitive biometric data, use `decodeCloseable()` to e
 byte arrays are zeroized when you're done:
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 Claim169.decodeCloseable(qrData) {
     verifyWithEd25519(publicKey)
@@ -333,8 +333,8 @@ result.claim169.face?.firstOrNull()?.let { face ->
 ## Error Handling
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.Claim169Exception
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.Claim169Exception
 
 try {
     val result = Claim169.decode(qrData) {
@@ -365,8 +365,8 @@ try {
 ## Complete Example
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.Claim169Exception
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.Claim169Exception
 
 fun verifyCredential(qrData: String, publicKey: ByteArray): Map<String, Any?>? {
     return try {

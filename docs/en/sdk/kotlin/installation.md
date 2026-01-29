@@ -10,7 +10,7 @@
 
 ```kotlin
 dependencies {
-    implementation("org.acn.claim169:claim169-core:0.1.0-alpha.2")
+    implementation("fr.acn.claim169:claim169-core:0.1.0-alpha.2")
 }
 ```
 
@@ -18,7 +18,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'org.acn.claim169:claim169-core:0.1.0-alpha.2'
+    implementation 'fr.acn.claim169:claim169-core:0.1.0-alpha.2'
 }
 ```
 
@@ -26,7 +26,7 @@ dependencies {
 
 ```xml
 <dependency>
-    <groupId>org.acn.claim169</groupId>
+    <groupId>fr.acn.claim169</groupId>
     <artifactId>claim169-core</artifactId>
     <version>0.1.0-alpha.2</version>
 </dependency>
@@ -127,7 +127,7 @@ Or use the published AAR which includes all supported ABIs.
 ## Verifying Installation
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 fun main() {
     println("claim169 version: ${Claim169.version()}")
@@ -148,7 +148,7 @@ Update the version in your build file:
 
     ```kotlin
     dependencies {
-        implementation("org.acn.claim169:claim169-core:0.2.0")
+        implementation("fr.acn.claim169:claim169-core:0.2.0")
     }
     ```
 
@@ -156,7 +156,7 @@ Update the version in your build file:
 
     ```xml
     <dependency>
-        <groupId>org.acn.claim169</groupId>
+        <groupId>fr.acn.claim169</groupId>
         <artifactId>claim169-core</artifactId>
         <version>0.2.0</version>
     </dependency>

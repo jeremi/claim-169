@@ -8,7 +8,7 @@ Ce guide couvre le décodage d’un QR code Claim 169 et la vérification de sig
 ## Vérifier une signature Ed25519
 
 ```kotlin
-import org.acn.claim169.Claim169
+import fr.acn.claim169.Claim169
 
 val result = Claim169.decode(qrData) {
   verifyWithEd25519(publicKey)

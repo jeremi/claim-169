@@ -9,7 +9,7 @@
 [![crates.io](https://img.shields.io/crates/v/claim169-core.svg?label=crates.io)](https://crates.io/crates/claim169-core)
 [![PyPI](https://img.shields.io/pypi/v/claim169.svg?label=pypi)](https://pypi.org/project/claim169/)
 [![npm](https://img.shields.io/npm/v/claim169.svg?label=npm)](https://www.npmjs.com/package/claim169)
-[![Maven Central](https://img.shields.io/maven-central/v/org.acn.claim169/claim169-core.svg?label=maven)](https://central.sonatype.com/artifact/org.acn.claim169/claim169-core)
+[![Maven Central](https://img.shields.io/maven-central/v/fr.acn.claim169/claim169-core.svg?label=maven)](https://central.sonatype.com/artifact/fr.acn.claim169/claim169-core)
 
 Multi-language SDKs for encoding and decoding [MOSIP Claim 169](https://github.com/mosip/id-claim-169/tree/main) QR codes — a compact, secure format for digital identity credentials.
 
@@ -36,7 +36,7 @@ The format is designed for constrained environments: a typical credential fits i
 | **Rust** | [`claim169-core`](https://crates.io/crates/claim169-core) | High-performance core library, embedded systems |
 | **Python** | [`claim169`](https://pypi.org/project/claim169/) | Server-side integration, HSM support |
 | **TypeScript/JavaScript** | [`claim169`](https://www.npmjs.com/package/claim169) | Browser apps, Node.js services |
-| **Kotlin/Java** | [`claim169-core`](https://central.sonatype.com/artifact/org.acn.claim169/claim169-core) | Android apps, JVM server-side |
+| **Kotlin/Java** | [`claim169-core`](https://central.sonatype.com/artifact/fr.acn.claim169/claim169-core) | Android apps, JVM server-side |
 
 All SDKs share the same Rust core via native bindings (Python, Kotlin/Java) or WebAssembly (TypeScript), ensuring consistent behavior across platforms.
 
@@ -186,11 +186,11 @@ const qrData = new Encoder(claim, meta)
 
 ```kotlin
 // Gradle (Kotlin DSL)
-implementation("org.acn.claim169:claim169-core:0.1.0-alpha.3")
+implementation("fr.acn.claim169:claim169-core:0.1.0-alpha.3")
 ```
 
 ```kotlin
-import org.acn.claim169.*
+import fr.acn.claim169.*
 
 // Decode and verify a QR code
 val result = Claim169.decode(qrText) {

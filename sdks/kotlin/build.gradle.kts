@@ -6,6 +6,6 @@ plugins {
 }
 
 allprojects {
-    group = "org.acn.claim169"
+    group = "fr.acn.claim169"
     version = "0.1.0-alpha.3"
 }

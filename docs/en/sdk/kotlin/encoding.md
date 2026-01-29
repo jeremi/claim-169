@@ -19,9 +19,9 @@ Encoding follows these steps:
 The `claim169 {}` builder provides a type-safe DSL for creating identity data:
 
 ```kotlin
-import org.acn.claim169.claim169
-import org.acn.claim169.Gender
-import org.acn.claim169.MaritalStatus
+import fr.acn.claim169.claim169
+import fr.acn.claim169.Gender
+import fr.acn.claim169.MaritalStatus
 
 // Create with all demographics
 val data = claim169 {
@@ -100,7 +100,7 @@ val data = claim169 {
 The `cwtMeta {}` builder creates CWT (CBOR Web Token) metadata:
 
 ```kotlin
-import org.acn.claim169.cwtMeta
+import fr.acn.claim169.cwtMeta
 
 val meta = cwtMeta {
     issuer = "https://id.example.org"
@@ -126,9 +126,9 @@ val meta = cwtMeta {
 Ed25519 is recommended for its small signatures and fast verification.
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.claim169
-import org.acn.claim169.cwtMeta
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.claim169
+import fr.acn.claim169.cwtMeta
 
 // Identity data
 val data = claim169 {
@@ -161,9 +161,9 @@ println("Encoded: ${qrData.length} characters")
 ECDSA P-256 is widely supported in enterprise environments.
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.claim169
-import org.acn.claim169.cwtMeta
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.claim169
+import fr.acn.claim169.cwtMeta
 
 val data = claim169 {
     id = "ECDSA-001"
@@ -188,9 +188,9 @@ val qrData = Claim169.encode(data, meta) {
 For testing and development only. Never use in production.
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.claim169
-import org.acn.claim169.cwtMeta
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.claim169
+import fr.acn.claim169.cwtMeta
 
 val data = claim169 {
     id = "TEST-001"
@@ -223,9 +223,9 @@ val qrData = Claim169.encode(data, meta) {
 For HSM or KMS signing, provide a `Signer` implementation:
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.Signer
-import org.acn.claim169.CoseAlgorithm
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.Signer
+import fr.acn.claim169.CoseAlgorithm
 
 val customSigner = object : Signer {
     override fun sign(algorithm: String, keyId: ByteArray?, data: ByteArray): ByteArray {
@@ -250,9 +250,9 @@ signWith(customSigner, "EdDSA")
 Complete example with all demographics:
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.claim169
-import org.acn.claim169.cwtMeta
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.claim169
+import fr.acn.claim169.cwtMeta
 
 // Create comprehensive identity data
 val data = claim169 {
@@ -302,8 +302,8 @@ println("Ready for QR code generation")
 ## Error Handling
 
 ```kotlin
-import org.acn.claim169.Claim169
-import org.acn.claim169.Claim169Exception
+import fr.acn.claim169.Claim169
+import fr.acn.claim169.Claim169Exception
 
 try {
     val qrData = Claim169.encode(data, meta) {

@@ -7,8 +7,8 @@ Le SDK Kotlin est utilisable depuis Java (meme artefact Maven).
 La DSL Kotlin utilise une lambda "trailing". Depuis Java, utilisez l'interface fonctionnelle `DecoderConfigurer` :
 
 ```java
-import org.acn.claim169.Claim169;
-import org.acn.claim169.DecodeResultData;
+import fr.acn.claim169.Claim169;
+import fr.acn.claim169.DecodeResultData;
 
 DecodeResultData result = Claim169.decode(qrData, builder -> {
     builder.verifyWithEd25519(publicKey);

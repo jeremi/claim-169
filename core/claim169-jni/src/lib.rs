@@ -868,18 +868,12 @@ impl Claim169Decoder {
 
     /// Decrypt with AES-256-GCM (32-byte key).
     pub fn decrypt_with_aes256(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        self.with_decoder(|d| {
-            d.decrypt_with_aes256(&key)
-                .map_err(Claim169Exception::from)
-        })
+        self.with_decoder(|d| d.decrypt_with_aes256(&key).map_err(Claim169Exception::from))
     }
 
     /// Decrypt with AES-128-GCM (16-byte key).
     pub fn decrypt_with_aes128(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        self.with_decoder(|d| {
-            d.decrypt_with_aes128(&key)
-                .map_err(Claim169Exception::from)
-        })
+        self.with_decoder(|d| d.decrypt_with_aes128(&key).map_err(Claim169Exception::from))
     }
 
     /// Decrypt with a custom decryptor callback (for HSM/KMS integration).
@@ -1033,18 +1027,12 @@ impl Claim169Encoder {
 
     /// Encrypt with AES-256-GCM (32-byte key). Nonce is generated randomly.
     pub fn encrypt_with_aes256(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        self.with_encoder(|e| {
-            e.encrypt_with_aes256(&key)
-                .map_err(Claim169Exception::from)
-        })
+        self.with_encoder(|e| e.encrypt_with_aes256(&key).map_err(Claim169Exception::from))
     }
 
     /// Encrypt with AES-128-GCM (16-byte key). Nonce is generated randomly.
     pub fn encrypt_with_aes128(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        self.with_encoder(|e| {
-            e.encrypt_with_aes128(&key)
-                .map_err(Claim169Exception::from)
-        })
+        self.with_encoder(|e| e.encrypt_with_aes128(&key).map_err(Claim169Exception::from))
     }
 
     /// Encrypt with a custom encryptor callback (for HSM/KMS integration).

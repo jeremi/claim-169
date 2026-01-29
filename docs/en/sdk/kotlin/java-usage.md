@@ -13,8 +13,8 @@ Installation is identical to Kotlin. See the [Installation guide](installation.m
 In Kotlin, the `decode()` function accepts a trailing lambda (DSL). From Java, use the `DecoderConfigurer` functional interface instead:
 
 ```java
-import org.acn.claim169.Claim169;
-import org.acn.claim169.DecodeResultData;
+import fr.acn.claim169.Claim169;
+import fr.acn.claim169.DecodeResultData;
 
 byte[] publicKey = hexToByteArray("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
 
@@ -78,8 +78,8 @@ DecodeResultData result = Claim169.decode(qrData, builder -> {
 Use Java's try-with-resources to ensure biometric byte arrays are zeroized after use:
 
 ```java
-import org.acn.claim169.Claim169;
-import org.acn.claim169.CloseableDecodeResult;
+import fr.acn.claim169.Claim169;
+import fr.acn.claim169.CloseableDecodeResult;
 
 try (CloseableDecodeResult result = Claim169.decodeCloseable(qrData, builder -> {
     builder.verifyWithEd25519(publicKey);
@@ -96,11 +96,11 @@ try (CloseableDecodeResult result = Claim169.decodeCloseable(qrData, builder -> 
 From Java, use `Claim169DataBuilder` and `CwtMetaDataBuilder` directly, then pass an `EncoderConfigurer`:
 
 ```java
-import org.acn.claim169.Claim169;
-import org.acn.claim169.Claim169Data;
-import org.acn.claim169.Claim169DataBuilder;
-import org.acn.claim169.CwtMetaData;
-import org.acn.claim169.CwtMetaDataBuilder;
+import fr.acn.claim169.Claim169;
+import fr.acn.claim169.Claim169Data;
+import fr.acn.claim169.Claim169DataBuilder;
+import fr.acn.claim169.CwtMetaData;
+import fr.acn.claim169.CwtMetaDataBuilder;
 
 // Build identity data
 Claim169DataBuilder dataBuilder = new Claim169DataBuilder();
@@ -141,9 +141,9 @@ Kotlin enums use companion object methods. From Java, access them via the `Compa
 ### Reading Enums from Decoded Data
 
 ```java
-import org.acn.claim169.Gender;
-import org.acn.claim169.MaritalStatus;
-import org.acn.claim169.PhotoFormat;
+import fr.acn.claim169.Gender;
+import fr.acn.claim169.MaritalStatus;
+import fr.acn.claim169.PhotoFormat;
 
 DecodeResultData result = Claim169.decode(qrData, builder -> {
     builder.allowUnverified();
@@ -179,7 +179,7 @@ Claim169Data data = dataBuilder.build();
 ### Verification Status Enum
 
 ```java
-import org.acn.claim169.VerificationStatus;
+import fr.acn.claim169.VerificationStatus;
 
 DecodeResultData result = Claim169.decode(qrData, builder -> {
     builder.verifyWithEd25519(publicKey);
@@ -222,7 +222,7 @@ Claim169.decode(qrData, builder -> {
 Implement the `SignatureVerifier` interface:
 
 ```java
-import org.acn.claim169.SignatureVerifier;
+import fr.acn.claim169.SignatureVerifier;
 
 SignatureVerifier verifier = new SignatureVerifier() {
     @Override
@@ -266,7 +266,7 @@ DecodeResultData result = Claim169.decode(qrData, builder -> {
 ### Custom Decryptor
 
 ```java
-import org.acn.claim169.Decryptor;
+import fr.acn.claim169.Decryptor;
 
 Decryptor decryptor = new Decryptor() {
     @Override
@@ -285,8 +285,8 @@ DecodeResultData result = Claim169.decode(qrData, builder -> {
 ### Custom Encryptor
 
 ```java
-import org.acn.claim169.Encryptor;
-import org.acn.claim169.CoseAlgorithm;
+import fr.acn.claim169.Encryptor;
+import fr.acn.claim169.CoseAlgorithm;
 
 Encryptor encryptor = new Encryptor() {
     @Override
@@ -308,8 +308,8 @@ All four crypto interfaces (`SignatureVerifier`, `Signer`, `Decryptor`, `Encrypt
 ### Custom Signer
 
 ```java
-import org.acn.claim169.Signer;
-import org.acn.claim169.CoseAlgorithm;
+import fr.acn.claim169.Signer;
+import fr.acn.claim169.CoseAlgorithm;
 
 Signer signer = new Signer() {
     @Override
@@ -334,7 +334,7 @@ String qrData = Claim169.encode(data, meta, builder -> {
 Java catches the same `Claim169Exception` sealed class hierarchy. Use `instanceof` checks:
 
 ```java
-import org.acn.claim169.Claim169;
+import fr.acn.claim169.Claim169;
 import uniffi.claim169_jni.Claim169Exception;
 
 try {

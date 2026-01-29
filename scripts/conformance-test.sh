@@ -169,7 +169,7 @@ cleanup_ts
 echo "Running Kotlin conformance tests..."
 cd "$PROJECT_ROOT/sdks/kotlin"
 ./gradlew :claim169-core:cleanTest :claim169-core:test \
-    --tests "org.acn.claim169.ConformanceTest" \
+    --tests "fr.acn.claim169.ConformanceTest" \
     -Dconformance.vectors.path="$TEMP_DIR/vectors.json" \
     -Dconformance.output.path="$TEMP_DIR/kt_results.json" \
     2>&1 | grep -v "^$" || true

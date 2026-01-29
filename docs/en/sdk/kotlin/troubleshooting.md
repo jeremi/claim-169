@@ -22,7 +22,7 @@ Native library (linux-x86-64/libclaim169_core.so) not found
 1. Verify the dependency is correctly declared:
    ```kotlin
    dependencies {
-       implementation("org.acn.claim169:claim169-core:0.1.0-alpha.2")
+       implementation("fr.acn.claim169:claim169-core:0.1.0-alpha.2")
    }
    ```
 
@@ -133,7 +133,7 @@ java.lang.UnsatisfiedLinkError: Native library (darwin-aarch64/libclaim169_core.
 ### Base45DecodeError
 
 ```
-org.acn.claim169.Claim169Exception$Base45DecodeError: Invalid Base45 character at position 15
+fr.acn.claim169.Claim169Exception$Base45DecodeError: Invalid Base45 character at position 15
 ```
 
 **Causes:**
@@ -156,7 +156,7 @@ org.acn.claim169.Claim169Exception$Base45DecodeError: Invalid Base45 character a
 ### DecompressError: Size Limit Exceeded
 
 ```
-org.acn.claim169.Claim169Exception$DecompressError: decompressed size 150000 exceeds limit 65536
+fr.acn.claim169.Claim169Exception$DecompressError: decompressed size 150000 exceeds limit 65536
 ```
 
 **Cause:** Credential decompresses to larger than the limit (default 64KB).
@@ -173,7 +173,7 @@ val result = Claim169.decode(qrData) {
 ### SignatureError
 
 ```
-org.acn.claim169.Claim169Exception$SignatureError: Signature verification failed
+fr.acn.claim169.Claim169Exception$SignatureError: Signature verification failed
 ```
 
 **Causes:**
@@ -197,7 +197,7 @@ org.acn.claim169.Claim169Exception$SignatureError: Signature verification failed
 ### TimestampValidationError
 
 ```
-org.acn.claim169.Claim169Exception$TimestampValidationError: Token expired at 1700000000
+fr.acn.claim169.Claim169Exception$TimestampValidationError: Token expired at 1700000000
 ```
 
 **Cause:** The credential has expired or its `nbf` time is in the future.
@@ -223,7 +223,7 @@ org.acn.claim169.Claim169Exception$TimestampValidationError: Token expired at 17
 ### DecryptionError
 
 ```
-org.acn.claim169.Claim169Exception$DecryptionError: Decryption failed
+fr.acn.claim169.Claim169Exception$DecryptionError: Decryption failed
 ```
 
 **Causes:**
@@ -279,7 +279,7 @@ When using R8/ProGuard with the SDK, add these rules to your `proguard-rules.pro
 
 ```proguard
 # claim169 SDK - keep JNA and UniFFI bindings
--keep class org.acn.claim169.** { *; }
+-keep class fr.acn.claim169.** { *; }
 -keep class com.sun.jna.** { *; }
 -keepclassmembers class * extends com.sun.jna.Structure {
     public *;
@@ -291,10 +291,10 @@ When using R8/ProGuard with the SDK, add these rules to your `proguard-rules.pro
 }
 
 # Keep UniFFI callback interfaces
--keep interface org.acn.claim169.SignatureVerifier { *; }
--keep interface org.acn.claim169.Signer { *; }
--keep interface org.acn.claim169.Decryptor { *; }
--keep interface org.acn.claim169.Encryptor { *; }
+-keep interface fr.acn.claim169.SignatureVerifier { *; }
+-keep interface fr.acn.claim169.Signer { *; }
+-keep interface fr.acn.claim169.Decryptor { *; }
+-keep interface fr.acn.claim169.Encryptor { *; }
 ```
 
 ---
