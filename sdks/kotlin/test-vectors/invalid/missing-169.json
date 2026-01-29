@@ -1,7 +1,0 @@
-{
-  "name": "missing-169",
-  "description": "Valid CWT but without claim 169",
-  "category": "invalid",
-  "expected_error": "Claim169NotFound",
-  "qr_data": "6BFU60V40FFWJWG.FKJ05H6BERKOQEMWEW9E0G7S:5$9FQ$DTVD7*5$KEFN0FPDUOQWY0J C1LUQ68$GAK2"
-}

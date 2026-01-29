@@ -785,6 +785,29 @@ pub struct Claim169Decoder {
     inner: Mutex<Option<claim169::Decoder>>,
 }
 
+impl Claim169Decoder {
+    /// Lock the inner mutex, take the decoder, apply a transformation, and put it back.
+    fn with_decoder<F>(&self, f: F) -> Result<(), Claim169Exception>
+    where
+        F: FnOnce(claim169::Decoder) -> Result<claim169::Decoder, Claim169Exception>,
+    {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let decoder = guard.take().ok_or_else(|| {
+            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
+        })?;
+        *guard = Some(f(decoder)?);
+        Ok(())
+    }
+
+    /// Take the decoder from the mutex without putting it back (for terminal operations).
+    fn take_decoder(&self) -> Result<claim169::Decoder, Claim169Exception> {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        guard.take().ok_or_else(|| {
+            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
+        })
+    }
+}
+
 #[uniffi::export]
 impl Claim169Decoder {
     /// Create a decoder for the given QR text string.
@@ -797,54 +820,34 @@ impl Claim169Decoder {
 
     /// Verify with an Ed25519 public key (32 raw bytes).
     pub fn verify_with_ed25519(&self, public_key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let decoder = decoder
-            .verify_with_ed25519(&public_key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(decoder);
-        Ok(())
+        self.with_decoder(|d| {
+            d.verify_with_ed25519(&public_key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Verify with an Ed25519 public key in PEM format.
     pub fn verify_with_ed25519_pem(&self, pem: String) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let decoder = decoder
-            .verify_with_ed25519_pem(&pem)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(decoder);
-        Ok(())
+        self.with_decoder(|d| {
+            d.verify_with_ed25519_pem(&pem)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Verify with an ECDSA P-256 public key (SEC1-encoded, 33 or 65 bytes).
     pub fn verify_with_ecdsa_p256(&self, public_key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let decoder = decoder
-            .verify_with_ecdsa_p256(&public_key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(decoder);
-        Ok(())
+        self.with_decoder(|d| {
+            d.verify_with_ecdsa_p256(&public_key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Verify with an ECDSA P-256 public key in PEM format.
     pub fn verify_with_ecdsa_p256_pem(&self, pem: String) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let decoder = decoder
-            .verify_with_ecdsa_p256_pem(&pem)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(decoder);
-        Ok(())
+        self.with_decoder(|d| {
+            d.verify_with_ecdsa_p256_pem(&pem)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Verify with a custom verifier callback (for HSM/KMS integration).
@@ -852,49 +855,31 @@ impl Claim169Decoder {
         &self,
         verifier: Box<dyn SignatureVerifierCallback>,
     ) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let adapter = CallbackVerifier { callback: verifier };
-        *guard = Some(decoder.verify_with(adapter));
-        Ok(())
+        self.with_decoder(|d| {
+            let adapter = CallbackVerifier { callback: verifier };
+            Ok(d.verify_with(adapter))
+        })
     }
 
     /// Allow decoding without signature verification.
     pub fn allow_unverified(&self) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        *guard = Some(decoder.allow_unverified());
-        Ok(())
+        self.with_decoder(|d| Ok(d.allow_unverified()))
     }
 
     /// Decrypt with AES-256-GCM (32-byte key).
     pub fn decrypt_with_aes256(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let decoder = decoder
-            .decrypt_with_aes256(&key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(decoder);
-        Ok(())
+        self.with_decoder(|d| {
+            d.decrypt_with_aes256(&key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Decrypt with AES-128-GCM (16-byte key).
     pub fn decrypt_with_aes128(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let decoder = decoder
-            .decrypt_with_aes128(&key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(decoder);
-        Ok(())
+        self.with_decoder(|d| {
+            d.decrypt_with_aes128(&key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Decrypt with a custom decryptor callback (for HSM/KMS integration).
@@ -902,35 +887,22 @@ impl Claim169Decoder {
         &self,
         decryptor: Box<dyn DecryptorCallback>,
     ) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        let adapter = CallbackDecryptor {
-            callback: decryptor,
-        };
-        *guard = Some(decoder.decrypt_with(adapter));
-        Ok(())
+        self.with_decoder(|d| {
+            let adapter = CallbackDecryptor {
+                callback: decryptor,
+            };
+            Ok(d.decrypt_with(adapter))
+        })
     }
 
     /// Skip biometric data parsing for faster decoding.
     pub fn skip_biometrics(&self) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        *guard = Some(decoder.skip_biometrics());
-        Ok(())
+        self.with_decoder(|d| Ok(d.skip_biometrics()))
     }
 
     /// Disable timestamp validation (expiration and not-before checks).
     pub fn without_timestamp_validation(&self) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        *guard = Some(decoder.without_timestamp_validation());
-        Ok(())
+        self.with_decoder(|d| Ok(d.without_timestamp_validation()))
     }
 
     /// Set clock skew tolerance for timestamp validation (in seconds).
@@ -941,20 +913,11 @@ impl Claim169Decoder {
                 seconds
             )));
         }
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-        *guard = Some(decoder.clock_skew_tolerance(seconds));
-        Ok(())
+        self.with_decoder(|d| Ok(d.clock_skew_tolerance(seconds)))
     }
 
     /// Set maximum decompressed size in bytes (default: 65536).
     pub fn max_decompressed_bytes(&self, max_bytes: u64) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
         let max_bytes_usize = usize::try_from(max_bytes).map_err(|_| {
             Claim169Exception::DecodingConfig(format!(
                 "max_decompressed_bytes value {} exceeds platform limit of {}",
@@ -962,19 +925,14 @@ impl Claim169Decoder {
                 usize::MAX
             ))
         })?;
-        *guard = Some(decoder.max_decompressed_bytes(max_bytes_usize));
-        Ok(())
+        self.with_decoder(|d| Ok(d.max_decompressed_bytes(max_bytes_usize)))
     }
 
     /// Execute the decode operation and return the result.
     ///
     /// This consumes the decoder — it cannot be reused after calling this method.
     pub fn execute(&self) -> Result<DecodeResultData, Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let decoder = guard.take().ok_or_else(|| {
-            Claim169Exception::DecodingConfig("decoder already consumed".to_string())
-        })?;
-
+        let decoder = self.take_decoder()?;
         let result = decoder.decode().map_err(Claim169Exception::from)?;
 
         Ok(DecodeResultData {
@@ -997,6 +955,29 @@ pub struct Claim169Encoder {
     inner: Mutex<Option<claim169::Encoder>>,
 }
 
+impl Claim169Encoder {
+    /// Lock the inner mutex, take the encoder, apply a transformation, and put it back.
+    fn with_encoder<F>(&self, f: F) -> Result<(), Claim169Exception>
+    where
+        F: FnOnce(claim169::Encoder) -> Result<claim169::Encoder, Claim169Exception>,
+    {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let encoder = guard.take().ok_or_else(|| {
+            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
+        })?;
+        *guard = Some(f(encoder)?);
+        Ok(())
+    }
+
+    /// Take the encoder from the mutex without putting it back (for terminal operations).
+    fn take_encoder(&self) -> Result<claim169::Encoder, Claim169Exception> {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        guard.take().ok_or_else(|| {
+            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
+        })
+    }
+}
+
 #[uniffi::export]
 impl Claim169Encoder {
     /// Create an encoder with the given claim data and CWT metadata.
@@ -1014,28 +995,18 @@ impl Claim169Encoder {
 
     /// Sign with an Ed25519 private key (32 raw bytes).
     pub fn sign_with_ed25519(&self, private_key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        let encoder = encoder
-            .sign_with_ed25519(&private_key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(encoder);
-        Ok(())
+        self.with_encoder(|e| {
+            e.sign_with_ed25519(&private_key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Sign with an ECDSA P-256 private key (32-byte scalar).
     pub fn sign_with_ecdsa_p256(&self, private_key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        let encoder = encoder
-            .sign_with_ecdsa_p256(&private_key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(encoder);
-        Ok(())
+        self.with_encoder(|e| {
+            e.sign_with_ecdsa_p256(&private_key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Sign with a custom signer callback (for HSM/KMS integration).
@@ -1045,53 +1016,35 @@ impl Claim169Encoder {
         algorithm: String,
     ) -> Result<(), Claim169Exception> {
         let alg = algorithm_from_string(&algorithm)?;
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        let cached_key_id = signer.key_id();
-        let adapter = CallbackSigner {
-            callback: signer,
-            cached_key_id,
-        };
-        *guard = Some(encoder.sign_with(adapter, alg));
-        Ok(())
+        self.with_encoder(|e| {
+            let cached_key_id = signer.key_id();
+            let adapter = CallbackSigner {
+                callback: signer,
+                cached_key_id,
+            };
+            Ok(e.sign_with(adapter, alg))
+        })
     }
 
     /// Allow encoding without a signature.
     pub fn allow_unsigned(&self) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        *guard = Some(encoder.allow_unsigned());
-        Ok(())
+        self.with_encoder(|e| Ok(e.allow_unsigned()))
     }
 
     /// Encrypt with AES-256-GCM (32-byte key). Nonce is generated randomly.
     pub fn encrypt_with_aes256(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        let encoder = encoder
-            .encrypt_with_aes256(&key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(encoder);
-        Ok(())
+        self.with_encoder(|e| {
+            e.encrypt_with_aes256(&key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Encrypt with AES-128-GCM (16-byte key). Nonce is generated randomly.
     pub fn encrypt_with_aes128(&self, key: Vec<u8>) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        let encoder = encoder
-            .encrypt_with_aes128(&key)
-            .map_err(Claim169Exception::from)?;
-        *guard = Some(encoder);
-        Ok(())
+        self.with_encoder(|e| {
+            e.encrypt_with_aes128(&key)
+                .map_err(Claim169Exception::from)
+        })
     }
 
     /// Encrypt with a custom encryptor callback (for HSM/KMS integration).
@@ -1101,33 +1054,22 @@ impl Claim169Encoder {
         algorithm: String,
     ) -> Result<(), Claim169Exception> {
         let alg = algorithm_from_string(&algorithm)?;
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        let adapter = CallbackEncryptor {
-            callback: encryptor,
-        };
-        *guard = Some(encoder.encrypt_with(adapter, alg));
-        Ok(())
+        self.with_encoder(|e| {
+            let adapter = CallbackEncryptor {
+                callback: encryptor,
+            };
+            Ok(e.encrypt_with(adapter, alg))
+        })
     }
 
     /// Skip biometric data during encoding.
     pub fn skip_biometrics(&self) -> Result<(), Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
-        *guard = Some(encoder.skip_biometrics());
-        Ok(())
+        self.with_encoder(|e| Ok(e.skip_biometrics()))
     }
 
     /// Execute the encode operation and return the Base45-encoded QR string.
     pub fn execute(&self) -> Result<String, Claim169Exception> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let encoder = guard.take().ok_or_else(|| {
-            Claim169Exception::EncodingConfig("encoder already consumed".to_string())
-        })?;
+        let encoder = self.take_encoder()?;
         encoder.encode().map_err(Claim169Exception::from)
     }
 }
