@@ -71,6 +71,7 @@ plugins:
             Troubleshooting: Dépannage
             TypeScript SDK: SDK TypeScript
             WASM Configuration: Configuration WASM
+            Kotlin SDK: SDK Kotlin
             Rust SDK: SDK Rust
             Contributing: Contribuer
   - search
@@ -147,6 +148,16 @@ nav:
       - WASM Configuration: sdk/typescript/wasm.md
       - API Reference: sdk/typescript/api.md
       - Troubleshooting: sdk/typescript/troubleshooting.md
+  - Kotlin SDK:
+      - Overview: sdk/kotlin/index.md
+      - Installation: sdk/kotlin/installation.md
+      - Quick Start: sdk/kotlin/quick-start.md
+      - Encoding: sdk/kotlin/encoding.md
+      - Decoding: sdk/kotlin/decoding.md
+      - Encryption: sdk/kotlin/encryption.md
+      - Custom Crypto: sdk/kotlin/custom-crypto.md
+      - API Reference: sdk/kotlin/api.md
+      - Troubleshooting: sdk/kotlin/troubleshooting.md
   - Rust SDK:
       - Overview: sdk/rust/index.md
       - Installation: sdk/rust/installation.md
