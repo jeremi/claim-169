@@ -142,7 +142,7 @@ The status of the credential, when represented using CWT, is outside the scope o
 ```json
 1: www.mosip.io # iss
 4: 1787912445 # exp
-5: 1756376445 # nbf 
+5: 1756376445 # nbf
 6: 1756376445 # iat
 169: # identity-data
   1: 3918592438 # ID
