@@ -156,7 +156,8 @@ jobs:
         with:
           # codespell is English-focused; restrict to EN docs to avoid false positives
           path: docs/en
-          args: --config .codespellrc
+          skip: ./.git
+          ignore_words_list: mosip,cwt,cose,cbor,base45,wasm,ecdsa,ed25519,p256,maturin,calle,acn,implementors
 
   drift-check:
     name: API Docs Drift Check

@@ -1,9 +1,9 @@
 package fr.acn.claim169
 
-import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
+import com.google.gson.annotations.SerializedName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import java.io.File
@@ -17,10 +17,7 @@ import java.io.File
  */
 class ConformanceTest {
 
-    private val gson: Gson = GsonBuilder()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-        .serializeNulls()
-        .create()
+    private val gson: Gson = GsonBuilder().serializeNulls().create()
 
     @Test
     fun `process all vectors for conformance`() {
@@ -108,7 +105,7 @@ class ConformanceTest {
     data class ConformanceVector(
         val name: String,
         val category: String,
-        val qrData: String,
+        @SerializedName("qr_data") val qrData: String,
     )
 
     data class ConformanceResult(
