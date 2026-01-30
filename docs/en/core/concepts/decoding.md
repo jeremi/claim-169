@@ -12,6 +12,9 @@ QR Code → Base45 → zlib → COSE → CWT → Claim 169
 
 At each stage, the library validates the data structure and applies security checks.
 
+!!! warning "Do not trim Base45"
+    The Base45 alphabet includes a literal space character (`" "`). Do not call `.trim()`, collapse whitespace, or otherwise normalize scanned QR text, or you can corrupt valid credentials.
+
 ## Verification Model
 
 ### Trust Decisions
@@ -32,8 +35,8 @@ After decoding, check the verification status:
 | Status | Meaning |
 |--------|---------|
 | `Verified` | Signature valid with provided key |
-| `Unverified` | Decoded without verification (testing only) |
-| Error | Signature invalid or verification failed |
+| `Skipped` | Decoded without verification (testing only) |
+| Error | Signature invalid / verification failed |
 
 ## Signature Verification
 
@@ -41,7 +44,7 @@ After decoding, check the verification status:
 
 The library requires verification by default because:
 
-- Unverified credentials could be forged
+- Credentials decoded without verification could be forged
 - Attackers could modify legitimate credentials
 - Trust assumptions must be explicit
 
@@ -141,7 +144,7 @@ A successful decode returns:
 |-------|----------|
 | `claim169` | Identity data (id, name, DOB, etc.) |
 | `cwt_meta` | Token metadata (issuer, timestamps) |
-| `verification_status` | `Verified` or `Unverified` |
+| `verification_status` | `Verified` or `Skipped` |
 
 ## Error Handling
 

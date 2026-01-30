@@ -12,6 +12,9 @@ Identity Data → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → B
 
 Each stage serves a specific purpose in producing a compact, secure, verifiable credential.
 
+!!! warning "Do not trim Base45"
+    The Base45 alphabet includes a literal space character (`" "`). Preserve the encoded string exactly as produced by the encoder (or scanner output), without trimming or normalizing whitespace.
+
 ## 1. Identity Data
 
 Start with the data you want to encode. At minimum, you need:

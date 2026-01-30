@@ -58,6 +58,21 @@ npm run build:ts
 npm test
 ```
 
+### Kotlin/Java SDK
+```bash
+# Build JNI native library (required before running tests)
+cargo build -p claim169-jni
+
+# Run tests (from sdks/kotlin)
+cd sdks/kotlin && ./gradlew :claim169-core:test
+
+# Run a single test class
+cd sdks/kotlin && ./gradlew :claim169-core:test --tests "fr.acn.claim169.DecodeValidTest"
+
+# Publish to local Maven repo (for testing)
+cd sdks/kotlin && ./gradlew :claim169-core:publishToMavenLocal
+```
+
 ### Test Vectors
 ```bash
 # Generate test vectors (required before running SDK tests)
@@ -77,9 +92,11 @@ cargo +nightly fuzz run fuzz_decompress
 ```
 core/
   claim169-core/     # Rust core library (all decoding logic)
+  claim169-jni/      # Kotlin/Java bindings (UniFFI)
   claim169-python/   # PyO3 bindings
   claim169-wasm/     # wasm-bindgen bindings
 sdks/
+  kotlin/            # Kotlin/Java SDK (DSL wrapper + tests)
   python/            # Python SDK with type hints
   typescript/        # TypeScript SDK with full types
 tools/
@@ -164,6 +181,7 @@ Use scopes to indicate which part of the codebase is affected:
 - `core` - Rust core library
 - `python` - Python SDK
 - `typescript` - TypeScript SDK
+- `kotlin` - Kotlin/Java SDK
 - `wasm` - WASM bindings
 - `deps` - Dependencies (e.g., `chore(deps): update coset to 0.4`)
 - `release` - Release automation (auto-generated, skipped in changelog)
@@ -210,7 +228,7 @@ Releases are automated via GitHub Actions:
    git push origin v0.2.0
    ```
    The repo is configured to use the dedicated release signing key (`AE6CFF6860B82163`).
-5. **Auto-publish**: Publishing to crates.io, PyPI, and npm happens automatically
+5. **Auto-publish**: Publishing to crates.io, PyPI, npm, and Maven Central happens automatically
 
 ### Pre-release Versions
 

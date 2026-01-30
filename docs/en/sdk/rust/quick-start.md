@@ -38,6 +38,9 @@ fn create_credential(private_key: &[u8]) -> claim169_core::Result<String> {
 
 Read and verify a QR code:
 
+!!! warning "Do not trim Base45"
+    The Base45 alphabet includes a literal space character (`" "`). Preserve the scanned QR text exactly as-is (no `.trim()` or whitespace normalization), or you can corrupt valid credentials.
+
 ```rust
 use claim169_core::{Decoder, VerificationStatus};
 
@@ -161,7 +164,7 @@ fn test_without_signatures() -> claim169_core::Result<()> {
 }
 ```
 
-**Warning**: Never use `allow_unsigned()` or `allow_unverified()` in production. Unverified credentials cannot be trusted.
+**Warning**: Never use `allow_unsigned()` or `allow_unverified()` in production. Credentials decoded with verification skipped (`verification_status = Skipped`) cannot be trusted.
 
 ## Next Steps
 

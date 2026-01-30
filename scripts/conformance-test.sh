@@ -1,6 +1,6 @@
 #!/bin/bash
 # Cross-language conformance tests for claim169
-# Compares output from Python and TypeScript SDKs to ensure consistency
+# Compares output from Python, TypeScript, and Kotlin SDKs to ensure consistency
 
 set -e
 
@@ -165,12 +165,29 @@ VECTORS_PATH="$TEMP_DIR/vectors.json" OUTPUT_PATH="$TEMP_DIR/ts_results.json" \
 # Cleanup TS test file
 cleanup_ts
 
+# Kotlin conformance: run via Gradle test with conformance output path
+echo "Running Kotlin conformance tests..."
+cd "$PROJECT_ROOT/sdks/kotlin"
+./gradlew :claim169-core:cleanTest :claim169-core:test \
+    --tests "fr.acn.claim169.ConformanceTest" \
+    -Dconformance.vectors.path="$TEMP_DIR/vectors.json" \
+    -Dconformance.output.path="$TEMP_DIR/kt_results.json" \
+    2>&1 | grep -v "^$" || true
+cd "$PROJECT_ROOT"
+
+# If Kotlin output was not generated (e.g., no JDK), skip it in comparison
+KT_AVAILABLE=false
+if [ -f "$TEMP_DIR/kt_results.json" ]; then
+    KT_AVAILABLE=true
+fi
+
 # Compare results
 echo ""
 echo "Comparing results..."
 
 python3 << COMPARE_SCRIPT
 import json
+import os
 
 with open("$TEMP_DIR/python_results.json") as f:
     py_results = {r['name']: r for r in json.load(f)}
@@ -178,29 +195,51 @@ with open("$TEMP_DIR/python_results.json") as f:
 with open("$TEMP_DIR/ts_results.json") as f:
     ts_results = {r['name']: r for r in json.load(f)}
 
+kt_results = {}
+kt_available = os.path.exists("$TEMP_DIR/kt_results.json")
+if kt_available:
+    with open("$TEMP_DIR/kt_results.json") as f:
+        kt_results = {r['name']: r for r in json.load(f)}
+
+sdks = {'Python': py_results, 'TypeScript': ts_results}
+if kt_available:
+    sdks['Kotlin'] = kt_results
+
+all_names = set()
+for results in sdks.values():
+    all_names.update(results.keys())
+
 pass_count = 0
 fail_count = 0
 
-for name in sorted(set(py_results.keys()) | set(ts_results.keys())):
-    py = py_results.get(name, {'success': None})
-    ts = ts_results.get(name, {'success': None})
+for name in sorted(all_names):
+    results_by_sdk = {sdk: results.get(name, {'success': None}) for sdk, results in sdks.items()}
 
-    # Both should have same success/failure
-    if py.get('success') != ts.get('success'):
-        print(f"FAIL {name}: py_success={py.get('success')} ts_success={ts.get('success')}")
-        if py.get('error'):
-            print(f"  Python error: {py.get('error')}")
-        if ts.get('error'):
-            print(f"  TypeScript error: {ts.get('error')}")
+    # All SDKs should agree on success/failure
+    successes = {sdk: r.get('success') for sdk, r in results_by_sdk.items() if r.get('success') is not None}
+    unique_successes = set(successes.values())
+
+    if len(unique_successes) > 1:
+        print(f"FAIL {name}: success mismatch {dict(successes)}")
+        for sdk, r in results_by_sdk.items():
+            if r.get('error'):
+                print(f"  {sdk} error: {r.get('error')}")
         fail_count += 1
         continue
 
-    # If both succeeded, compare key fields
-    if py.get('success') and ts.get('success'):
+    # If all succeeded, compare key fields across all pairs
+    if all(r.get('success') for r in results_by_sdk.values()):
         mismatches = []
+        sdk_names = list(results_by_sdk.keys())
+        ref_sdk = sdk_names[0]
+        ref = results_by_sdk[ref_sdk]
+
         for field in ['id', 'fullName', 'dateOfBirth', 'gender', 'issuer', 'expiresAt', 'verificationStatus']:
-            if py.get(field) != ts.get(field):
-                mismatches.append(f"{field}: py={py.get(field)} ts={ts.get(field)}")
+            ref_val = ref.get(field)
+            for other_sdk in sdk_names[1:]:
+                other_val = results_by_sdk[other_sdk].get(field)
+                if ref_val != other_val:
+                    mismatches.append(f"{field}: {ref_sdk}={ref_val} {other_sdk}={other_val}")
 
         if mismatches:
             print(f"FAIL {name}: field mismatches")
@@ -211,12 +250,13 @@ for name in sorted(set(py_results.keys()) | set(ts_results.keys())):
             print(f"PASS {name}")
             pass_count += 1
     else:
-        # Both failed - this is expected for invalid vectors
-        print(f"PASS {name} (both rejected)")
+        # All failed - this is expected for invalid vectors
+        print(f"PASS {name} (all rejected)")
         pass_count += 1
 
+sdk_list = ", ".join(sdks.keys())
 print("")
-print(f"=== Results ===")
+print(f"=== Results ({sdk_list}) ===")
 print(f"Passed: {pass_count}")
 print(f"Failed: {fail_count}")
 

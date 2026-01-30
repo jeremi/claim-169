@@ -62,7 +62,16 @@ fn to_py_err(e: Claim169Error) -> PyErr {
 // Python Data Classes
 // ============================================================================
 
-/// Biometric data extracted from claim 169
+/// Biometric data extracted from a Claim 169 credential.
+///
+/// Contains raw biometric data (fingerprint, iris, face, palm, or voice)
+/// along with format metadata and issuer information.
+///
+/// Attributes:
+///     data (list[int]): Raw biometric data bytes.
+///     format (int | None): Biometric format code (0=Image, 1=Template, 2=Sound, 3=BioHash).
+///     sub_format (int | None): Sub-format code (depends on format type).
+///     issuer (str | None): Biometric data issuer/provider identifier.
 #[pyclass]
 #[derive(Clone)]
 pub struct Biometric {
@@ -99,7 +108,17 @@ impl From<&CoreBiometric> for Biometric {
     }
 }
 
-/// CWT metadata (issuer, subject, timestamps)
+/// CWT (CBOR Web Token) metadata from a decoded credential.
+///
+/// Contains standard JWT/CWT claims providing information about the
+/// credential's validity period, issuer, and subject.
+///
+/// Attributes:
+///     issuer (str | None): Token issuer (URL or identifier).
+///     subject (str | None): Token subject (credential holder's ID).
+///     expires_at (int | None): Expiration timestamp (Unix epoch seconds).
+///     not_before (int | None): Not-before timestamp (Unix epoch seconds).
+///     issued_at (int | None): Issued-at timestamp (Unix epoch seconds).
 #[pyclass]
 #[derive(Clone)]
 pub struct CwtMeta {
@@ -167,7 +186,14 @@ impl From<&CoreCwtMeta> for CwtMeta {
     }
 }
 
-/// X.509 certificate hash (COSE_CertHash)
+/// X.509 certificate hash (COSE_CertHash).
+///
+/// Contains a hash algorithm identifier and the hash value, used for
+/// X.509 certificate thumbprint verification.
+///
+/// Attributes:
+///     algorithm (str): Hash algorithm identifier (numeric COSE algorithm ID or string name).
+///     hash_value (list[int]): Hash value bytes.
 #[pyclass]
 #[derive(Clone)]
 pub struct CertificateHash {
@@ -203,7 +229,16 @@ impl From<&CoreCertificateHash> for CertificateHash {
     }
 }
 
-/// X.509 headers extracted from COSE protected/unprotected headers
+/// X.509 headers extracted from COSE protected/unprotected headers.
+///
+/// Contains X.509 certificate information for signature verification,
+/// including certificate bags, chains, thumbprints, and URIs.
+///
+/// Attributes:
+///     x5bag (list[list[int]] | None): Unordered bag of X.509 certificates (DER-encoded).
+///     x5chain (list[list[int]] | None): Ordered chain of X.509 certificates (DER-encoded).
+///     x5t (CertificateHash | None): Certificate thumbprint hash.
+///     x5u (str | None): URI pointing to an X.509 certificate.
 #[pyclass]
 #[derive(Clone)]
 pub struct X509Headers {
@@ -258,7 +293,51 @@ impl From<&CoreX509Headers> for X509Headers {
     }
 }
 
-/// Decoded Claim 169 identity data
+/// Decoded Claim 169 identity data.
+///
+/// Contains all demographic and biometric fields from a decoded
+/// MOSIP Claim 169 QR code credential. All fields are read-only.
+///
+/// Attributes:
+///     id (str | None): Unique identifier.
+///     version (str | None): Credential version.
+///     language (str | None): Primary language code (ISO 639-1).
+///     full_name (str | None): Full name.
+///     first_name (str | None): First/given name.
+///     middle_name (str | None): Middle name.
+///     last_name (str | None): Last/family name.
+///     date_of_birth (str | None): Date of birth (YYYY-MM-DD).
+///     gender (int | None): Gender (1=Male, 2=Female, 3=Other).
+///     address (str | None): Full address.
+///     email (str | None): Email address.
+///     phone (str | None): Phone number.
+///     nationality (str | None): Nationality code.
+///     marital_status (int | None): Marital status (1=Unmarried, 2=Married, 3=Divorced).
+///     guardian (str | None): Guardian name.
+///     photo (list[int] | None): Photo data bytes.
+///     photo_format (int | None): Photo format (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP).
+///     best_quality_fingers (list[int] | None): Best quality finger indices (0-10).
+///     secondary_full_name (str | None): Name in secondary language.
+///     secondary_language (str | None): Secondary language code.
+///     location_code (str | None): Location code.
+///     legal_status (str | None): Legal status.
+///     country_of_issuance (str | None): Issuing country code.
+///     right_thumb (list[Biometric] | None): Right thumb biometric data.
+///     right_pointer_finger (list[Biometric] | None): Right pointer finger biometric data.
+///     right_middle_finger (list[Biometric] | None): Right middle finger biometric data.
+///     right_ring_finger (list[Biometric] | None): Right ring finger biometric data.
+///     right_little_finger (list[Biometric] | None): Right little finger biometric data.
+///     left_thumb (list[Biometric] | None): Left thumb biometric data.
+///     left_pointer_finger (list[Biometric] | None): Left pointer finger biometric data.
+///     left_middle_finger (list[Biometric] | None): Left middle finger biometric data.
+///     left_ring_finger (list[Biometric] | None): Left ring finger biometric data.
+///     left_little_finger (list[Biometric] | None): Left little finger biometric data.
+///     right_iris (list[Biometric] | None): Right iris biometric data.
+///     left_iris (list[Biometric] | None): Left iris biometric data.
+///     face (list[Biometric] | None): Face biometric data.
+///     right_palm (list[Biometric] | None): Right palm biometric data.
+///     left_palm (list[Biometric] | None): Left palm biometric data.
+///     voice (list[Biometric] | None): Voice biometric data.
 #[pyclass]
 #[derive(Clone)]
 pub struct Claim169 {
@@ -468,7 +547,16 @@ impl From<&CoreClaim169> for Claim169 {
     }
 }
 
-/// Result of decoding a Claim 169 QR code
+/// Result of decoding a Claim 169 QR code.
+///
+/// Contains the decoded identity data, CWT metadata, verification status,
+/// and any X.509 headers from the COSE structure.
+///
+/// Attributes:
+///     claim169 (Claim169): Decoded identity data.
+///     cwt_meta (CwtMeta): CWT metadata (issuer, timestamps, etc.).
+///     verification_status (str): Signature verification status ("verified", "skipped", etc.).
+///     x509_headers (X509Headers): X.509 certificate headers from COSE structure.
 #[pyclass]
 #[derive(Clone)]
 pub struct DecodeResult {
@@ -501,7 +589,14 @@ impl DecodeResult {
 // Crypto Hook Wrappers
 // ============================================================================
 
-/// Python-callable signature verifier hook
+/// Custom signature verifier for external crypto providers.
+///
+/// Wraps a Python callback for integration with HSMs, Cloud KMS,
+/// remote signing services, smart cards, and TPMs.
+///
+/// Args:
+///     callback: A callable ``(algorithm, key_id, data, signature) -> None``
+///         that raises an exception if verification fails.
 #[pyclass]
 pub struct PySignatureVerifier {
     callback: Py<PyAny>,
@@ -541,7 +636,14 @@ impl CoreSignatureVerifier for PySignatureVerifier {
     }
 }
 
-/// Python-callable decryptor hook
+/// Custom decryptor for external crypto providers.
+///
+/// Wraps a Python callback for integration with HSMs, Cloud KMS,
+/// and custom software keystores.
+///
+/// Args:
+///     callback: A callable ``(algorithm, key_id, nonce, aad, ciphertext) -> bytes``
+///         that returns decrypted plaintext bytes.
 #[pyclass]
 pub struct PyDecryptor {
     callback: Py<PyAny>,
@@ -646,12 +748,15 @@ impl CoreSigner for PySigner {
     }
 }
 
-/// Python-callable encryptor hook for custom crypto providers
+/// Custom encryptor for external crypto providers.
 ///
-/// Use this to integrate with external key management systems like:
-/// - Hardware Security Modules (HSMs)
-/// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
-/// - Custom software keystores
+/// Wraps a Python callback for integration with HSMs, Cloud KMS
+/// (AWS KMS, Google Cloud KMS, Azure Key Vault), and custom
+/// software keystores.
+///
+/// Args:
+///     callback: A callable ``(algorithm, key_id, nonce, aad, plaintext) -> bytes``
+///         that returns encrypted ciphertext bytes.
 #[pyclass]
 pub struct PyEncryptor {
     callback: Py<PyAny>,
@@ -728,7 +833,10 @@ impl CoreEncryptor for PyEncryptor {
 ///     CwtParseError: If CWT parsing fails
 ///     Claim169NotFoundError: If claim 169 is not present
 #[pyfunction]
-#[pyo3(signature = (qr_text, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+#[pyo3(
+    text_signature = "(qr_text, skip_biometrics=False, max_decompressed_bytes=65536, validate_timestamps=True, clock_skew_tolerance_seconds=0)",
+    signature = (qr_text, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0)
+)]
 fn decode_unverified(
     qr_text: &str,
     skip_biometrics: bool,
@@ -772,7 +880,10 @@ fn decode_unverified(
 /// Returns:
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
-#[pyo3(signature = (qr_text, public_key, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+#[pyo3(
+    text_signature = "(qr_text, public_key, skip_biometrics=False, max_decompressed_bytes=65536, validate_timestamps=True, clock_skew_tolerance_seconds=0)",
+    signature = (qr_text, public_key, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0)
+)]
 fn decode_with_ed25519(
     qr_text: &str,
     public_key: &[u8],
@@ -818,7 +929,10 @@ fn decode_with_ed25519(
 /// Returns:
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
-#[pyo3(signature = (qr_text, public_key, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+#[pyo3(
+    text_signature = "(qr_text, public_key, skip_biometrics=False, max_decompressed_bytes=65536, validate_timestamps=True, clock_skew_tolerance_seconds=0)",
+    signature = (qr_text, public_key, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0)
+)]
 fn decode_with_ecdsa_p256(
     qr_text: &str,
     public_key: &[u8],
@@ -864,7 +978,10 @@ fn decode_with_ecdsa_p256(
 /// Returns:
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
-#[pyo3(signature = (qr_text, pem, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+#[pyo3(
+    text_signature = "(qr_text, pem, skip_biometrics=False, max_decompressed_bytes=65536, validate_timestamps=True, clock_skew_tolerance_seconds=0)",
+    signature = (qr_text, pem, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0)
+)]
 fn decode_with_ed25519_pem(
     qr_text: &str,
     pem: &str,
@@ -910,7 +1027,10 @@ fn decode_with_ed25519_pem(
 /// Returns:
 ///     DecodeResult with verification_status indicating if signature is valid
 #[pyfunction]
-#[pyo3(signature = (qr_text, pem, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0))]
+#[pyo3(
+    text_signature = "(qr_text, pem, skip_biometrics=False, max_decompressed_bytes=65536, validate_timestamps=True, clock_skew_tolerance_seconds=0)",
+    signature = (qr_text, pem, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0)
+)]
 fn decode_with_ecdsa_p256_pem(
     qr_text: &str,
     pem: &str,
@@ -992,7 +1112,10 @@ fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<Decod
 /// Returns:
 ///     DecodeResult containing the decrypted and decoded claim
 #[pyfunction]
-#[pyo3(signature = (qr_text, key, verifier=None, allow_unverified=false))]
+#[pyo3(
+    text_signature = "(qr_text, key, verifier=None, allow_unverified=False)",
+    signature = (qr_text, key, verifier=None, allow_unverified=false)
+)]
 fn decode_encrypted_aes(
     qr_text: &str,
     key: &[u8],
@@ -1039,7 +1162,10 @@ fn decode_encrypted_aes(
 /// Returns:
 ///     DecodeResult containing the decrypted and decoded claim
 #[pyfunction]
-#[pyo3(signature = (qr_text, key, verifier=None, allow_unverified=false))]
+#[pyo3(
+    text_signature = "(qr_text, key, verifier=None, allow_unverified=False)",
+    signature = (qr_text, key, verifier=None, allow_unverified=false)
+)]
 fn decode_encrypted_aes256(
     qr_text: &str,
     key: &[u8],
@@ -1065,7 +1191,10 @@ fn decode_encrypted_aes256(
 /// Returns:
 ///     DecodeResult containing the decrypted and decoded claim
 #[pyfunction]
-#[pyo3(signature = (qr_text, key, verifier=None, allow_unverified=false))]
+#[pyo3(
+    text_signature = "(qr_text, key, verifier=None, allow_unverified=False)",
+    signature = (qr_text, key, verifier=None, allow_unverified=false)
+)]
 fn decode_encrypted_aes128(
     qr_text: &str,
     key: &[u8],
@@ -1100,7 +1229,10 @@ fn decode_encrypted_aes128(
 ///
 ///     result = decode_with_decryptor(qr_text, my_decrypt)
 #[pyfunction]
-#[pyo3(signature = (qr_text, decryptor, verifier=None, allow_unverified=false))]
+#[pyo3(
+    text_signature = "(qr_text, decryptor, verifier=None, allow_unverified=False)",
+    signature = (qr_text, decryptor, verifier=None, allow_unverified=false)
+)]
 fn decode_with_decryptor(
     qr_text: &str,
     decryptor: Py<PyAny>,
@@ -1135,8 +1267,12 @@ fn decode_with_decryptor(
     })
 }
 
-/// Get the library version
+/// Get the library version.
+///
+/// Returns:
+///     str: Version string in semver format (e.g., "0.1.0").
 #[pyfunction]
+#[pyo3(text_signature = "()")]
 fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
@@ -1145,7 +1281,43 @@ fn version() -> &'static str {
 // Encoder Classes and Functions
 // ============================================================================
 
-/// Input Claim 169 for encoding
+/// Input data class for encoding a Claim 169 credential.
+///
+/// Create an instance and set the desired demographic fields before
+/// passing to an encode function.
+///
+/// Args:
+///     id: Unique identifier.
+///     full_name: Full name.
+///
+/// Attributes:
+///     id (str | None): Unique identifier.
+///     version (str | None): Credential version.
+///     language (str | None): Primary language code.
+///     full_name (str | None): Full name.
+///     first_name (str | None): First/given name.
+///     middle_name (str | None): Middle name.
+///     last_name (str | None): Last/family name.
+///     date_of_birth (str | None): Date of birth (YYYY-MM-DD).
+///     gender (int | None): Gender (1=Male, 2=Female, 3=Other).
+///     address (str | None): Full address.
+///     email (str | None): Email address.
+///     phone (str | None): Phone number.
+///     nationality (str | None): Nationality code.
+///     marital_status (int | None): Marital status (1=Unmarried, 2=Married, 3=Divorced).
+///     guardian (str | None): Guardian name.
+///     photo (list[int] | None): Photo data bytes.
+///     photo_format (int | None): Photo format (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP).
+///     secondary_full_name (str | None): Name in secondary language.
+///     secondary_language (str | None): Secondary language code.
+///     location_code (str | None): Location code.
+///     legal_status (str | None): Legal status.
+///     country_of_issuance (str | None): Issuing country code.
+///
+/// Example:
+///     >>> claim = Claim169Input(id="12345", full_name="Jane Doe")
+///     >>> claim.date_of_birth = "1990-01-15"
+///     >>> claim.gender = 2  # Female
 #[pyclass]
 #[derive(Clone)]
 pub struct Claim169Input {
@@ -1280,7 +1452,24 @@ impl From<&Claim169Input> for CoreClaim169 {
     }
 }
 
-/// Input CWT metadata for encoding
+/// Input data class for CWT (CBOR Web Token) metadata used during encoding.
+///
+/// Args:
+///     issuer: Credential issuer (URL or identifier).
+///     expires_at: Expiration timestamp (Unix epoch seconds).
+///
+/// Attributes:
+///     issuer (str | None): Credential issuer.
+///     subject (str | None): Subject identifier.
+///     expires_at (int | None): Expiration timestamp (Unix epoch seconds).
+///     not_before (int | None): Not valid before timestamp (Unix epoch seconds).
+///     issued_at (int | None): Issuance timestamp (Unix epoch seconds).
+///
+/// Example:
+///     >>> import time
+///     >>> meta = CwtMetaInput(issuer="https://example.org")
+///     >>> meta.issued_at = int(time.time())
+///     >>> meta.expires_at = meta.issued_at + 86400  # 24 hours
 #[pyclass]
 #[derive(Clone)]
 pub struct CwtMetaInput {
@@ -1341,7 +1530,10 @@ impl From<&CwtMetaInput> for CoreCwtMeta {
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, private_key, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, private_key, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, private_key, skip_biometrics=false)
+)]
 fn encode_with_ed25519(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
@@ -1373,7 +1565,10 @@ fn encode_with_ed25519(
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, private_key, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, private_key, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, private_key, skip_biometrics=false)
+)]
 fn encode_with_ecdsa_p256(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
@@ -1406,7 +1601,10 @@ fn encode_with_ecdsa_p256(
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=false)
+)]
 fn encode_signed_encrypted(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
@@ -1442,7 +1640,10 @@ fn encode_signed_encrypted(
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, sign_key, encrypt_key, skip_biometrics=false)
+)]
 fn encode_signed_encrypted_aes128(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
@@ -1476,7 +1677,10 @@ fn encode_signed_encrypted_aes128(
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, skip_biometrics=false)
+)]
 fn encode_unsigned(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
@@ -1519,7 +1723,10 @@ fn encode_unsigned(
 ///
 ///     qr_text = encode_with_signer(claim, meta, my_sign, "EdDSA")
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, signer, algorithm, key_id=None, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, signer, algorithm, key_id=None, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, signer, algorithm, key_id=None, skip_biometrics=false)
+)]
 fn encode_with_signer(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
@@ -1584,7 +1791,10 @@ fn encode_with_signer(
 ///         claim, meta, my_sign, "EdDSA", my_encrypt, "A256GCM"
 ///     )
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, signer, sign_algorithm, encryptor, encrypt_algorithm, key_id=None, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, signer, sign_algorithm, encryptor, encrypt_algorithm, key_id=None, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, signer, sign_algorithm, encryptor, encrypt_algorithm, key_id=None, skip_biometrics=false)
+)]
 #[allow(clippy::too_many_arguments)]
 fn encode_with_signer_and_encryptor(
     claim169: &Claim169Input,
@@ -1649,7 +1859,10 @@ fn encode_with_signer_and_encryptor(
 /// Returns:
 ///     Base45-encoded string suitable for QR code generation
 #[pyfunction]
-#[pyo3(signature = (claim169, cwt_meta, sign_key, encryptor, encrypt_algorithm, skip_biometrics=false))]
+#[pyo3(
+    text_signature = "(claim169, cwt_meta, sign_key, encryptor, encrypt_algorithm, skip_biometrics=False)",
+    signature = (claim169, cwt_meta, sign_key, encryptor, encrypt_algorithm, skip_biometrics=false)
+)]
 fn encode_with_encryptor(
     claim169: &Claim169Input,
     cwt_meta: &CwtMetaInput,
@@ -1686,8 +1899,12 @@ fn encode_with_encryptor(
     encoder.encode().map_err(to_py_err)
 }
 
-/// Generate a random 12-byte nonce for AES-GCM encryption
+/// Generate a random 12-byte nonce for AES-GCM encryption.
+///
+/// Returns:
+///     list[int]: 12-byte nonce as a list of integers. Convert with ``bytes(nonce)``.
 #[pyfunction]
+#[pyo3(text_signature = "()")]
 fn generate_nonce() -> Vec<u8> {
     claim169_core::generate_random_nonce().to_vec()
 }
@@ -1696,7 +1913,18 @@ fn generate_nonce() -> Vec<u8> {
 // Module Definition
 // ============================================================================
 
-/// MOSIP Claim 169 QR Code decoder library
+/// MOSIP Claim 169 QR Code library for encoding and decoding identity credentials.
+///
+/// This module provides Python bindings for the claim169-core Rust library,
+/// supporting QR code encoding, decoding, signature verification, and
+/// encryption/decryption of MOSIP Claim 169 identity credentials.
+///
+/// Features:
+///     - Decode identity credentials from Base45-encoded QR codes
+///     - Verify signatures using Ed25519 or ECDSA P-256 (raw bytes or PEM format)
+///     - Encrypt/decrypt credentials with AES-128/256-GCM
+///     - Custom crypto hooks for HSM/KMS integration
+///     - Encode identity data into QR-ready Base45 strings
 #[pymodule]
 fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add exception types

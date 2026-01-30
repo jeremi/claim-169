@@ -49,7 +49,12 @@ else
     rm -f sdks/typescript/package.json.bak
 fi
 
-# 4. Update version strings in documentation
+# 4. Update Kotlin SDK version
+echo "  Updating sdks/kotlin/build.gradle.kts..."
+sed -i.bak 's/version = ".*"/version = "'"$VERSION"'"/' sdks/kotlin/build.gradle.kts
+rm -f sdks/kotlin/build.gradle.kts.bak
+
+# Update version strings in documentation
 echo "  Updating README.md..."
 sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' README.md
 rm -f README.md.bak
@@ -62,11 +67,11 @@ rm -f core/claim169-core/README.md.bak
 # Note: Documentation uses partial versions (e.g., "0.1") rather than full versions,
 # so no version updates are needed in docs files.
 
-# 5. Update Cargo.lock
+# Update Cargo.lock
 echo "  Updating Cargo.lock..."
 cargo update -w --quiet
 
-# 6. Verify all versions match
+# Verify all versions match
 echo "Verifying versions..."
 
 CARGO_VERSION=$(grep -m1 '^version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
@@ -77,6 +82,8 @@ if command -v node &> /dev/null; then
 else
     NPM_VERSION=$(grep '"version"' sdks/typescript/package.json | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
 fi
+
+GRADLE_VERSION=$(grep -m1 'version = ' sdks/kotlin/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
 
 ERRORS=0
 
@@ -95,6 +102,11 @@ if [ "$NPM_VERSION" != "$VERSION" ]; then
     ERRORS=$((ERRORS + 1))
 fi
 
+if [ "$GRADLE_VERSION" != "$VERSION" ]; then
+    echo "  ERROR: build.gradle.kts version mismatch: $GRADLE_VERSION != $VERSION"
+    ERRORS=$((ERRORS + 1))
+fi
+
 if [ "$ERRORS" -gt 0 ]; then
     echo ""
     echo "Version synchronization failed with $ERRORS error(s)"
@@ -103,6 +115,7 @@ fi
 
 echo ""
 echo "All versions updated to $VERSION"
-echo "  Cargo.toml:      $CARGO_VERSION"
-echo "  pyproject.toml:  $PYPI_VERSION"
-echo "  package.json:    $NPM_VERSION"
+echo "  Cargo.toml:        $CARGO_VERSION"
+echo "  pyproject.toml:    $PYPI_VERSION"
+echo "  package.json:      $NPM_VERSION"
+echo "  build.gradle.kts:  $GRADLE_VERSION"

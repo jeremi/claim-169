@@ -113,7 +113,7 @@ Composant qui convertit une chaîne QR Base45 en identifiant décodé.
 Composant qui convertit des données d’identité en chaîne Base45 signée et compressée.
 
 ### Statut de vérification
-Résultat de la vérification : `Verified`, `Unverified`, ou une erreur.
+Résultat de la vérification : `Verified`, `Skipped` (vérification non effectuée), ou une erreur.
 
 ### Fournisseur crypto personnalisé
 Implémentation d’opérations cryptographiques via des systèmes externes (HSM, KMS, etc.).

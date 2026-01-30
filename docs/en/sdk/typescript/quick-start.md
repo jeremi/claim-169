@@ -12,6 +12,9 @@ npm install claim169
 
 The most common operation is decoding a QR code to extract identity data:
 
+!!! warning "Do not trim Base45"
+    The Base45 alphabet includes a literal space character (`" "`). Preserve the scanned QR text exactly as-is (no `.trim()`, whitespace collapsing, or normalization), or you can corrupt valid credentials.
+
 ```typescript
 import { Decoder } from 'claim169';
 

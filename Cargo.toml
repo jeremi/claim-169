@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "core/claim169-core",
+    "core/claim169-jni",
     "core/claim169-python",
     "core/claim169-wasm",
     "tools/generate-vectors",
@@ -44,6 +45,9 @@ pyo3 = { version = "0.27", features = ["extension-module"] }
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 js-sys = "0.3"
+
+# UniFFI bindings
+uniffi = "0.28"
 
 # Testing
 hex = "0.4"

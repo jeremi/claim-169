@@ -1,0 +1,23 @@
+[package]
+name = "claim169-jni"
+description = "UniFFI bindings for MOSIP Claim 169 (Kotlin/Java)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+name = "claim169_jni"
+
+[dependencies]
+claim169-core = { path = "../claim169-core", features = ["software-crypto"] }
+uniffi = { workspace = true, features = ["cli"] }
+coset.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"

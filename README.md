@@ -9,6 +9,7 @@
 [![crates.io](https://img.shields.io/crates/v/claim169-core.svg?label=crates.io)](https://crates.io/crates/claim169-core)
 [![PyPI](https://img.shields.io/pypi/v/claim169.svg?label=pypi)](https://pypi.org/project/claim169/)
 [![npm](https://img.shields.io/npm/v/claim169.svg?label=npm)](https://www.npmjs.com/package/claim169)
+[![Maven Central](https://img.shields.io/maven-central/v/fr.acn.claim169/claim169-core.svg?label=maven)](https://central.sonatype.com/artifact/fr.acn.claim169/claim169-core)
 
 Multi-language SDKs for encoding and decoding [MOSIP Claim 169](https://github.com/mosip/id-claim-169/tree/main) QR codes — a compact, secure format for digital identity credentials.
 
@@ -35,8 +36,9 @@ The format is designed for constrained environments: a typical credential fits i
 | **Rust** | [`claim169-core`](https://crates.io/crates/claim169-core) | High-performance core library, embedded systems |
 | **Python** | [`claim169`](https://pypi.org/project/claim169/) | Server-side integration, HSM support |
 | **TypeScript/JavaScript** | [`claim169`](https://www.npmjs.com/package/claim169) | Browser apps, Node.js services |
+| **Kotlin/Java** | [`claim169-core`](https://central.sonatype.com/artifact/fr.acn.claim169/claim169-core) | Android apps, JVM server-side |
 
-All SDKs share the same Rust core via native bindings (Python) or WebAssembly (TypeScript), ensuring consistent behavior across platforms.
+All SDKs share the same Rust core via native bindings (Python, Kotlin/Java) or WebAssembly (TypeScript), ensuring consistent behavior across platforms.
 
 ### Key Features
 
@@ -67,9 +69,11 @@ Identity Data → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → B
 claim-169/
 ├── core/
 │   ├── claim169-core/     # Rust core library
+│   ├── claim169-jni/      # Kotlin/Java bindings (UniFFI)
 │   ├── claim169-wasm/     # WebAssembly bindings
 │   └── claim169-python/   # Python bindings (PyO3)
 ├── sdks/
+│   ├── kotlin/            # Kotlin/Java SDK
 │   └── typescript/        # TypeScript/JavaScript SDK
 ├── playground/            # Interactive web playground
 ├── examples/              # Runnable examples (Python, TypeScript)
@@ -178,6 +182,44 @@ const qrData = new Encoder(claim, meta)
 
 </details>
 
+### Kotlin/Java
+
+```kotlin
+// Gradle (Kotlin DSL)
+implementation("fr.acn.claim169:claim169-core:0.1.0-alpha.3")
+```
+
+```kotlin
+import fr.acn.claim169.*
+
+// Decode and verify a QR code
+val result = Claim169.decode(qrText) {
+    verifyWithEd25519(publicKey)
+}
+
+println("Name: ${result.claim169.fullName}")
+```
+
+<details>
+<summary>Encoding example</summary>
+
+```kotlin
+val qrData = Claim169.encode(
+    claim169 {
+        id = "123456789"
+        fullName = "Jane Doe"
+    },
+    cwtMeta {
+        issuer = "https://issuer.example.com"
+        expiresAt = 1800000000L
+    }
+) {
+    signWithEd25519(privateKey)
+}
+```
+
+</details>
+
 ## Building from Source
 
 ### Prerequisites
@@ -185,6 +227,7 @@ const qrData = new Encoder(claim, meta)
 - Rust 1.75+ with cargo
 - Python 3.8+ with maturin (for Python bindings)
 - Node.js 18+ with npm (for TypeScript SDK)
+- JDK 17+ with Gradle (for Kotlin SDK)
 - wasm-pack (for WebAssembly bindings)
 
 ### Compatibility
@@ -195,6 +238,8 @@ const qrData = new Encoder(claim, meta)
 | Python | 3.8+ | Wheels for Linux, macOS, Windows |
 | Node.js | 18+ | ESM and CommonJS |
 | Browsers | Chrome 89+, Firefox 89+, Safari 15+ | Via WebAssembly |
+| JVM | JDK 17+ | Kotlin/Java via JNA |
+| Android | API 24+ (7.0) | Native .so via JNA |
 
 ### Build All
 
@@ -232,6 +277,11 @@ wasm-pack build --target bundler --release
 # Python bindings
 cd core/claim169-python
 maturin build --release
+
+# Kotlin/Java SDK (requires native library)
+cargo build -p claim169-jni
+cd sdks/kotlin
+./gradlew :claim169-core:test
 ```
 
 ## Security

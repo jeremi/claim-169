@@ -12,6 +12,9 @@ npm install claim169
 
 L’opération la plus courante consiste à décoder un QR code pour extraire des données d’identité :
 
+!!! warning "Ne pas modifier la chaîne Base45"
+    L’alphabet Base45 inclut un caractère espace (`" "`). Conservez le texte scanné tel quel (pas de `.trim()` ni normalisation des espaces), sinon vous risquez de corrompre des identifiants valides.
+
 ```typescript
 import { Decoder } from 'claim169';
 

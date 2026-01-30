@@ -267,7 +267,14 @@ fn generate_full_demographics() -> TestVector {
         (15, Value::Text("Guardian-ID-001".to_string())),
         (17, Value::Integer(1.into())), // JPEG
         // Key 18: bestQualityFingers - right thumb (1), right index (2), left thumb (6)
-        (18, Value::Bytes(vec![1, 2, 6])),
+        (
+            18,
+            Value::Array(vec![
+                Value::Integer(1.into()),
+                Value::Integer(2.into()),
+                Value::Integer(6.into()),
+            ]),
+        ),
         (19, Value::Text("Jane Marie Smith (Hindi)".to_string())),
         (20, Value::Text("hin".to_string())),
         (21, Value::Text("US-NY-NYC".to_string())),

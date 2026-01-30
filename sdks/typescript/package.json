@@ -27,7 +27,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "clean": "rm -rf dist wasm coverage"
+    "clean": "rm -rf dist wasm coverage",
+    "docs:api": "typedoc"
   },
   "keywords": [
     "mosip",
@@ -45,6 +46,8 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.0",
+    "typedoc": "^0.28.0",
+    "typedoc-plugin-markdown": "^4.4.0",
     "typescript": "^5.7.0",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",

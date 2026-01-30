@@ -113,7 +113,7 @@ The component that converts a Base45 QR string into a decoded credential.
 The component that converts identity data into a signed, compressed Base45 string.
 
 ### Verification Status
-The result of signature verification: `Verified`, `Unverified`, or an error.
+The result of signature verification: `Verified`, `Skipped` (verification not performed), or an error.
 
 ### Custom Crypto Provider
 An implementation of cryptographic operations using external systems (HSM, KMS, etc.).

@@ -12,6 +12,9 @@ Identity Data → CBOR → CWT → COSE_Sign1 → [COSE_Encrypt0] → zlib → B
 
 Chaque étape a un rôle précis pour produire un identifiant compact, sûr et vérifiable.
 
+!!! warning "Ne pas modifier la chaîne Base45"
+    L’alphabet Base45 inclut un caractère espace (`" "`). Conservez la chaîne encodée exactement telle qu’elle est produite (ou scannée), sans `.trim()`, ni normalisation des espaces.
+
 ## 1. Données d’identité
 
 Commencez par les données que vous voulez encoder. Au minimum, il faut :
