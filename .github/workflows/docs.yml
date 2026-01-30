@@ -63,7 +63,9 @@ jobs:
       - name: Build Python native extension
         working-directory: core/claim169-python
         run: |
-          uv pip install maturin --system
+          uv venv
+          source .venv/bin/activate
+          uv pip install maturin
           maturin develop --release
 
       - name: Set up Node.js
