@@ -109,9 +109,9 @@ impl From<claim169::Claim169Error> for Claim169Exception {
             }
             claim169::Claim169Error::CborParse(msg) => Claim169Exception::CborParse(msg),
             claim169::Claim169Error::CwtParse(msg) => Claim169Exception::CwtParse(msg),
-            claim169::Claim169Error::Claim169NotFound => {
-                Claim169Exception::Claim169NotFound("claim 169 not found".to_string())
-            }
+            claim169::Claim169Error::Claim169NotFound => Claim169Exception::Claim169NotFound(
+                "claim 169 not found in CWT payload".to_string(),
+            ),
             claim169::Claim169Error::Claim169Invalid(msg) => {
                 Claim169Exception::Claim169Invalid(msg)
             }
