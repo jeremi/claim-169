@@ -23,8 +23,10 @@ dependencies {
 - Décodage : `decoding.md`
 - Chiffrement : `encryption.md`
 - Crypto personnalisée (HSM/KMS) : `custom-crypto.md`
-- Utilisation Java : `java-usage.md`
 - Référence API : `api.md` (référence complète en anglais)
+
+!!! note "Utilisateurs Java"
+    Si vous utilisez Java, consultez la [documentation Java](../java/index.md) pour des exemples spécifiques à Java.
 
 !!! note "Documentation complète"
     Si vous avez besoin de détails supplémentaires, basculez sur la version anglaise via le sélecteur de langue (English).

@@ -133,7 +133,7 @@ java.lang.UnsatisfiedLinkError: Native library (darwin-aarch64/libclaim169_core.
 ### Base45DecodeError
 
 ```
-fr.acn.claim169.Claim169Exception$Base45DecodeError: Invalid Base45 character at position 15
+fr.acn.claim169.Claim169Exception$Base45Decode: Invalid Base45 character at position 15
 ```
 
 **Causes:**
@@ -156,7 +156,7 @@ fr.acn.claim169.Claim169Exception$Base45DecodeError: Invalid Base45 character at
 ### DecompressError: Size Limit Exceeded
 
 ```
-fr.acn.claim169.Claim169Exception$DecompressError: decompressed size 150000 exceeds limit 65536
+fr.acn.claim169.Claim169Exception$Decompress: decompressed size 150000 exceeds limit 65536
 ```
 
 **Cause:** Credential decompresses to larger than the limit (default 64KB).
@@ -173,7 +173,7 @@ val result = Claim169.decode(qrData) {
 ### SignatureError
 
 ```
-fr.acn.claim169.Claim169Exception$SignatureError: Signature verification failed
+fr.acn.claim169.Claim169Exception$SignatureInvalid: Signature verification failed
 ```
 
 **Causes:**
@@ -197,7 +197,7 @@ fr.acn.claim169.Claim169Exception$SignatureError: Signature verification failed
 ### TimestampValidationError
 
 ```
-fr.acn.claim169.Claim169Exception$TimestampValidationError: Token expired at 1700000000
+fr.acn.claim169.Claim169Exception$Expired: Token expired at 1700000000
 ```
 
 **Cause:** The credential has expired or its `nbf` time is in the future.
@@ -223,7 +223,7 @@ fr.acn.claim169.Claim169Exception$TimestampValidationError: Token expired at 170
 ### DecryptionError
 
 ```
-fr.acn.claim169.Claim169Exception$DecryptionError: Decryption failed
+fr.acn.claim169.Claim169Exception$DecryptionFailed: Decryption failed
 ```
 
 **Causes:**

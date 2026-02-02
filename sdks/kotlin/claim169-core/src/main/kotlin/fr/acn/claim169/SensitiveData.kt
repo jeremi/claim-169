@@ -1,3 +1,5 @@
+@file:JvmName("Claim169SensitiveData")
+
 package fr.acn.claim169
 
 import uniffi.claim169_jni.BiometricData

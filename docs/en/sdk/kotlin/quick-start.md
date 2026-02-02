@@ -156,22 +156,24 @@ try {
     }
 } catch (e: Claim169Exception) {
     when (e) {
-        is Claim169Exception.Base45DecodeError ->
+        is Claim169Exception.Base45Decode ->
             println("Invalid QR code format: ${e.message}")
-        is Claim169Exception.DecompressError ->
+        is Claim169Exception.Decompress ->
             println("Decompression failed: ${e.message}")
-        is Claim169Exception.CoseParseError ->
+        is Claim169Exception.CoseParse ->
             println("Invalid COSE structure: ${e.message}")
-        is Claim169Exception.CwtParseError ->
+        is Claim169Exception.CwtParse ->
             println("Invalid CWT structure: ${e.message}")
-        is Claim169Exception.Claim169NotFoundError ->
+        is Claim169Exception.Claim169NotFound ->
             println("Not a Claim 169 credential: ${e.message}")
-        is Claim169Exception.SignatureError ->
+        is Claim169Exception.SignatureInvalid ->
             println("Signature verification failed: ${e.message}")
-        is Claim169Exception.DecryptionError ->
+        is Claim169Exception.DecryptionFailed ->
             println("Decryption failed: ${e.message}")
-        is Claim169Exception.TimestampValidationError ->
-            println("Token expired or not yet valid: ${e.message}")
+        is Claim169Exception.Expired ->
+            println("Token expired: ${e.message}")
+        is Claim169Exception.NotYetValid ->
+            println("Token not yet valid: ${e.message}")
     }
 }
 ```

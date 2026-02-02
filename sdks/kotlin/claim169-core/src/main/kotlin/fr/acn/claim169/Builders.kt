@@ -1,8 +1,28 @@
+@file:JvmName("Claim169Builders")
+
 package fr.acn.claim169
 
 import uniffi.claim169_jni.BiometricData
 import uniffi.claim169_jni.Claim169Data
 import uniffi.claim169_jni.CwtMetaData
+
+/**
+ * Java-friendly functional interface for configuring a [Claim169DataBuilder].
+ *
+ * From Java: `Claim169.claim169(b -> { b.setId("X"); b.setFullName("Y"); })`
+ */
+fun interface Claim169DataConfigurer {
+    fun configure(builder: Claim169DataBuilder)
+}
+
+/**
+ * Java-friendly functional interface for configuring a [CwtMetaDataBuilder].
+ *
+ * From Java: `Claim169.cwtMeta(b -> { b.setIssuer("https://..."); })`
+ */
+fun interface CwtMetaDataConfigurer {
+    fun configure(builder: CwtMetaDataBuilder)
+}
 
 /**
  * DSL builder for creating [Claim169Data] instances.
@@ -83,7 +103,7 @@ class Claim169DataBuilder {
      */
     var unknownFieldsJson: String? = null
 
-    internal fun build(): Claim169Data = Claim169Data(
+    fun build(): Claim169Data = Claim169Data(
         id = id,
         version = version,
         language = language,
@@ -145,7 +165,7 @@ class CwtMetaDataBuilder {
     var notBefore: Long? = null
     var issuedAt: Long? = null
 
-    internal fun build(): CwtMetaData = CwtMetaData(
+    fun build(): CwtMetaData = CwtMetaData(
         issuer = issuer,
         subject = subject,
         expiresAt = expiresAt,

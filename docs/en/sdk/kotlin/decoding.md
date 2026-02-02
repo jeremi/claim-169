@@ -149,7 +149,7 @@ println("Status: ${result.verificationStatus}")  // "skipped"
 By default, the decoder validates timestamps (exp, nbf):
 
 ```kotlin
-// This will throw Claim169Exception.TimestampValidationError
+// This will throw Claim169Exception.Expired or Claim169Exception.NotYetValid
 // if the token is expired or not yet valid
 val result = Claim169.decode(qrData) {
     verifyWithEd25519(publicKey)
@@ -222,9 +222,6 @@ Claim169.decodeCloseable(qrData) {
 The `CloseableDecodeResult` implements `Closeable`, so Kotlin's `.use {}` block
 automatically calls `close()` which zeroizes photo, bestQualityFingers, and all
 biometric data byte arrays.
-
-!!! tip "Java Users"
-    For Java-specific examples and patterns, see the [Java Usage Guide](java-usage.md).
 
 ## Accessing Decoded Data
 
@@ -342,22 +339,24 @@ try {
     }
 } catch (e: Claim169Exception) {
     when (e) {
-        is Claim169Exception.Base45DecodeError ->
+        is Claim169Exception.Base45Decode ->
             println("QR code format error: ${e.message}")
-        is Claim169Exception.DecompressError ->
+        is Claim169Exception.Decompress ->
             println("Decompression error: ${e.message}")
-        is Claim169Exception.CoseParseError ->
+        is Claim169Exception.CoseParse ->
             println("COSE parse error: ${e.message}")
-        is Claim169Exception.CwtParseError ->
+        is Claim169Exception.CwtParse ->
             println("CWT parse error: ${e.message}")
-        is Claim169Exception.Claim169NotFoundError ->
+        is Claim169Exception.Claim169NotFound ->
             println("Not a Claim 169 credential: ${e.message}")
-        is Claim169Exception.SignatureError ->
+        is Claim169Exception.SignatureInvalid ->
             println("Invalid signature: ${e.message}")
-        is Claim169Exception.DecryptionError ->
+        is Claim169Exception.DecryptionFailed ->
             println("Decryption failed: ${e.message}")
-        is Claim169Exception.TimestampValidationError ->
-            println("Token timing error: ${e.message}")
+        is Claim169Exception.Expired ->
+            println("Token expired: ${e.message}")
+        is Claim169Exception.NotYetValid ->
+            println("Token not yet valid: ${e.message}")
     }
 }
 ```
@@ -389,7 +388,7 @@ fun verifyCredential(qrData: String, publicKey: ByteArray): Map<String, Any?>? {
             "hasPhoto" to (result.claim169.photo != null),
             "hasBiometrics" to result.claim169.hasBiometrics(),
         )
-    } catch (e: Claim169Exception.SignatureError) {
+    } catch (e: Claim169Exception.SignatureInvalid) {
         println("Invalid signature - credential may be tampered")
         null
     } catch (e: Claim169Exception) {

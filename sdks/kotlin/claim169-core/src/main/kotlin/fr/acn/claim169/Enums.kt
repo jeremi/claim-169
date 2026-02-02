@@ -1,3 +1,5 @@
+@file:JvmName("Claim169Enums")
+
 package fr.acn.claim169
 
 import uniffi.claim169_jni.DecodeResultData
@@ -8,6 +10,7 @@ enum class Gender(val value: Long) {
     Other(3);
 
     companion object {
+        @JvmStatic
         fun fromValue(value: Long): Gender? = entries.firstOrNull { it.value == value }
     }
 }
@@ -18,6 +21,7 @@ enum class MaritalStatus(val value: Long) {
     Divorced(3);
 
     companion object {
+        @JvmStatic
         fun fromValue(value: Long): MaritalStatus? = entries.firstOrNull { it.value == value }
     }
 }
@@ -29,6 +33,7 @@ enum class PhotoFormat(val value: Long) {
     Webp(4);
 
     companion object {
+        @JvmStatic
         fun fromValue(value: Long): PhotoFormat? = entries.firstOrNull { it.value == value }
     }
 }
@@ -40,6 +45,7 @@ enum class VerificationStatus(val value: String) {
     Unknown("unknown");
 
     companion object {
+        @JvmStatic
         fun fromValue(value: String): VerificationStatus =
             entries.firstOrNull { it.value == value } ?: Unknown
     }

@@ -290,7 +290,7 @@ try {
         decryptWithAes256(encryptKey)
         allowUnverified()
     }
-} catch (e: Claim169Exception.DecryptionError) {
+} catch (e: Claim169Exception.DecryptionFailed) {
     // Decryption failed (wrong key, corrupted data, etc.)
     println("Decryption failed: ${e.message}")
 } catch (e: IllegalArgumentException) {

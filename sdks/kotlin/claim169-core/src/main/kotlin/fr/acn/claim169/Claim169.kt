@@ -3,6 +3,7 @@ package fr.acn.claim169
 import uniffi.claim169_jni.Claim169Decoder
 import uniffi.claim169_jni.Claim169Encoder
 import uniffi.claim169_jni.Claim169Data
+import uniffi.claim169_jni.Claim169Exception
 import uniffi.claim169_jni.CwtMetaData
 import uniffi.claim169_jni.DecodeResultData
 import uniffi.claim169_jni.version as nativeVersion
@@ -53,6 +54,7 @@ object Claim169 {
      * @return The decoded result containing claim data, CWT metadata, and verification status
      * @throws uniffi.claim169_jni.Claim169Exception on decode errors
      */
+    @Throws(Claim169Exception::class)
     fun decode(
         qrText: String,
         configure: DecoderBuilder.() -> Unit
@@ -64,6 +66,7 @@ object Claim169 {
 
     @JvmStatic
     @JvmName("decode")
+    @Throws(Claim169Exception::class)
     fun decodeWith(
         qrText: String,
         configure: DecoderConfigurer
@@ -77,6 +80,7 @@ object Claim169 {
      * Decode a Claim 169 QR code string and return a closeable wrapper that zeroizes
      * sensitive byte arrays when closed.
      */
+    @Throws(Claim169Exception::class)
     fun decodeCloseable(
         qrText: String,
         configure: DecoderBuilder.() -> Unit
@@ -86,6 +90,7 @@ object Claim169 {
 
     @JvmStatic
     @JvmName("decodeCloseable")
+    @Throws(Claim169Exception::class)
     fun decodeCloseableWith(
         qrText: String,
         configure: DecoderConfigurer
@@ -102,6 +107,7 @@ object Claim169 {
      * @return The Base45-encoded QR string
      * @throws uniffi.claim169_jni.Claim169Exception on encode errors
      */
+    @Throws(Claim169Exception::class)
     fun encode(
         claim169: Claim169Data,
         cwtMeta: CwtMetaData,
@@ -114,6 +120,7 @@ object Claim169 {
 
     @JvmStatic
     @JvmName("encode")
+    @Throws(Claim169Exception::class)
     fun encodeWith(
         claim169: Claim169Data,
         cwtMeta: CwtMetaData,
@@ -127,5 +134,47 @@ object Claim169 {
     /**
      * Get the native library version.
      */
+    @JvmStatic
     fun version(): String = nativeVersion()
+
+    /**
+     * Get the [VerificationStatus] enum from a decode result.
+     *
+     * Java-friendly alternative to the [DecodeResultData.verificationStatusEnum] extension function.
+     *
+     * From Java: `Claim169.verificationStatus(result)`
+     */
+    @JvmStatic
+    fun verificationStatus(result: DecodeResultData): VerificationStatus =
+        VerificationStatus.fromValue(result.verificationStatus)
+
+    /**
+     * Create a [Claim169Data] using a [Claim169DataConfigurer].
+     *
+     * Java-friendly alternative to the `claim169 {}` DSL function.
+     *
+     * From Java: `Claim169.claim169(b -> { b.setId("X"); })`
+     */
+    @JvmStatic
+    @JvmName("claim169")
+    fun claim169With(configure: Claim169DataConfigurer): Claim169Data {
+        val builder = Claim169DataBuilder()
+        configure.configure(builder)
+        return builder.build()
+    }
+
+    /**
+     * Create a [CwtMetaData] using a [CwtMetaDataConfigurer].
+     *
+     * Java-friendly alternative to the `cwtMeta {}` DSL function.
+     *
+     * From Java: `Claim169.cwtMeta(b -> { b.setIssuer("https://..."); })`
+     */
+    @JvmStatic
+    @JvmName("cwtMeta")
+    fun cwtMetaWith(configure: CwtMetaDataConfigurer): CwtMetaData {
+        val builder = CwtMetaDataBuilder()
+        configure.configure(builder)
+        return builder.build()
+    }
 }
