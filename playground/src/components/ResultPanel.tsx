@@ -43,6 +43,7 @@ export function ResultPanel({
   const [copied, setCopied] = useState(false)
   const [showRawJson, setShowRawJson] = useState(false)
   const [decodedPhotoUrl, setDecodedPhotoUrl] = useState<string | null>(null)
+  const [showPhotoLightbox, setShowPhotoLightbox] = useState(false)
 
   // Build photo preview URL from decoded data
   const decodedPhoto = claim169.photo as Uint8Array | undefined
@@ -156,12 +157,18 @@ export function ResultPanel({
       {/* Decoded Photo Preview */}
       {base45Data && decodedPhotoUrl && decodedPhoto && (
         <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-          <img
-            src={decodedPhotoUrl}
-            alt={t("photo.decodedPhotoAlt")}
-            className="w-12 h-12 rounded border"
-            style={{ imageRendering: "pixelated" }}
-          />
+          <button
+            type="button"
+            onClick={() => setShowPhotoLightbox(true)}
+            className="shrink-0 cursor-zoom-in"
+          >
+            <img
+              src={decodedPhotoUrl}
+              alt={t("photo.decodedPhotoAlt")}
+              className="w-12 h-12 rounded border"
+              style={{ imageRendering: "pixelated" }}
+            />
+          </button>
           <div className="text-xs text-muted-foreground">
             <span>{decodedPhoto.length} {t("photo.bytes")}</span>
             {decodedPhotoFormat && PHOTO_FORMAT_MAP[decodedPhotoFormat] && (
@@ -257,6 +264,21 @@ export function ResultPanel({
             </pre>
           )}
         </>
+      )}
+
+      {/* Photo lightbox overlay */}
+      {showPhotoLightbox && decodedPhotoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 cursor-zoom-out"
+          onClick={() => setShowPhotoLightbox(false)}
+        >
+          <img
+            src={decodedPhotoUrl}
+            alt={t("photo.decodedPhotoAlt")}
+            className="max-w-[80vw] max-h-[80vh] rounded-lg border-2 border-white/20"
+            style={{ imageRendering: "pixelated" }}
+          />
+        </div>
       )}
     </div>
   )

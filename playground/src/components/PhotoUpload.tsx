@@ -26,6 +26,7 @@ export function PhotoUpload({
   const [isDragOver, setIsDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [showLightbox, setShowLightbox] = useState(false)
 
   const originalFileRef = useRef<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -186,14 +187,20 @@ export function PhotoUpload({
       ) : (
         // Photo loaded — preview + controls
         <div className="flex items-start gap-3 p-3 rounded-lg border border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20">
-          {/* Thumbnail preview */}
+          {/* Thumbnail preview — click to enlarge */}
           {previewUrl && (
-            <img
-              src={previewUrl}
-              alt={t("photo.compressedPreviewAlt")}
-              className="w-12 h-12 rounded border border-green-300 dark:border-green-700"
-              style={{ imageRendering: "pixelated" }}
-            />
+            <button
+              type="button"
+              onClick={() => setShowLightbox(true)}
+              className="shrink-0 cursor-zoom-in"
+            >
+              <img
+                src={previewUrl}
+                alt={t("photo.compressedPreviewAlt")}
+                className="w-12 h-12 rounded border border-green-300 dark:border-green-700"
+                style={{ imageRendering: "pixelated" }}
+              />
+            </button>
           )}
 
           <div className="flex-1 min-w-0 space-y-1">
@@ -282,6 +289,21 @@ export function PhotoUpload({
 
       {error && (
         <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      {/* Lightbox overlay */}
+      {showLightbox && previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 cursor-zoom-out"
+          onClick={() => setShowLightbox(false)}
+        >
+          <img
+            src={previewUrl}
+            alt={t("photo.compressedPreviewAlt")}
+            className="max-w-[80vw] max-h-[80vh] rounded-lg border-2 border-white/20"
+            style={{ imageRendering: "pixelated" }}
+          />
+        </div>
       )}
     </div>
   )
