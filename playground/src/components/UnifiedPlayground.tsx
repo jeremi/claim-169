@@ -12,6 +12,7 @@ import {
   parseEncryptionKey,
 } from "@/lib/utils"
 import { parseDecodeError, buildPartialPipeline, type ParsedError } from "@/lib/errors"
+import { compressPhoto } from "@/lib/image"
 import type { PipelineStage } from "@/components/PipelineDetails"
 import type { VerificationStatus } from "@/components/VerificationBadge"
 
@@ -448,27 +449,25 @@ export function UnifiedPlayground() {
   const loadSampleData = async () => {
     const now = Math.floor(Date.now() / 1000)
 
-    // Generate fresh keys for each session
-    const keyPair = await generateEd25519KeyPair()
+    // Generate fresh keys and compress sample photo in parallel
+    const [keyPair, samplePhoto] = await Promise.all([
+      generateEd25519KeyPair(),
+      fetch(import.meta.env.BASE_URL + "sample_id_pictures/sample_id_4.png")
+        .then((r) => r.blob())
+        .then((blob) => compressPhoto(new File([blob], "sample.png", { type: "image/png" })))
+        .catch(() => null),
+    ])
 
     setClaim169({
       id: "ID-12345-DEMO",
       fullName: "Siriwan Chaiyaporn",
-      firstName: "Siriwan",
-      lastName: "Chaiyaporn",
-      language: "eng",
-      secondaryFullName: "ศิริวรรณ ไชยพร",
-      secondaryLanguage: "tha",
       dateOfBirth: "1990-05-15",
       gender: 2,
-      email: "siriwan.chaiyaporn@example.com",
-      phone: "+66 81 234 5678",
-      address: "123 Moo 5, Ban Nong Khai\nNong Khai District, Nong Khai 43000",
       nationality: "TH",
-      maritalStatus: 2,
+      ...(samplePhoto ? { photo: samplePhoto.data, photoFormat: samplePhoto.format } : {}),
     })
     setCwtMeta({
-      issuer: "https://identity.example.org",
+      issuer: "https://id.example.org",
       subject: "ID-12345-DEMO",
       issuedAt: now,
       expiresAt: now + 365 * 24 * 60 * 60,

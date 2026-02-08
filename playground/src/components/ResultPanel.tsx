@@ -80,15 +80,34 @@ export function ResultPanel({
     const svg = document.getElementById("qr-code-svg")
     if (!svg) return
 
-    const svgData = new XMLSerializer().serializeToString(svg)
-    const canvas = document.createElement("canvas")
-    const ctx = canvas.getContext("2d")
-    const img = new Image()
+    // Export at high resolution with a quiet zone so QR scanners can read the code.
+    // The quiet zone (white border) is required by the QR spec — without it, many
+    // scanners fail to detect the finder patterns.
+    const exportSize = 1024
+    const margin = 48
+    const qrSize = exportSize - margin * 2
 
+    const svgClone = svg.cloneNode(true) as SVGElement
+    svgClone.setAttribute("width", String(qrSize))
+    svgClone.setAttribute("height", String(qrSize))
+    const svgData = new XMLSerializer().serializeToString(svgClone)
+
+    const canvas = document.createElement("canvas")
+    canvas.width = exportSize
+    canvas.height = exportSize
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    // White background provides the quiet zone
+    ctx.fillStyle = "#ffffff"
+    ctx.fillRect(0, 0, exportSize, exportSize)
+
+    // Disable smoothing so QR modules stay crisp (no anti-aliasing blur)
+    ctx.imageSmoothingEnabled = false
+
+    const img = new Image()
     img.onload = () => {
-      canvas.width = img.width
-      canvas.height = img.height
-      ctx?.drawImage(img, 0, 0)
+      ctx.drawImage(img, margin, margin, qrSize, qrSize)
       const pngUrl = canvas.toDataURL("image/png")
       const link = document.createElement("a")
       link.download = "claim169-qr.png"
@@ -118,6 +137,7 @@ export function ResultPanel({
               value={base45Data}
               size={220}
               level="M"
+              includeMargin
               className="rounded"
             />
             <div className="flex gap-2">

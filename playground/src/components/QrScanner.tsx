@@ -16,12 +16,9 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
   const [error, setError] = useState<string | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const isInitializedRef = useRef(false)
 
   useEffect(() => {
-    // Prevent double initialization in React Strict Mode
-    if (isInitializedRef.current) return
-    isInitializedRef.current = true
+    let cancelled = false
 
     const startScanner = async () => {
       if (!containerRef.current) return
@@ -31,6 +28,11 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
         scannerRef.current = scanner
 
         const cameras = await Html5Qrcode.getCameras()
+        if (cancelled) {
+          scanner.clear()
+          return
+        }
+
         if (cameras.length === 0) {
           setError(t("scanner.noCameras"))
           return
@@ -50,14 +52,27 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
             // Ignore scan failures
           }
         )
+
+        // If cleanup ran while start() was in progress, stop immediately
+        if (cancelled) {
+          try {
+            await scanner.stop()
+            scanner.clear()
+          } catch {
+            // ignore
+          }
+        }
       } catch (err) {
-        setError(`${t("scanner.cameraFailed")}: ${err instanceof Error ? err.message : String(err)}`)
+        if (!cancelled) {
+          setError(`${t("scanner.cameraFailed")}: ${err instanceof Error ? err.message : String(err)}`)
+        }
       }
     }
 
     startScanner()
 
     return () => {
+      cancelled = true
       stopScanner()
     }
   }, [])
@@ -68,10 +83,19 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
         await scannerRef.current.stop()
         scannerRef.current.clear()
       } catch {
-        // Ignore stop errors (may already be stopped)
+        // May already be stopped or not yet started
       }
       scannerRef.current = null
     }
+
+    // Fallback: manually stop any video tracks the library left behind
+    const allVideos = document.querySelectorAll("video")
+    allVideos.forEach((v) => {
+      if (v.srcObject instanceof MediaStream) {
+        v.srcObject.getTracks().forEach(track => track.stop())
+        v.srcObject = null
+      }
+    })
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,8 +106,8 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
       await stopScanner()
       const scanner = new Html5Qrcode("qr-reader")
       const result = await scanner.scanFile(file, true)
-      onScan(result)
       scanner.clear()
+      onScan(result)
     } catch (err) {
       setError(`Failed to scan image: ${err instanceof Error ? err.message : String(err)}`)
     }
