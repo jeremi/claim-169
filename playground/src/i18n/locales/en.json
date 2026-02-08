@@ -63,7 +63,27 @@
   "result": {
     "title": "QR Code",
     "noQrYet": "Fill in the identity fields to generate a QR code",
-    "tryDemo": "Try Demo"
+    "tryDemo": "Try Demo",
+    "qrTooLarge": "QR code data exceeds recommended capacity. It may not scan reliably. Reduce photo size or remove optional fields.",
+    "qrNearLimit": "QR code data is approaching capacity limit."
+  },
+  "photo": {
+    "title": "Photo",
+    "dropzone": "Click or drop an image",
+    "dropzoneActive": "Drop image here",
+    "resolution": "Resolution",
+    "quality": "Quality",
+    "compressionSettings": "Compression Settings",
+    "format": "Format",
+    "size": "Size",
+    "bytes": "bytes",
+    "remove": "Remove",
+    "webpFallback": "WebP not supported, using JPEG",
+    "slidersDisabled": "Adjust settings when uploading a new photo",
+    "tooLarge": "File too large (max 10MB)",
+    "invalidFile": "Not a valid image file",
+    "compressedPreviewAlt": "Compressed photo preview",
+    "decodedPhotoAlt": "Decoded photo"
   },
   "identity": {
     "title": "Identity",

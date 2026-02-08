@@ -144,6 +144,8 @@ export function UnifiedPlayground() {
       if (claim169.locationCode) claimInput.locationCode = claim169.locationCode
       if (claim169.legalStatus) claimInput.legalStatus = claim169.legalStatus
       if (claim169.countryOfIssuance) claimInput.countryOfIssuance = claim169.countryOfIssuance
+      if (claim169.photo) claimInput.photo = claim169.photo
+      if (claim169.photoFormat) claimInput.photoFormat = claim169.photoFormat
 
       // Build CWT metadata
       const metaInput: CwtMetaInput = {}
@@ -513,6 +515,7 @@ export function UnifiedPlayground() {
       {/* Left Panel: Identity + CWT + Crypto */}
       <IdentityPanel
         claim169={claim169}
+        encodedSize={base45Data.length || undefined}
         onClaim169Change={(value) => {
           lastChangeSource.current = null
           setClaim169(value)

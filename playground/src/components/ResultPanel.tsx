@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { QRCodeSVG } from "qrcode.react"
 import { Button } from "@/components/ui/button"
@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label"
 import { VerificationBadge, type VerificationStatus } from "@/components/VerificationBadge"
 import { PipelineDetails, type PipelineStage } from "@/components/PipelineDetails"
 import { ErrorDisplay } from "@/components/ErrorDisplay"
-import { Camera, Copy, Check, Download, ChevronDown, ChevronRight } from "lucide-react"
-import { copyToClipboard, cn } from "@/lib/utils"
+import { Camera, Copy, Check, Download, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react"
+import { copyToClipboard, cn, PHOTO_FORMAT_MAP } from "@/lib/utils"
+import { createPhotoPreviewUrl } from "@/lib/image"
 import type { ParsedError } from "@/lib/errors"
 
 interface ResultPanelProps {
@@ -41,6 +42,29 @@ export function ResultPanel({
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const [showRawJson, setShowRawJson] = useState(false)
+  const [decodedPhotoUrl, setDecodedPhotoUrl] = useState<string | null>(null)
+
+  // Build photo preview URL from decoded data
+  const decodedPhoto = claim169.photo as Uint8Array | undefined
+  const decodedPhotoFormat = claim169.photoFormat as number | undefined
+
+  useEffect(() => {
+    if (!decodedPhoto || !(decodedPhoto instanceof Uint8Array) || decodedPhoto.length === 0) {
+      setDecodedPhotoUrl(null)
+      return
+    }
+    const url = createPhotoPreviewUrl(decodedPhoto, decodedPhotoFormat)
+    setDecodedPhotoUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [decodedPhoto, decodedPhotoFormat])
+
+  // JSON replacer to show byte arrays compactly
+  const jsonReplacer = (_key: string, value: unknown) => {
+    if (value instanceof Uint8Array) {
+      return `<${value.length} bytes>`
+    }
+    return value
+  }
 
   const handleCopy = async () => {
     if (base45Data) {
@@ -129,13 +153,54 @@ export function ResultPanel({
         />
       )}
 
+      {/* Decoded Photo Preview */}
+      {base45Data && decodedPhotoUrl && decodedPhoto && (
+        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+          <img
+            src={decodedPhotoUrl}
+            alt={t("photo.decodedPhotoAlt")}
+            className="w-12 h-12 rounded border"
+            style={{ imageRendering: "pixelated" }}
+          />
+          <div className="text-xs text-muted-foreground">
+            <span>{decodedPhoto.length} {t("photo.bytes")}</span>
+            {decodedPhotoFormat && PHOTO_FORMAT_MAP[decodedPhotoFormat] && (
+              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium">
+                {PHOTO_FORMAT_MAP[decodedPhotoFormat]}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Capacity Warnings */}
+      {base45Data && base45Data.length > 2100 && (
+        <div className="flex items-start gap-2 p-2 rounded bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{t("result.qrTooLarge")}</span>
+        </div>
+      )}
+      {base45Data && base45Data.length > 1800 && base45Data.length <= 2100 && (
+        <div className="flex items-start gap-2 p-2 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{t("result.qrNearLimit")}</span>
+        </div>
+      )}
+
       {/* Base45 Data */}
       {base45Data && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="base45">{t("encoded.base45Label")}</Label>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
+              <span className={cn(
+                "text-xs",
+                base45Data.length > 2100
+                  ? "text-red-600 dark:text-red-400 font-medium"
+                  : base45Data.length > 1800
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-muted-foreground"
+              )}>
                 {base45Data.length} {t("encoded.chars")}
               </span>
               <Button variant="ghost" size="sm" onClick={handleCopy} className="h-6 px-2">
@@ -188,7 +253,7 @@ export function ResultPanel({
 
           {showRawJson && (
             <pre className="p-4 bg-muted rounded-lg text-xs font-mono overflow-auto max-h-64">
-              {JSON.stringify({ claim169, cwtMeta }, null, 2)}
+              {JSON.stringify({ claim169, cwtMeta }, jsonReplacer, 2)}
             </pre>
           )}
         </>

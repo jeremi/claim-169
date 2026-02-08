@@ -63,7 +63,27 @@
   "result": {
     "title": "QR Code",
     "noQrYet": "Remplissez les champs d'identité pour générer un QR code",
-    "tryDemo": "Essayer la démo"
+    "tryDemo": "Essayer la démo",
+    "qrTooLarge": "Les données du QR code dépassent la capacité recommandée. Il pourrait ne pas être scanné correctement. Réduisez la taille de la photo ou supprimez des champs optionnels.",
+    "qrNearLimit": "Les données du QR code approchent de la limite de capacité."
+  },
+  "photo": {
+    "title": "Photo",
+    "dropzone": "Cliquez ou déposez une image",
+    "dropzoneActive": "Déposez l'image ici",
+    "resolution": "Résolution",
+    "quality": "Qualité",
+    "compressionSettings": "Paramètres de compression",
+    "format": "Format",
+    "size": "Taille",
+    "bytes": "octets",
+    "remove": "Supprimer",
+    "webpFallback": "WebP non supporté, utilisation de JPEG",
+    "slidersDisabled": "Ajustez les paramètres lors du téléchargement d'une nouvelle photo",
+    "tooLarge": "Fichier trop volumineux (max 10 Mo)",
+    "invalidFile": "Ce n'est pas un fichier image valide",
+    "compressedPreviewAlt": "Aperçu de la photo compressée",
+    "decodedPhotoAlt": "Photo décodée"
   },
   "identity": {
     "title": "Identité",

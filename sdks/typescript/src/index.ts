@@ -284,6 +284,17 @@ function transformResult(raw: unknown): DecodeResult {
 }
 
 /**
+ * Safely convert a value to Uint8Array. serde_wasm_bindgen may serialize
+ * Vec<u8> as either Uint8Array or number[] depending on version.
+ */
+function safeUint8Array(value: unknown): Uint8Array | undefined {
+  if (value == null) return undefined;
+  if (value instanceof Uint8Array) return value;
+  if (Array.isArray(value)) return new Uint8Array(value);
+  return undefined;
+}
+
+/**
  * Transform raw claim169 object to typed Claim169
  */
 function transformClaim169(
@@ -305,9 +316,9 @@ function transformClaim169(
     nationality: raw.nationality as string | undefined,
     maritalStatus: raw.maritalStatus as number | undefined,
     guardian: raw.guardian as string | undefined,
-    photo: raw.photo as Uint8Array | undefined,
+    photo: safeUint8Array(raw.photo),
     photoFormat: raw.photoFormat as number | undefined,
-    bestQualityFingers: raw.bestQualityFingers as Uint8Array | undefined,
+    bestQualityFingers: safeUint8Array(raw.bestQualityFingers),
     secondaryFullName: raw.secondaryFullName as string | undefined,
     secondaryLanguage: raw.secondaryLanguage as string | undefined,
     locationCode: raw.locationCode as string | undefined,
@@ -343,7 +354,7 @@ function transformBiometrics(
   }
 
   return raw.map((b: Record<string, unknown>) => ({
-    data: b.data as Uint8Array,
+    data: safeUint8Array(b.data) as Uint8Array,
     format: b.format as number,
     subFormat: b.subFormat as number | undefined,
     issuer: b.issuer as string | undefined,

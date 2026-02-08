@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import type { Claim169Input, CwtMetaInput } from "claim169"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ChevronDown, ChevronRight, Copy, Check, Eye, EyeOff, AlertTriangle, RefreshCw } from "lucide-react"
 import { copyToClipboard, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey, detectPublicKeyFormat, detectEncryptionKeyFormat } from "@/lib/utils"
+import { PhotoUpload } from "@/components/PhotoUpload"
 import type { SigningMethod, EncryptionMethod } from "@/components/UnifiedPlayground"
 
 interface IdentityPanelProps {
@@ -15,6 +16,7 @@ interface IdentityPanelProps {
   onClaim169Change: (value: Claim169Input) => void
   cwtMeta: CwtMetaInput
   onCwtMetaChange: (value: CwtMetaInput) => void
+  encodedSize?: number
   signingMethod: SigningMethod
   onSigningMethodChange: (method: SigningMethod) => void
   privateKey: string
@@ -35,6 +37,7 @@ export function IdentityPanel({
   onClaim169Change,
   cwtMeta,
   onCwtMetaChange,
+  encodedSize,
   signingMethod,
   onSigningMethodChange,
   privateKey,
@@ -67,6 +70,15 @@ export function IdentityPanel({
   const updateClaim = (field: keyof Claim169Input, value: string | number | undefined) => {
     onClaim169Change({ ...claim169, [field]: value })
   }
+
+  const claim169Ref = useRef(claim169)
+  claim169Ref.current = claim169
+  const handlePhotoChange = useCallback(
+    (photo: Uint8Array | undefined, format: number | undefined) => {
+      onClaim169Change({ ...claim169Ref.current, photo, photoFormat: format })
+    },
+    [onClaim169Change],
+  )
 
   const updateMeta = (field: keyof CwtMetaInput, value: string | number | undefined) => {
     onCwtMetaChange({ ...cwtMeta, [field]: value })
@@ -179,6 +191,14 @@ export function IdentityPanel({
             </Select>
           </div>
         </div>
+
+        {/* Photo upload */}
+        <PhotoUpload
+          photo={claim169.photo}
+          photoFormat={claim169.photoFormat}
+          onPhotoChange={handlePhotoChange}
+          encodedSize={encodedSize}
+        />
 
         {/* Advanced fields - collapsible */}
         <Button
