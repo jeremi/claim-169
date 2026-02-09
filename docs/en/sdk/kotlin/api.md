@@ -41,11 +41,37 @@ val qrData = Claim169.encode(
 
 | Name | Summary |
 |---|---|
+| claim169With | fun claim169With(configure: Claim169DataConfigurer): Claim169Data<br>Create a Claim169Data using a Claim169DataConfigurer. |
+| cwtMetaWith | fun cwtMetaWith(configure: CwtMetaDataConfigurer): CwtMetaData<br>Create a CwtMetaData using a CwtMetaDataConfigurer. |
 | decode | fun decode(qrText: `String`, configure: DecoderBuilder.() -> `Unit`): DecodeResultData<br>Decode a Claim 169 QR code string. |
 | decodeCloseable | fun decodeCloseable(qrText: `String`, configure: DecoderBuilder.() -> `Unit`): CloseableDecodeResult<br>Decode a Claim 169 QR code string and return a closeable wrapper that zeroizes sensitive byte arrays when closed. |
-| decodeWith | fun decodeWith(qrText: `String`, configure: DecoderConfigurer): DecodeResultData |
 | encode | fun encode(claim169: Claim169Data, cwtMeta: CwtMetaData, configure: EncoderBuilder.() -> `Unit`): `String`<br>Encode Claim 169 data into a QR-ready Base45 string. |
+| verificationStatus | fun verificationStatus(result: DecodeResultData): VerificationStatus<br>Get the VerificationStatus enum from a decode result. |
 | version | fun version(): `String`<br>Get the native library version. |
+
+### claim169With
+
+```kotlin
+fun claim169With(configure: Claim169DataConfigurer): Claim169Data
+```
+
+Create a Claim169Data using a Claim169DataConfigurer.
+
+Java-friendly alternative to the `claim169 {}` DSL function.
+
+From Java: `Claim169.claim169(b -> { b.setId("X"); })`
+
+### cwtMetaWith
+
+```kotlin
+fun cwtMetaWith(configure: CwtMetaDataConfigurer): CwtMetaData
+```
+
+Create a CwtMetaData using a CwtMetaDataConfigurer.
+
+Java-friendly alternative to the `cwtMeta {}` DSL function.
+
+From Java: `Claim169.cwtMeta(b -> { b.setIssuer("https://..."); })`
 
 ### decodeCloseableWith
 
@@ -123,6 +149,18 @@ The Base45-encoded QR string
 | | |
 |---|---|
 | Claim169Exception | on encode errors |
+
+### verificationStatus
+
+```kotlin
+fun verificationStatus(result: DecodeResultData): VerificationStatus
+```
+
+Get the VerificationStatus enum from a decode result.
+
+Java-friendly alternative to the DecodeResultData.verificationStatusEnum extension function.
+
+From Java: `Claim169.verificationStatus(result)`
 
 ### version
 
@@ -308,10 +346,10 @@ val qrData = Claim169.encode(claim, meta) {
 | Name | Summary |
 |---|---|
 | allowUnsigned | fun allowUnsigned()<br>Allow encoding without a signature. |
-| encryptWith | fun encryptWith(encryptor: Encryptor, algorithm: `String`)<br>Encrypt with a custom Encryptor implementation (for HSM/KMS).<br>fun encryptWith(encryptor: Encryptor, algorithm: CoseAlgorithm)<br>Encrypt with a custom Encryptor implementation using a known COSE algorithm. |
+| encryptWith | fun encryptWith(encryptor: Encryptor, algorithm: CoseAlgorithm)<br>Encrypt with a custom Encryptor implementation using a known COSE algorithm.<br>fun encryptWith(encryptor: Encryptor, algorithm: `String`)<br>Encrypt with a custom Encryptor implementation (for HSM/KMS). |
 | encryptWithAes128 | fun encryptWithAes128(key: `ByteArray`)<br>Encrypt with AES-128-GCM (16-byte key). Nonce is generated randomly. |
 | encryptWithAes256 | fun encryptWithAes256(key: `ByteArray`)<br>Encrypt with AES-256-GCM (32-byte key). Nonce is generated randomly. |
-| signWith | fun signWith(signer: Signer, algorithm: `String`)<br>Sign with a custom Signer implementation (for HSM/KMS).<br>fun signWith(signer: Signer, algorithm: CoseAlgorithm)<br>Sign with a custom Signer implementation using a known COSE algorithm. |
+| signWith | fun signWith(signer: Signer, algorithm: CoseAlgorithm)<br>Sign with a custom Signer implementation using a known COSE algorithm.<br>fun signWith(signer: Signer, algorithm: `String`)<br>Sign with a custom Signer implementation (for HSM/KMS). |
 | signWithEcdsaP256 | fun signWithEcdsaP256(privateKey: `ByteArray`)<br>Sign with an ECDSA P-256 private key (32-byte scalar). |
 | signWithEd25519 | fun signWithEd25519(privateKey: `ByteArray`)<br>Sign with an Ed25519 private key (32 raw bytes). |
 | skipBiometrics | fun skipBiometrics()<br>Skip biometric data during encoding. |
@@ -494,7 +532,7 @@ val data = claim169 {
 | rightThumb | var rightThumb: `List`<BiometricData>? |
 | secondaryFullName | var secondaryFullName: `String`? |
 | secondaryLanguage | var secondaryLanguage: `String`? |
-| unknownFieldsJson | var unknownFieldsJson: `String`?<br>JSON-encoded map of unknown CBOR fields for forward compatibility. Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause uniffi.claim169_jni.Claim169Exception.Claim169Invalid when encoding. |
+| unknownFieldsJson | var unknownFieldsJson: `String`?<br>JSON-encoded map of unknown CBOR fields for forward compatibility. Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause Claim169Exception.Claim169Invalid when encoding. |
 | version | var version: `String`? |
 | voice | var voice: `List`<BiometricData>? |
 
@@ -514,6 +552,12 @@ var address: `String`?
 
 ```kotlin
 var bestQualityFingers: `ByteArray`?
+```
+
+### build
+
+```kotlin
+fun build(): Claim169Data
 ```
 
 ### countryOfIssuance
@@ -750,7 +794,7 @@ var secondaryLanguage: `String`?
 var unknownFieldsJson: `String`?
 ```
 
-JSON-encoded map of unknown CBOR fields for forward compatibility. Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause uniffi.claim169_jni.Claim169Exception.Claim169Invalid when encoding.
+JSON-encoded map of unknown CBOR fields for forward compatibility. Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause Claim169Exception.Claim169Invalid when encoding.
 
 ### version
 
@@ -797,6 +841,12 @@ val meta = cwtMeta {
 
 ```kotlin
 constructor()
+```
+
+### build
+
+```kotlin
+fun build(): CwtMetaData
 ```
 
 ### expiresAt
@@ -1471,6 +1521,870 @@ constructor(reason: `String`)
 
 ```kotlin
 val reason: `String`
+```
+
+---
+
+## BiometricData
+
+```kotlin
+class BiometricData
+```
+
+Wrapper for biometric data that keeps the public API in `fr.acn.claim169`.
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| format | var format: `Long`? |
+| issuer | var issuer: `String`? |
+| subFormat | var subFormat: `Long`? |
+
+### BiometricData
+
+```kotlin
+constructor(data: `ByteArray`, format: `Long`? = null, subFormat: `Long`? = null, issuer: `String`? = null)
+```
+
+### data
+
+```kotlin
+var data: `ByteArray`
+```
+
+### equals
+
+open operator override fun equals(other: `Any`?): `Boolean`
+
+### format
+
+```kotlin
+var format: `Long`?
+```
+
+### hashCode
+
+```kotlin
+open override fun hashCode(): `Int`
+```
+
+### issuer
+
+```kotlin
+var issuer: `String`?
+```
+
+### subFormat
+
+```kotlin
+var subFormat: `Long`?
+```
+
+### toString
+
+```kotlin
+open override fun toString(): `String`
+```
+
+---
+
+## CertificateHashData
+
+```kotlin
+class CertificateHashData
+```
+
+Wrapper for X.509 certificate hash data.
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| algorithmName | var algorithmName: `String`? |
+| algorithmNumeric | var algorithmNumeric: `Long`? |
+
+### CertificateHashData
+
+```kotlin
+constructor(algorithmNumeric: `Long`? = null, algorithmName: `String`? = null, hashValue: `ByteArray`)
+```
+
+### algorithmName
+
+```kotlin
+var algorithmName: `String`?
+```
+
+### algorithmNumeric
+
+```kotlin
+var algorithmNumeric: `Long`?
+```
+
+### equals
+
+open operator override fun equals(other: `Any`?): `Boolean`
+
+### hashCode
+
+```kotlin
+open override fun hashCode(): `Int`
+```
+
+### hashValue
+
+```kotlin
+var hashValue: `ByteArray`
+```
+
+### toString
+
+```kotlin
+open override fun toString(): `String`
+```
+
+---
+
+## Claim169Data
+
+```kotlin
+class Claim169Data
+```
+
+Claim 169 identity data wrapper.
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| address | var address: `String`? |
+| bestQualityFingers | var bestQualityFingers: `ByteArray`? |
+| countryOfIssuance | var countryOfIssuance: `String`? |
+| dateOfBirth | var dateOfBirth: `String`? |
+| email | var email: `String`? |
+| face | var face: `List`<BiometricData>? |
+| firstName | var firstName: `String`? |
+| fullName | var fullName: `String`? |
+| gender | var gender: `Long`? |
+| guardian | var guardian: `String`? |
+| id | var id: `String`? |
+| language | var language: `String`? |
+| lastName | var lastName: `String`? |
+| leftIris | var leftIris: `List`<BiometricData>? |
+| leftLittleFinger | var leftLittleFinger: `List`<BiometricData>? |
+| leftMiddleFinger | var leftMiddleFinger: `List`<BiometricData>? |
+| leftPalm | var leftPalm: `List`<BiometricData>? |
+| leftPointerFinger | var leftPointerFinger: `List`<BiometricData>? |
+| leftRingFinger | var leftRingFinger: `List`<BiometricData>? |
+| leftThumb | var leftThumb: `List`<BiometricData>? |
+| legalStatus | var legalStatus: `String`? |
+| locationCode | var locationCode: `String`? |
+| maritalStatus | var maritalStatus: `Long`? |
+| middleName | var middleName: `String`? |
+| nationality | var nationality: `String`? |
+| phone | var phone: `String`? |
+| photo | var photo: `ByteArray`? |
+| photoFormat | var photoFormat: `Long`? |
+| rightIris | var rightIris: `List`<BiometricData>? |
+| rightLittleFinger | var rightLittleFinger: `List`<BiometricData>? |
+| rightMiddleFinger | var rightMiddleFinger: `List`<BiometricData>? |
+| rightPalm | var rightPalm: `List`<BiometricData>? |
+| rightPointerFinger | var rightPointerFinger: `List`<BiometricData>? |
+| rightRingFinger | var rightRingFinger: `List`<BiometricData>? |
+| rightThumb | var rightThumb: `List`<BiometricData>? |
+| secondaryFullName | var secondaryFullName: `String`? |
+| secondaryLanguage | var secondaryLanguage: `String`? |
+| unknownFieldsJson | var unknownFieldsJson: `String`? |
+| version | var version: `String`? |
+| voice | var voice: `List`<BiometricData>? |
+
+### address
+
+```kotlin
+var address: `String`?
+```
+
+### bestQualityFingers
+
+```kotlin
+var bestQualityFingers: `ByteArray`?
+```
+
+### countryOfIssuance
+
+```kotlin
+var countryOfIssuance: `String`?
+```
+
+### dateOfBirth
+
+```kotlin
+var dateOfBirth: `String`?
+```
+
+### email
+
+```kotlin
+var email: `String`?
+```
+
+### equals
+
+open operator override fun equals(other: `Any`?): `Boolean`
+
+### face
+
+```kotlin
+var face: `List`<BiometricData>?
+```
+
+### firstName
+
+```kotlin
+var firstName: `String`?
+```
+
+### fullName
+
+```kotlin
+var fullName: `String`?
+```
+
+### gender
+
+```kotlin
+var gender: `Long`?
+```
+
+### guardian
+
+```kotlin
+var guardian: `String`?
+```
+
+### hashCode
+
+```kotlin
+open override fun hashCode(): `Int`
+```
+
+### id
+
+```kotlin
+var id: `String`?
+```
+
+### language
+
+```kotlin
+var language: `String`?
+```
+
+### lastName
+
+```kotlin
+var lastName: `String`?
+```
+
+### leftIris
+
+```kotlin
+var leftIris: `List`<BiometricData>?
+```
+
+### leftLittleFinger
+
+```kotlin
+var leftLittleFinger: `List`<BiometricData>?
+```
+
+### leftMiddleFinger
+
+```kotlin
+var leftMiddleFinger: `List`<BiometricData>?
+```
+
+### leftPalm
+
+```kotlin
+var leftPalm: `List`<BiometricData>?
+```
+
+### leftPointerFinger
+
+```kotlin
+var leftPointerFinger: `List`<BiometricData>?
+```
+
+### leftRingFinger
+
+```kotlin
+var leftRingFinger: `List`<BiometricData>?
+```
+
+### leftThumb
+
+```kotlin
+var leftThumb: `List`<BiometricData>?
+```
+
+### legalStatus
+
+```kotlin
+var legalStatus: `String`?
+```
+
+### locationCode
+
+```kotlin
+var locationCode: `String`?
+```
+
+### maritalStatus
+
+```kotlin
+var maritalStatus: `Long`?
+```
+
+### middleName
+
+```kotlin
+var middleName: `String`?
+```
+
+### nationality
+
+```kotlin
+var nationality: `String`?
+```
+
+### phone
+
+```kotlin
+var phone: `String`?
+```
+
+### photoFormat
+
+```kotlin
+var photoFormat: `Long`?
+```
+
+### photo
+
+```kotlin
+var photo: `ByteArray`?
+```
+
+### rightIris
+
+```kotlin
+var rightIris: `List`<BiometricData>?
+```
+
+### rightLittleFinger
+
+```kotlin
+var rightLittleFinger: `List`<BiometricData>?
+```
+
+### rightMiddleFinger
+
+```kotlin
+var rightMiddleFinger: `List`<BiometricData>?
+```
+
+### rightPalm
+
+```kotlin
+var rightPalm: `List`<BiometricData>?
+```
+
+### rightPointerFinger
+
+```kotlin
+var rightPointerFinger: `List`<BiometricData>?
+```
+
+### rightRingFinger
+
+```kotlin
+var rightRingFinger: `List`<BiometricData>?
+```
+
+### rightThumb
+
+```kotlin
+var rightThumb: `List`<BiometricData>?
+```
+
+### secondaryFullName
+
+```kotlin
+var secondaryFullName: `String`?
+```
+
+### secondaryLanguage
+
+```kotlin
+var secondaryLanguage: `String`?
+```
+
+### toString
+
+```kotlin
+open override fun toString(): `String`
+```
+
+### unknownFieldsJson
+
+```kotlin
+var unknownFieldsJson: `String`?
+```
+
+### version
+
+```kotlin
+var version: `String`?
+```
+
+### voice
+
+```kotlin
+var voice: `List`<BiometricData>?
+```
+
+---
+
+## Claim169DataConfigurer
+
+```kotlin
+fun interface Claim169DataConfigurer
+```
+
+Java-friendly functional interface for configuring a Claim169DataBuilder.
+
+From Java: `Claim169.claim169(b -> { b.setId("X"); b.setFullName("Y"); })`
+
+### configure
+
+```kotlin
+abstract fun configure(builder: Claim169DataBuilder)
+```
+
+---
+
+## Claim169Exception
+
+```kotlin
+sealed class Claim169Exception : [Exception](https://docs.oracle.com/javase/8/docs/api/java/lang/Exception.html)
+```
+
+High-level errors from the Claim 169 decoding/encoding pipeline.
+
+This mirrors the native error variants while keeping the public Java/Kotlin API in the `fr.acn.claim169` package.
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| cause | open val cause: `Throwable`? |
+| message | open val message: `String`? |
+
+### Base45Decode
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### CborEncode
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### CborParse
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### Claim169Invalid
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### Claim169NotFound
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### CoseParse
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### Crypto
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### CwtParse
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### DecodingConfig
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### Decompress
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### DecompressLimitExceeded
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### DecryptionFailed
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### EncodingConfig
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### EncryptionFailed
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### Expired
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### Io
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### KeyNotFound
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### NotYetValid
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### SignatureFailed
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### SignatureInvalid
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### UnsupportedAlgorithm
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+### UnsupportedCoseType
+
+```kotlin
+constructor(message: `String`, cause: `Throwable`? = null)
+```
+
+---
+
+## CwtMetaData
+
+```kotlin
+class CwtMetaData
+```
+
+CWT (CBOR Web Token) metadata wrapper.
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| expiresAt | var expiresAt: `Long`? |
+| issuedAt | var issuedAt: `Long`? |
+| issuer | var issuer: `String`? |
+| notBefore | var notBefore: `Long`? |
+| subject | var subject: `String`? |
+
+### CwtMetaData
+
+```kotlin
+constructor(issuer: `String`? = null, subject: `String`? = null, expiresAt: `Long`? = null, notBefore: `Long`? = null, issuedAt: `Long`? = null)
+```
+
+### equals
+
+open operator override fun equals(other: `Any`?): `Boolean`
+
+### expiresAt
+
+```kotlin
+var expiresAt: `Long`?
+```
+
+### hashCode
+
+```kotlin
+open override fun hashCode(): `Int`
+```
+
+### issuedAt
+
+```kotlin
+var issuedAt: `Long`?
+```
+
+### issuer
+
+```kotlin
+var issuer: `String`?
+```
+
+### notBefore
+
+```kotlin
+var notBefore: `Long`?
+```
+
+### subject
+
+```kotlin
+var subject: `String`?
+```
+
+### toString
+
+```kotlin
+open override fun toString(): `String`
+```
+
+---
+
+## CwtMetaDataConfigurer
+
+```kotlin
+fun interface CwtMetaDataConfigurer
+```
+
+Java-friendly functional interface for configuring a CwtMetaDataBuilder.
+
+From Java: `Claim169.cwtMeta(b -> { b.setIssuer("https://..."); })`
+
+### configure
+
+```kotlin
+abstract fun configure(builder: CwtMetaDataBuilder)
+```
+
+---
+
+## DecodeResultData
+
+```kotlin
+class DecodeResultData
+```
+
+Result of decoding a Claim 169 QR payload.
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| warnings | var warnings: `List`<WarningData> |
+
+### claim169
+
+```kotlin
+var claim169: Claim169Data
+```
+
+### cwtMeta
+
+```kotlin
+var cwtMeta: CwtMetaData
+```
+
+### equals
+
+open operator override fun equals(other: `Any`?): `Boolean`
+
+### hashCode
+
+```kotlin
+open override fun hashCode(): `Int`
+```
+
+### toString
+
+```kotlin
+open override fun toString(): `String`
+```
+
+### verificationStatus
+
+```kotlin
+var verificationStatus: `String`
+```
+
+### warnings
+
+```kotlin
+var warnings: `List`<WarningData>
+```
+
+### x509Headers
+
+```kotlin
+var x509Headers: X509HeadersData
+```
+
+---
+
+## WarningData
+
+```kotlin
+class WarningData
+```
+
+Wrapper for decode warnings.
+
+### Properties
+
+### WarningData
+
+```kotlin
+constructor(code: `String`, message: `String`)
+```
+
+### code
+
+```kotlin
+var code: `String`
+```
+
+### equals
+
+open operator override fun equals(other: `Any`?): `Boolean`
+
+### hashCode
+
+```kotlin
+open override fun hashCode(): `Int`
+```
+
+### message
+
+```kotlin
+var message: `String`
+```
+
+### toString
+
+```kotlin
+open override fun toString(): `String`
+```
+
+---
+
+## X509HeadersData
+
+```kotlin
+class X509HeadersData
+```
+
+Wrapper for COSE X.509 header data.
+
+### Properties
+
+| Name | Summary |
+|---|---|
+| x5bag | var x5bag: `List`<`ByteArray`>? |
+| x5chain | var x5chain: `List`<`ByteArray`>? |
+| x5t | var x5t: CertificateHashData? |
+| x5u | var x5u: `String`? |
+
+### X509HeadersData
+
+```kotlin
+constructor(x5bag: `List`<`ByteArray`>? = null, x5chain: `List`<`ByteArray`>? = null, x5t: CertificateHashData? = null, x5u: `String`? = null)
+```
+
+### equals
+
+open operator override fun equals(other: `Any`?): `Boolean`
+
+### hashCode
+
+```kotlin
+open override fun hashCode(): `Int`
+```
+
+### toString
+
+```kotlin
+open override fun toString(): `String`
+```
+
+### x5bag
+
+```kotlin
+var x5bag: `List`<`ByteArray`>?
+```
+
+### x5chain
+
+```kotlin
+var x5chain: `List`<`ByteArray`>?
+```
+
+### x5t
+
+```kotlin
+var x5t: CertificateHashData?
+```
+
+### x5u
+
+```kotlin
+var x5u: `String`?
 ```
 
 ---

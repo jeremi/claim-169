@@ -20,7 +20,7 @@ dependencies {
 ```java
 import fr.acn.claim169.Claim169;
 import fr.acn.claim169.DecoderConfigurer;
-import uniffi.claim169_jni.DecodeResultData;
+import fr.acn.claim169.DecodeResultData;
 
 DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) b -> {
     b.verifyWithEd25519(publicKey);

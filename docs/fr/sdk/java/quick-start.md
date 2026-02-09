@@ -10,7 +10,7 @@ Ce guide couvre les opérations essentielles : décoder un QR code (lecture) et 
 ```java
 import fr.acn.claim169.Claim169;
 import fr.acn.claim169.DecoderConfigurer;
-import uniffi.claim169_jni.DecodeResultData;
+import fr.acn.claim169.DecodeResultData;
 
 byte[] publicKey = hexToByteArray("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
 
@@ -39,8 +39,8 @@ import fr.acn.claim169.Claim169;
 import fr.acn.claim169.Claim169DataConfigurer;
 import fr.acn.claim169.CwtMetaDataConfigurer;
 import fr.acn.claim169.EncoderConfigurer;
-import uniffi.claim169_jni.Claim169Data;
-import uniffi.claim169_jni.CwtMetaData;
+import fr.acn.claim169.Claim169Data;
+import fr.acn.claim169.CwtMetaData;
 
 Claim169Data data = Claim169.claim169((Claim169DataConfigurer) b -> {
     b.setId("ID-12345");
@@ -65,7 +65,7 @@ System.out.println(qrData); // Base45 à mettre dans un QR code
 ## Gestion des erreurs
 
 ```java
-import uniffi.claim169_jni.Claim169Exception;
+import fr.acn.claim169.Claim169Exception;
 
 try {
     DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) b -> {

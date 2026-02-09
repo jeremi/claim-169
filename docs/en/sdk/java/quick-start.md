@@ -13,6 +13,7 @@ The most common operation is decoding a QR code that was scanned from an identit
 
 ```java
 import fr.acn.claim169.Claim169;
+import fr.acn.claim169.VerificationStatus;
 import fr.acn.claim169.DecodeResultData;
 import fr.acn.claim169.DecoderConfigurer;
 
@@ -33,7 +34,7 @@ System.out.println("Name: " + result.getClaim169().getFullName());
 System.out.println("Date of Birth: " + result.getClaim169().getDateOfBirth());
 
 // Check verification status
-String status = Claim169.verificationStatus(result);
+VerificationStatus status = Claim169.verificationStatus(result);
 System.out.println("Verification status: " + status);
 
 // Access CWT metadata
@@ -56,7 +57,7 @@ DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) builder ->
 });
 
 System.out.println("ID: " + result.getClaim169().getId());
-System.out.println("Status: " + Claim169.verificationStatus(result));  // "skipped"
+System.out.println("Status: " + Claim169.verificationStatus(result));  // VerificationStatus.Skipped
 ```
 
 ## Encoding a Credential
@@ -153,7 +154,7 @@ The SDK uses a sealed class hierarchy for exceptions. In Java, use `catch` block
 ```java
 import fr.acn.claim169.Claim169;
 import fr.acn.claim169.DecoderConfigurer;
-import uniffi.claim169_jni.Claim169Exception;
+import fr.acn.claim169.Claim169Exception;
 
 try {
     DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) builder -> {

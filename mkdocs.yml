@@ -72,7 +72,7 @@ plugins:
             Troubleshooting: Dépannage
             TypeScript SDK: SDK TypeScript
             WASM Configuration: Configuration WASM
-            Java Usage: Utilisation Java
+            Java SDK: SDK Java
             Kotlin SDK: SDK Kotlin
             Rust SDK: SDK Rust
             Contributing: Contribuer
@@ -128,8 +128,9 @@ dev_addr: 127.0.0.1:8001
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - Playground: playground.md
+  - Getting Started:
+      - Overview: getting-started.md
+      - Playground: playground.md
   - Core Concepts:
       - Specification: core/specification.md
       - Encoding: core/concepts/encoding.md
@@ -164,13 +165,22 @@ nav:
       - Overview: sdk/kotlin/index.md
       - Installation: sdk/kotlin/installation.md
       - Quick Start: sdk/kotlin/quick-start.md
-      - Java Usage: sdk/kotlin/java-usage.md
       - Encoding: sdk/kotlin/encoding.md
       - Decoding: sdk/kotlin/decoding.md
       - Encryption: sdk/kotlin/encryption.md
       - Custom Crypto: sdk/kotlin/custom-crypto.md
       - API Reference: sdk/kotlin/api.md
       - Troubleshooting: sdk/kotlin/troubleshooting.md
+  - Java SDK:
+      - Overview: sdk/java/index.md
+      - Installation: sdk/java/installation.md
+      - Quick Start: sdk/java/quick-start.md
+      - Encoding: sdk/java/encoding.md
+      - Decoding: sdk/java/decoding.md
+      - Encryption: sdk/java/encryption.md
+      - Custom Crypto: sdk/java/custom-crypto.md
+      - API Reference: sdk/java/api.md
+      - Troubleshooting: sdk/java/troubleshooting.md
   - Rust SDK:
       - Overview: sdk/rust/index.md
       - Installation: sdk/rust/installation.md

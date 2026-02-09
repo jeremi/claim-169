@@ -1,8 +1,6 @@
 package fr.acn.claim169
 
-import uniffi.claim169_jni.Claim169Data
 import uniffi.claim169_jni.Claim169Encoder
-import uniffi.claim169_jni.CwtMetaData
 import uniffi.claim169_jni.SignerCallback
 import uniffi.claim169_jni.EncryptorCallback
 import uniffi.claim169_jni.CryptoException
@@ -20,7 +18,7 @@ import uniffi.claim169_jni.CryptoException
  * ```
  */
 class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData) {
-    private val encoder = Claim169Encoder(claim169, cwtMeta)
+    private val encoder = Claim169Encoder(claim169.raw, cwtMeta.raw)
 
     /**
      * Sign with an Ed25519 private key (32 raw bytes).

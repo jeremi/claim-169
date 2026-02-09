@@ -286,7 +286,7 @@ System.out.println("Status: " + Claim169.verificationStatus(result));
 ```java
 import fr.acn.claim169.Claim169;
 import fr.acn.claim169.DecoderConfigurer;
-import uniffi.claim169_jni.Claim169Exception;
+import fr.acn.claim169.Claim169Exception;
 
 try {
     DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) builder -> {

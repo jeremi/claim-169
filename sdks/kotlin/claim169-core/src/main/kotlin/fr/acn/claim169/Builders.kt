@@ -2,9 +2,7 @@
 
 package fr.acn.claim169
 
-import uniffi.claim169_jni.BiometricData
-import uniffi.claim169_jni.Claim169Data
-import uniffi.claim169_jni.CwtMetaData
+import uniffi.claim169_jni.Claim169Data as NativeClaim169Data
 
 /**
  * Java-friendly functional interface for configuring a [Claim169DataBuilder].
@@ -99,51 +97,53 @@ class Claim169DataBuilder {
     /**
      * JSON-encoded map of unknown CBOR fields for forward compatibility.
      * Must be valid JSON (e.g., `{"100":"value"}`). Malformed JSON will cause
-     * [uniffi.claim169_jni.Claim169Exception.Claim169Invalid] when encoding.
+     * [Claim169Exception.Claim169Invalid] when encoding.
      */
     var unknownFieldsJson: String? = null
 
-    fun build(): Claim169Data = Claim169Data(
-        id = id,
-        version = version,
-        language = language,
-        fullName = fullName,
-        firstName = firstName,
-        middleName = middleName,
-        lastName = lastName,
-        dateOfBirth = dateOfBirth,
-        gender = gender,
-        address = address,
-        email = email,
-        phone = phone,
-        nationality = nationality,
-        maritalStatus = maritalStatus,
-        guardian = guardian,
-        photo = photo,
-        photoFormat = photoFormat,
-        bestQualityFingers = bestQualityFingers,
-        secondaryFullName = secondaryFullName,
-        secondaryLanguage = secondaryLanguage,
-        locationCode = locationCode,
-        legalStatus = legalStatus,
-        countryOfIssuance = countryOfIssuance,
-        rightThumb = rightThumb,
-        rightPointerFinger = rightPointerFinger,
-        rightMiddleFinger = rightMiddleFinger,
-        rightRingFinger = rightRingFinger,
-        rightLittleFinger = rightLittleFinger,
-        leftThumb = leftThumb,
-        leftPointerFinger = leftPointerFinger,
-        leftMiddleFinger = leftMiddleFinger,
-        leftRingFinger = leftRingFinger,
-        leftLittleFinger = leftLittleFinger,
-        rightIris = rightIris,
-        leftIris = leftIris,
-        face = face,
-        rightPalm = rightPalm,
-        leftPalm = leftPalm,
-        voice = voice,
-        unknownFieldsJson = unknownFieldsJson,
+    fun build(): Claim169Data = Claim169Data.fromNative(
+        NativeClaim169Data(
+            id = id,
+            version = version,
+            language = language,
+            fullName = fullName,
+            firstName = firstName,
+            middleName = middleName,
+            lastName = lastName,
+            dateOfBirth = dateOfBirth,
+            gender = gender,
+            address = address,
+            email = email,
+            phone = phone,
+            nationality = nationality,
+            maritalStatus = maritalStatus,
+            guardian = guardian,
+            photo = photo,
+            photoFormat = photoFormat,
+            bestQualityFingers = bestQualityFingers,
+            secondaryFullName = secondaryFullName,
+            secondaryLanguage = secondaryLanguage,
+            locationCode = locationCode,
+            legalStatus = legalStatus,
+            countryOfIssuance = countryOfIssuance,
+            rightThumb = rightThumb.toNativeBiometrics(),
+            rightPointerFinger = rightPointerFinger.toNativeBiometrics(),
+            rightMiddleFinger = rightMiddleFinger.toNativeBiometrics(),
+            rightRingFinger = rightRingFinger.toNativeBiometrics(),
+            rightLittleFinger = rightLittleFinger.toNativeBiometrics(),
+            leftThumb = leftThumb.toNativeBiometrics(),
+            leftPointerFinger = leftPointerFinger.toNativeBiometrics(),
+            leftMiddleFinger = leftMiddleFinger.toNativeBiometrics(),
+            leftRingFinger = leftRingFinger.toNativeBiometrics(),
+            leftLittleFinger = leftLittleFinger.toNativeBiometrics(),
+            rightIris = rightIris.toNativeBiometrics(),
+            leftIris = leftIris.toNativeBiometrics(),
+            face = face.toNativeBiometrics(),
+            rightPalm = rightPalm.toNativeBiometrics(),
+            leftPalm = leftPalm.toNativeBiometrics(),
+            voice = voice.toNativeBiometrics(),
+            unknownFieldsJson = unknownFieldsJson,
+        )
     )
 }
 

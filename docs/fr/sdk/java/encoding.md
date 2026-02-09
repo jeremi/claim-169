@@ -9,8 +9,8 @@ import fr.acn.claim169.Claim169;
 import fr.acn.claim169.Claim169DataConfigurer;
 import fr.acn.claim169.CwtMetaDataConfigurer;
 import fr.acn.claim169.EncoderConfigurer;
-import uniffi.claim169_jni.Claim169Data;
-import uniffi.claim169_jni.CwtMetaData;
+import fr.acn.claim169.Claim169Data;
+import fr.acn.claim169.CwtMetaData;
 
 Claim169Data data = Claim169.claim169((Claim169DataConfigurer) b -> {
     b.setId("ID-12345");

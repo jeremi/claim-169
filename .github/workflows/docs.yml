@@ -101,6 +101,14 @@ jobs:
         run: python3 scripts/merge-dokka-output.py
         continue-on-error: true
 
+      - name: Generate Java API docs
+        working-directory: sdks/kotlin
+        run: |
+          ./gradlew :claim169-core:classes --no-daemon
+          cd ../..
+          python3 scripts/generate-java-api-docs.py
+        continue-on-error: true
+
       - name: Upload generated docs
         uses: actions/upload-artifact@v4
         with:
@@ -109,6 +117,7 @@ jobs:
             docs/en/sdk/python/api.md
             docs/en/sdk/typescript/api.md
             docs/en/sdk/kotlin/api.md
+            docs/en/sdk/java/api.md
 
   build:
     name: Build
@@ -177,7 +186,7 @@ jobs:
       - name: Check for drift in API docs
         run: |
           drift_found=false
-          for sdk in python typescript kotlin; do
+          for sdk in python typescript kotlin java; do
             generated="generated-docs/${sdk}/api.md"
             committed="docs/en/sdk/${sdk}/api.md"
             if [ -f "$generated" ] && [ -f "$committed" ]; then

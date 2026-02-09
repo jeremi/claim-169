@@ -1,7 +1,6 @@
 package fr.acn.claim169
 
 import uniffi.claim169_jni.Claim169Decoder
-import uniffi.claim169_jni.DecodeResultData
 import uniffi.claim169_jni.SignatureVerifierCallback
 import uniffi.claim169_jni.DecryptorCallback
 import uniffi.claim169_jni.CryptoException
@@ -167,7 +166,7 @@ class DecoderBuilder(qrText: String) {
      * Execute the decode and return the result. Called automatically by [Claim169.decode].
      */
     internal fun execute(): DecodeResultData {
-        return decoder.execute()
+        return DecodeResultData.fromNative(decoder.execute())
     }
 }
 

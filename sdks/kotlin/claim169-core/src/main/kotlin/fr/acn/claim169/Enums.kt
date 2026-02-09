@@ -2,8 +2,6 @@
 
 package fr.acn.claim169
 
-import uniffi.claim169_jni.DecodeResultData
-
 enum class Gender(val value: Long) {
     Male(1),
     Female(2),

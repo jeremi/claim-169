@@ -141,7 +141,7 @@ DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) builder ->
 });
 
 System.out.println("ID: " + result.getClaim169().getId());
-System.out.println("Status: " + Claim169.verificationStatus(result));  // "skipped"
+System.out.println("Status: " + Claim169.verificationStatus(result));  // VerificationStatus.Skipped
 ```
 
 ## Handling Timestamps
@@ -244,11 +244,11 @@ var claim = result.getClaim169();
 // CWT metadata (issuer, timestamps)
 var meta = result.getCwtMeta();
 
-// Verification status string
-String status = Claim169.verificationStatus(result);
+// Raw verification status string from decoded payload
+String status = result.getVerificationStatus();
 
 // Type-safe verification status enum
-VerificationStatus statusEnum = result.verificationStatusEnum();
+var statusEnum = Claim169.verificationStatus(result);
 ```
 
 ### Claim169Data Fields
@@ -335,7 +335,7 @@ if (faces != null && !faces.isEmpty()) {
 ```java
 import fr.acn.claim169.Claim169;
 import fr.acn.claim169.DecoderConfigurer;
-import uniffi.claim169_jni.Claim169Exception;
+import fr.acn.claim169.Claim169Exception;
 
 try {
     DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) builder -> {
@@ -370,7 +370,8 @@ try {
 import fr.acn.claim169.Claim169;
 import fr.acn.claim169.DecodeResultData;
 import fr.acn.claim169.DecoderConfigurer;
-import uniffi.claim169_jni.Claim169Exception;
+import fr.acn.claim169.VerificationStatus;
+import fr.acn.claim169.Claim169Exception;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -384,8 +385,8 @@ public class CredentialVerifier {
                 builder.clockSkewTolerance(60);
             });
 
-            String status = Claim169.verificationStatus(result);
-            if (!"verified".equals(status)) {
+            VerificationStatus status = Claim169.verificationStatus(result);
+            if (status != VerificationStatus.Verified) {
                 System.out.println("Warning: " + status);
                 return null;
             }

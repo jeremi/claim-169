@@ -1,11 +1,6 @@
 package fr.acn.claim169
 
-import uniffi.claim169_jni.Claim169Decoder
-import uniffi.claim169_jni.Claim169Encoder
-import uniffi.claim169_jni.Claim169Data
-import uniffi.claim169_jni.Claim169Exception
-import uniffi.claim169_jni.CwtMetaData
-import uniffi.claim169_jni.DecodeResultData
+import uniffi.claim169_jni.Claim169Exception as NativeClaim169Exception
 import uniffi.claim169_jni.version as nativeVersion
 
 fun interface DecoderConfigurer {
@@ -52,16 +47,20 @@ object Claim169 {
      * @param qrText The Base45-encoded QR code content
      * @param configure DSL block to configure verification, decryption, and options
      * @return The decoded result containing claim data, CWT metadata, and verification status
-     * @throws uniffi.claim169_jni.Claim169Exception on decode errors
+     * @throws Claim169Exception on decode errors
      */
     @Throws(Claim169Exception::class)
     fun decode(
         qrText: String,
         configure: DecoderBuilder.() -> Unit
     ): DecodeResultData {
-        val builder = DecoderBuilder(qrText)
-        builder.configure()
-        return builder.execute()
+        try {
+            val builder = DecoderBuilder(qrText)
+            builder.configure()
+            return builder.execute()
+        } catch (e: NativeClaim169Exception) {
+            throw e.toSdkException()
+        }
     }
 
     @JvmStatic
@@ -71,9 +70,13 @@ object Claim169 {
         qrText: String,
         configure: DecoderConfigurer
     ): DecodeResultData {
-        val builder = DecoderBuilder(qrText)
-        configure.configure(builder)
-        return builder.execute()
+        try {
+            val builder = DecoderBuilder(qrText)
+            configure.configure(builder)
+            return builder.execute()
+        } catch (e: NativeClaim169Exception) {
+            throw e.toSdkException()
+        }
     }
 
     /**
@@ -105,7 +108,7 @@ object Claim169 {
      * @param cwtMeta The CWT metadata (issuer, expiration, etc.)
      * @param configure DSL block to configure signing, encryption, and options
      * @return The Base45-encoded QR string
-     * @throws uniffi.claim169_jni.Claim169Exception on encode errors
+     * @throws Claim169Exception on encode errors
      */
     @Throws(Claim169Exception::class)
     fun encode(
@@ -113,9 +116,13 @@ object Claim169 {
         cwtMeta: CwtMetaData,
         configure: EncoderBuilder.() -> Unit
     ): String {
-        val builder = EncoderBuilder(claim169, cwtMeta)
-        builder.configure()
-        return builder.execute()
+        try {
+            val builder = EncoderBuilder(claim169, cwtMeta)
+            builder.configure()
+            return builder.execute()
+        } catch (e: NativeClaim169Exception) {
+            throw e.toSdkException()
+        }
     }
 
     @JvmStatic
@@ -126,9 +133,13 @@ object Claim169 {
         cwtMeta: CwtMetaData,
         configure: EncoderConfigurer
     ): String {
-        val builder = EncoderBuilder(claim169, cwtMeta)
-        configure.configure(builder)
-        return builder.execute()
+        try {
+            val builder = EncoderBuilder(claim169, cwtMeta)
+            configure.configure(builder)
+            return builder.execute()
+        } catch (e: NativeClaim169Exception) {
+            throw e.toSdkException()
+        }
     }
 
     /**

@@ -2,7 +2,6 @@ package fr.acn.claim169
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
-import uniffi.claim169_jni.BiometricData
 import java.util.Base64
 
 /**

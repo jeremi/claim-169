@@ -1,10 +1,6 @@
 @file:JvmName("Claim169SensitiveData")
 
 package fr.acn.claim169
-
-import uniffi.claim169_jni.BiometricData
-import uniffi.claim169_jni.Claim169Data
-import uniffi.claim169_jni.DecodeResultData
 import java.io.Closeable
 
 /**

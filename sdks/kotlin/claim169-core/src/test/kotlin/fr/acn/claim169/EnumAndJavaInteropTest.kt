@@ -2,7 +2,7 @@ package fr.acn.claim169
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
-import uniffi.claim169_jni.Claim169Exception
+import fr.acn.claim169.Claim169Exception
 
 /**
  * Tests for enum classes, Java interop APIs, and closeable decode.

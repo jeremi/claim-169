@@ -355,7 +355,7 @@ System.out.println("Ready for QR code generation");
 ```java
 import fr.acn.claim169.Claim169;
 import fr.acn.claim169.EncoderConfigurer;
-import uniffi.claim169_jni.Claim169Exception;
+import fr.acn.claim169.Claim169Exception;
 
 try {
     String qrData = Claim169.encode(data, meta, (EncoderConfigurer) builder -> {

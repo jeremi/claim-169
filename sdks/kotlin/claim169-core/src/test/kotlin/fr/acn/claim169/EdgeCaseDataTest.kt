@@ -2,7 +2,6 @@ package fr.acn.claim169
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
-import uniffi.claim169_jni.BiometricData
 
 /**
  * Tests edge-case data handling: unicode, special characters, large values, empty fields.

@@ -2,10 +2,10 @@ package fr.acn.claim169;
 
 import org.junit.jupiter.api.Test;
 
-import uniffi.claim169_jni.Claim169Data;
-import uniffi.claim169_jni.Claim169Exception;
-import uniffi.claim169_jni.CwtMetaData;
-import uniffi.claim169_jni.DecodeResultData;
+import fr.acn.claim169.Claim169Exception;
+import fr.acn.claim169.Claim169Data;
+import fr.acn.claim169.CwtMetaData;
+import fr.acn.claim169.DecodeResultData;
 
 import static org.junit.jupiter.api.Assertions.*;
 
