@@ -6,7 +6,7 @@ Ajoutez `claim169-core` à votre `Cargo.toml` :
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.2.0-alpha"
 ```
 
 Ou utilisez cargo add :
@@ -29,7 +29,7 @@ Par défaut, le feature `software-crypto` est activé, ce qui fournit des implé
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.2.0-alpha"
 ```
 
 Cela inclut :
@@ -43,7 +43,7 @@ Pour une intégration HSM ou KMS cloud, désactivez les features par défaut :
 
 ```toml
 [dependencies]
-claim169-core = { version = "0.1", default-features = false }
+claim169-core = { version = "0.2.0-alpha", default-features = false }
 ```
 
 Cela supprime les dépendances crypto logicielles et vous oblige à implémenter les traits cryptographiques :

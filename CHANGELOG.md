@@ -79,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add bestQualityFingers to demographics-full test vector
 - **kotlin**: Expand test coverage from 38 to 66 tests
+
 ## [0.1.0-alpha.3] - 2026-01-24
 
 ### Bug Fixes

@@ -23,6 +23,10 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$ROOT_DIR"
 
+# Capture current version before overwriting (used for docs replacement)
+CARGO_VERSION=$(grep -m1 '^version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+echo "  Current version: $CARGO_VERSION"
+
 # 1. Update workspace version in root Cargo.toml
 echo "  Updating Cargo.toml workspace version..."
 sed -i.bak 's/^version = ".*"/version = "'"$VERSION"'"/' Cargo.toml
@@ -64,8 +68,22 @@ sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' core/cla
 sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' core/claim169-core/README.md
 rm -f core/claim169-core/README.md.bak
 
-# Note: Documentation uses partial versions (e.g., "0.1") rather than full versions,
-# so no version updates are needed in docs files.
+# Update version strings in docs/ markdown files
+echo "  Updating docs/..."
+OLD_VERSION="$CARGO_VERSION"
+find docs/ -name '*.md' -print0 | while IFS= read -r -d '' file; do
+    # Rust Cargo: claim169-core = "X.Y" or "X.Y.Z-pre"
+    sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' "$file"
+    # Rust Cargo with features: claim169-core = { version = "X.Y"
+    sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' "$file"
+    # Kotlin/Java Gradle: claim169-core:VERSION
+    sed -i.bak "s/claim169-core:[0-9][0-9.a-zA-Z-]*/claim169-core:$VERSION/g" "$file"
+    # Maven XML: <version>VERSION</version> for claim169 (only in claim169 dependency blocks)
+    sed -i.bak "s|<version>${OLD_VERSION}</version>|<version>${VERSION}</version>|g" "$file"
+    # Version output examples: replace old version string in output/comment contexts
+    sed -i.bak "s/${OLD_VERSION}/${VERSION}/g" "$file"
+    rm -f "${file}.bak"
+done
 
 # Update Cargo.lock
 echo "  Updating Cargo.lock..."
