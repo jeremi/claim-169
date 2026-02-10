@@ -24,7 +24,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-claim169-core = "0.1.0-alpha.3"
+claim169-core = "0.2.0-alpha"
 ```
 
 ### Feature Flags
@@ -37,7 +37,7 @@ Disable default features to use only custom crypto backends:
 
 ```toml
 [dependencies]
-claim169-core = { version = "0.1.0-alpha.3", default-features = false }
+claim169-core = { version = "0.2.0-alpha", default-features = false }
 ```
 
 ## Encoding (Creating QR Codes)

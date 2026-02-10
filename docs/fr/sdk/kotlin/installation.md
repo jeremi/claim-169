@@ -9,7 +9,7 @@
 
 ```kotlin
 dependencies {
-  implementation("fr.acn.claim169:claim169-core:<version>")
+  implementation("fr.acn.claim169:claim169-core:0.2.0-alpha")
 }
 ```
 
@@ -17,7 +17,7 @@ dependencies {
 
 ```groovy
 dependencies {
-  implementation "fr.acn.claim169:claim169-core:<version>"
+  implementation "fr.acn.claim169:claim169-core:0.2.0-alpha"
 }
 ```
 

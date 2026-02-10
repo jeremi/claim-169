@@ -213,10 +213,10 @@ The release workflow automatically bumps versions in:
 | `Cargo.toml` | workspace `version` |
 | `core/claim169-python/pyproject.toml` | `version` |
 | `sdks/typescript/package.json` | `version` |
+| `sdks/kotlin/build.gradle.kts` | `version` |
 | `README.md` | dependency examples |
 | `core/claim169-core/README.md` | dependency examples |
-| `docs/{en,es,fr}/getting-started/installation.md` | dependency examples |
-| `docs/{en,es,fr}/guides/versioning.md` | dependency examples |
+| `docs/**/*.md` | dependency and version examples |
 
 ## Troubleshooting
 

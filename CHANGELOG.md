@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0-alpha] - 2026-02-10
+
+### Bug Fixes
+
+- **core,typescript**: Harden X.509 header parsing and validation
+- **kotlin**: Harden JNI bindings and Kotlin SDK security
+- **docs**: Restructure Kotlin API reference with proper heading hierarchy
+- Normalize trailing whitespace in spec and test vectors
+- **ci**: Use virtualenv for maturin develop in docs workflow
+- **docs**: Revert Python API docs to static content
+- **ci**: Resolve codespell and conformance test failures
+- **ci**: Fix codespell ignore list and conformance Gson serialization
+- **kotlin**: Align Claim169NotFound error message with core error type
+- **playground**: Fix camera leak, QR export scannability, and trim demo data
+
+### Build
+
+- **docs**: Add API doc generation pipeline with drift checking
+
+### CI/CD
+
+- Add Maven Central publishing and harden release workflows
+- **kotlin**: Allow passwordless GPG_PRIVATE_KEY signing
+- Add custom CodeQL workflow for java-kotlin analysis
+- **codeql**: Upgrade CodeQL action from v3 to v4
+- **docs**: Build wasm before generating ts api docs
+
+### Dependencies
+
+- **deps**: Update Python SDK lockfile
+
+### Documentation
+
+- Document GPG signing key for releases
+- Document PEM and Base64 key format support
+- Update claim 169 specification to v1.2
+- Add Kotlin/Java SDK documentation
+- Improve onboarding (test vectors, Base45 warning)
+- **fr**: Add kotlin quick summaries
+- **python**: Add comprehensive docstrings and text_signature attributes
+- **fr**: Polish photo compression guide
+- Include photo guide in nav and gate deploy after docs
+- Add AI disclosure policy, PR template, and contributor guide improvements
+
+### Features
+
+- **core**: Add PEM public key format support
+- **playground**: Add enhanced error display and key format detection
+- **core**: Add COSE X.509 header extraction (x5bag, x5chain, x5t, x5u)
+- **python**: Expose X509Headers in Python SDK
+- **typescript**: Add X509Headers interface and WASM bindings
+- **playground**: Add locationCode, legalStatus, countryOfIssuance fields
+- **kotlin**: Add Kotlin/JVM SDK with UniFFI bindings
+- **kotlin**: Improve SDK ergonomics and callback handling
+- **kotlin**: Use enum constants in tests and add interop test suite
+- **kotlin**: Add Java interop annotations and separate Java docs
+- **playground**: Add photo upload with canvas-based compression
+- **playground**: Add photo lightbox, blur optimization, and compression guide
+
+### Miscellaneous
+
+- Add .gradle to gitignore and remove cached build files
+
+### Refactoring
+
+- **kotlin**: Rename package from org.mosip.claim169 to org.acn.claim169
+- **kotlin**: Extract mutex helpers and remove duplicate test vectors
+- **kotlin**: Rename package org.acn to fr.acn [**BREAKING**]
+- **kotlin**: Expose SDK models/errors under fr.acn.claim169 [**BREAKING**]
+
+### Testing
+
+- Add bestQualityFingers to demographics-full test vector
+- **kotlin**: Expand test coverage from 38 to 66 tests
+
 ## [0.1.0-alpha.3] - 2026-01-24
 
 ### Bug Fixes

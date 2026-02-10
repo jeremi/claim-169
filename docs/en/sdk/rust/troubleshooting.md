@@ -336,7 +336,7 @@ Or use the default features:
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.2.0-alpha"
 ```
 
 ### "trait Signer is not implemented"

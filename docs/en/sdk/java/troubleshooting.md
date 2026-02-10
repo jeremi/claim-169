@@ -25,7 +25,7 @@ Native library (linux-x86-64/libclaim169_core.so) not found
 
         ```kotlin
         dependencies {
-            implementation("fr.acn.claim169:claim169-core:0.1.0-alpha.2")
+            implementation("fr.acn.claim169:claim169-core:0.2.0-alpha")
         }
         ```
 
@@ -35,7 +35,7 @@ Native library (linux-x86-64/libclaim169_core.so) not found
         <dependency>
             <groupId>fr.acn.claim169</groupId>
             <artifactId>claim169-core</artifactId>
-            <version>0.1.0-alpha.2</version>
+            <version>0.2.0-alpha</version>
         </dependency>
         ```
 

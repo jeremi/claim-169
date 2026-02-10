@@ -7,5 +7,5 @@ plugins {
 
 allprojects {
     group = "fr.acn.claim169"
-    version = "0.1.0-alpha.3"
+    version = "0.2.0-alpha"
 }

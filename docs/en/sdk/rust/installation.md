@@ -6,7 +6,7 @@ Add `claim169-core` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.2.0-alpha"
 ```
 
 Or use cargo add:
@@ -29,7 +29,7 @@ By default, the `software-crypto` feature is enabled, providing ready-to-use cry
 
 ```toml
 [dependencies]
-claim169-core = "0.1"
+claim169-core = "0.2.0-alpha"
 ```
 
 This includes:
@@ -43,7 +43,7 @@ For hardware security modules or cloud KMS integration, disable default features
 
 ```toml
 [dependencies]
-claim169-core = { version = "0.1", default-features = false }
+claim169-core = { version = "0.2.0-alpha", default-features = false }
 ```
 
 This removes the software crypto dependencies and requires you to implement the cryptographic traits:

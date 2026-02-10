@@ -22,7 +22,7 @@ The Java SDK provides native bindings for encoding and decoding MOSIP Claim 169 
 
     ```kotlin
     dependencies {
-        implementation("fr.acn.claim169:claim169-core:0.1.0-alpha.2")
+        implementation("fr.acn.claim169:claim169-core:0.2.0-alpha")
     }
     ```
 
@@ -30,7 +30,7 @@ The Java SDK provides native bindings for encoding and decoding MOSIP Claim 169 
 
     ```groovy
     dependencies {
-        implementation 'fr.acn.claim169:claim169-core:0.1.0-alpha.2'
+        implementation 'fr.acn.claim169:claim169-core:0.2.0-alpha'
     }
     ```
 
@@ -40,7 +40,7 @@ The Java SDK provides native bindings for encoding and decoding MOSIP Claim 169 
     <dependency>
         <groupId>fr.acn.claim169</groupId>
         <artifactId>claim169-core</artifactId>
-        <version>0.1.0-alpha.2</version>
+        <version>0.2.0-alpha</version>
     </dependency>
     ```
 
