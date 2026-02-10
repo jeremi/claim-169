@@ -72,6 +72,14 @@ publishing {
                     }
                 }
 
+                developers {
+                    developer {
+                        id.set("jeremi")
+                        name.set("Jeremi Joslin")
+                        url.set("https://github.com/jeremi")
+                    }
+                }
+
                 scm {
                     connection.set("scm:git:git://github.com/jeremi/claim-169.git")
                     developerConnection.set("scm:git:ssh://github.com:jeremi/claim-169.git")
