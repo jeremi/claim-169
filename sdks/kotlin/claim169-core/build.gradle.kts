@@ -81,17 +81,7 @@ publishing {
         }
     }
 
-    repositories {
-        maven {
-            name = "CentralPortal"
-            url = uri("https://central.sonatype.com/repository/maven-releases/")
-
-            credentials {
-                username = System.getenv("MAVEN_USERNAME") ?: ""
-                password = System.getenv("MAVEN_PASSWORD") ?: ""
-            }
-        }
-    }
+    // Repository is configured by the gradle-nexus/publish-plugin in the root project.
 }
 
 signing {

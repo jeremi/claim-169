@@ -245,12 +245,11 @@ jobs:
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-          # Central Portal token-based publishing: allow passwordless private keys.
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           # Point to release build for publishing
           NATIVE_LIB_DIR="$(pwd)/../../target/release"
-          ./gradlew :claim169-core:publish \
+          ./gradlew :claim169-core:publishToSonatype closeAndReleaseSonatypeStagingRepository \
             -Djava.library.path="$NATIVE_LIB_DIR" \
             -Djna.library.path="$NATIVE_LIB_DIR"
 
