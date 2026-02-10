@@ -70,7 +70,8 @@ rm -f core/claim169-core/README.md.bak
 
 # Update version strings in docs/ markdown files
 echo "  Updating docs/..."
-OLD_VERSION="$CARGO_VERSION"
+# Escape regex special characters in OLD_VERSION for safe use in sed patterns
+OLD_VERSION_ESCAPED=$(printf '%s' "$CARGO_VERSION" | sed 's/[.[\*^$()+?{|]/\\&/g')
 find docs/ -name '*.md' -print0 | while IFS= read -r -d '' file; do
     # Rust Cargo: claim169-core = "X.Y" or "X.Y.Z-pre"
     sed -i.bak 's/claim169-core = "[^"]*"/claim169-core = "'"$VERSION"'"/g' "$file"
@@ -78,10 +79,10 @@ find docs/ -name '*.md' -print0 | while IFS= read -r -d '' file; do
     sed -i.bak 's/claim169-core = { version = "[^"]*"/claim169-core = { version = "'"$VERSION"'"/g' "$file"
     # Kotlin/Java Gradle: claim169-core:VERSION
     sed -i.bak "s/claim169-core:[0-9][0-9.a-zA-Z-]*/claim169-core:$VERSION/g" "$file"
-    # Maven XML: <version>VERSION</version> for claim169 (only in claim169 dependency blocks)
-    sed -i.bak "s|<version>${OLD_VERSION}</version>|<version>${VERSION}</version>|g" "$file"
+    # Maven XML: <version>OLD</version> -> <version>NEW</version>
+    sed -i.bak "s|<version>${OLD_VERSION_ESCAPED}</version>|<version>${VERSION}</version>|g" "$file"
     # Version output examples: replace old version string in output/comment contexts
-    sed -i.bak "s/${OLD_VERSION}/${VERSION}/g" "$file"
+    sed -i.bak "s/${OLD_VERSION_ESCAPED}/${VERSION}/g" "$file"
     rm -f "${file}.bak"
 done
 
