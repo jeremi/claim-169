@@ -75,15 +75,17 @@ jobs:
           cache: npm
           cache-dependency-path: sdks/typescript/package-lock.json
 
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
+
       - name: Generate TypeScript API docs
         working-directory: sdks/typescript
         run: |
           npm ci
-          npx typedoc
-        continue-on-error: true
-
-      - name: Post-process TypeScript API docs
-        run: bash scripts/generate-ts-api-docs.sh
+          npm run build:wasm
+          bash ../../scripts/generate-ts-api-docs.sh
         continue-on-error: true
 
       - name: Set up Java
