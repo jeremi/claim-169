@@ -105,6 +105,7 @@ fn generate_all(output_dir: &Path) {
         ("with-fingerprints", generate_with_fingerprints()),
         ("with-all-biometrics", generate_with_all_biometrics()),
         ("claim169-example", generate_claim169_example()),
+        ("refugee-identity", generate_refugee_identity()),
         ("ed25519-signed", generate_ed25519_signed()),
         ("ecdsa-p256-signed", generate_ecdsa_p256_signed()),
         ("encrypted-aes256", generate_encrypted_aes256()),
@@ -147,7 +148,7 @@ fn generate_all(output_dir: &Path) {
         println!("Generated: {}", path.display());
     }
 
-    println!("\nGenerated {} test vectors", 17);
+    println!("\nGenerated {} test vectors", 18);
 }
 
 fn generate_single(name: &str, output: Option<&std::path::Path>) {
@@ -158,6 +159,7 @@ fn generate_single(name: &str, output: Option<&std::path::Path>) {
         "with-fingerprints" => generate_with_fingerprints(),
         "with-all-biometrics" => generate_with_all_biometrics(),
         "claim169-example" => generate_claim169_example(),
+        "refugee-identity" => generate_refugee_identity(),
         "ed25519-signed" => generate_ed25519_signed(),
         "ecdsa-p256-signed" => generate_ecdsa_p256_signed(),
         "encrypted-aes256" => generate_encrypted_aes256(),
@@ -195,6 +197,7 @@ fn list_vectors() {
     println!("  with-fingerprints   - Multiple fingerprint biometrics");
     println!("  with-all-biometrics - All biometric types included");
     println!("  claim169-example    - Example from claim_169.md specification");
+    println!("  refugee-identity    - Refugee identity with face biometric and bilingual name");
     println!("  ed25519-signed      - COSE_Sign1 with Ed25519 signature");
     println!("  ecdsa-p256-signed   - COSE_Sign1 with ECDSA P-256 signature");
     println!("  encrypted-aes256    - COSE_Encrypt0 with AES-256-GCM");
@@ -447,6 +450,84 @@ fn generate_claim169_example() -> TestVector {
         })),
         expected_cwt_meta: Some(meta),
     }
+}
+
+fn generate_refugee_identity() -> TestVector {
+    // Load pre-compressed WebP photo (890 bytes)
+    let photo_data = load_file("playground/public/sample_id_pictures/sample_id_1.webp");
+
+    let claim_169 = create_claim169_map(vec![
+        (1, Value::Text("3215489387".to_string())),
+        (4, Value::Text("Janardhan Bangalore Srinivas".to_string())),
+        (8, Value::Text("1975-04-04".to_string())),
+        (9, Value::Integer(1.into())), // Male
+        (
+            10,
+            Value::Text(
+                "Flat No 007,Emerald Park,New House,Near Metro Line,Bengaluru,KA".to_string(),
+            ),
+        ),
+        (11, Value::Text("Johnny.Jana@gmail.com".to_string())),
+        (12, Value::Text("9876678945".to_string())),
+        (13, Value::Text("IN".to_string())),
+        (16, Value::Bytes(photo_data)),  // Photo binary data
+        (17, Value::Integer(4.into())),  // WebP format
+        (
+            19,
+            Value::Text("جاناردان بنغالور سرينيفاس".to_string()),
+        ),
+        (20, Value::Text("AR".to_string())),
+        (21, Value::Text("849VCWC8+R9".to_string())),
+        (22, Value::Text("Refugee".to_string())),
+        (23, Value::Text("IN".to_string())),
+    ]);
+
+    let meta = CwtMeta::new()
+        .with_issuer("www.mosip.io")
+        .with_issued_at(1756376445)
+        .with_expires_at(1787912445)
+        .with_not_before(1756376445);
+
+    let qr_data = encode_unsigned_qr(&meta, &claim_169);
+
+    TestVector {
+        name: "refugee-identity".to_string(),
+        description: "Refugee identity with photo and bilingual name (Arabic)".to_string(),
+        category: "valid".to_string(),
+        expected_error: None,
+        qr_data,
+        signing_key: None,
+        encryption_key: None,
+        expected_claim169: Some(serde_json::json!({
+            "id": "3215489387",
+            "fullName": "Janardhan Bangalore Srinivas",
+            "dateOfBirth": "1975-04-04",
+            "gender": 1,
+            "address": "Flat No 007,Emerald Park,New House,Near Metro Line,Bengaluru,KA",
+            "email": "Johnny.Jana@gmail.com",
+            "phone": "9876678945",
+            "nationality": "IN",
+            "photoFormat": 4,
+            "secondaryFullName": "جاناردان بنغالور سرينيفاس",
+            "secondaryLanguage": "AR",
+            "locationCode": "849VCWC8+R9",
+            "legalStatus": "Refugee",
+            "countryOfIssuance": "IN"
+        })),
+        expected_cwt_meta: Some(meta),
+    }
+}
+
+/// Load a file as raw bytes, trying the workspace root as fallback.
+fn load_file(path: &str) -> Vec<u8> {
+    fs::read(path).unwrap_or_else(|_| {
+        let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap();
+        fs::read(workspace_root.join(path)).expect("Failed to load file")
+    })
 }
 
 fn generate_with_fingerprints() -> TestVector {

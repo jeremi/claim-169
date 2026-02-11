@@ -157,6 +157,7 @@
     "demoIdentity": "Identité démo",
     "ed25519Signed": "Signé Ed25519",
     "fullDemographics": "Données complètes",
+    "refugeeIdentity": "Identité réfugié",
     "encryptedSigned": "Chiffré + Signé"
   },
   "common": {

@@ -157,6 +157,7 @@
     "demoIdentity": "Demo Identity",
     "ed25519Signed": "Ed25519 Signed",
     "fullDemographics": "Full Demographics",
+    "refugeeIdentity": "Refugee Identity",
     "encryptedSigned": "Encrypted + Signed"
   },
   "common": {
