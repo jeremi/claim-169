@@ -29,7 +29,7 @@ interface IdentityPanelProps {
   onEncryptionKeyChange: (key: string) => void
   onLoadSample: () => void
   onLoadExample: (key: string) => void
-  examples: Record<string, { name: string; qrData: string }>
+  samplePhotoUrl?: string | null
 }
 
 export function IdentityPanel({
@@ -50,7 +50,7 @@ export function IdentityPanel({
   onEncryptionKeyChange,
   onLoadSample,
   onLoadExample,
-  examples,
+  samplePhotoUrl,
 }: IdentityPanelProps) {
   const { t } = useTranslation()
   const [showCwtMeta, setShowCwtMeta] = useState(false)
@@ -135,12 +135,8 @@ export function IdentityPanel({
             className="w-44 text-sm"
           >
             <option value="">{t("examples.loadExample")}</option>
-            <option value="demo">✨ {t("examples.demoIdentity")}</option>
-            {Object.entries(examples).map(([key, example]) => (
-              <option key={key} value={key}>
-                {example.name}
-              </option>
-            ))}
+            <option value="demo">{t("examples.demoIdentity")}</option>
+            <option value="refugee-identity">{t("examples.refugeeIdentity")}</option>
           </Select>
         </div>
 
@@ -198,6 +194,7 @@ export function IdentityPanel({
           photoFormat={claim169.photoFormat}
           onPhotoChange={handlePhotoChange}
           encodedSize={encodedSize}
+          samplePhotoUrl={samplePhotoUrl}
         />
 
         {/* Advanced fields - collapsible */}

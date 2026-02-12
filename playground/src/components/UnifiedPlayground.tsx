@@ -12,38 +12,12 @@ import {
   parseEncryptionKey,
 } from "@/lib/utils"
 import { parseDecodeError, buildPartialPipeline, type ParsedError } from "@/lib/errors"
-import { compressPhoto } from "@/lib/image"
 import type { PipelineStage } from "@/components/PipelineDetails"
 import type { VerificationStatus } from "@/components/VerificationBadge"
 
 export type SigningMethod = "ed25519" | "ecdsa" | "unsigned"
 export type EncryptionMethod = "none" | "aes256" | "aes128"
 
-// Pre-made examples
-const EXAMPLES = {
-  "ed25519-signed": {
-    name: "Ed25519 Signed",
-    qrData: "6BF590B20FFWJWG.FKJ05H7B0XKA8FA9DIWENPEJ/5P$DPQE88EB$CBECP9ERZC04E21DDF3/E96007F3ORAO001KL580 B9%W5*B9C+9%R8646%86HKESED1/DRTC5UA QE$345$CVQEX.DX88WBK0NG8PB4 O/38TL6XDALLKLPQATHO.3ZPJMUAVQFSB1:+B*21V FWMC6SU439YU774475LJ2U5T02$VBSIMLQ3:6J.E1-1STM$4",
-    publicKey: "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
-  },
-  "demographics-full": {
-    name: "Full Demographics",
-    qrData: "6BFA$BMVPYUOM43QVJH.AB27/RBNIDSMGU*4WKQYPDP-MBVDN66$EQM0JBF6YRC/S9N%8T2M.52+11A9G+PQELUPWJ0$RK2GW0PTZJ$6EC/7Z$Q718XV1WGD$DE0%CBBS0I7YEPUMD1F4OPQ3LD:T50KNJ6DKSVG%63EUHK2LJB4BQH 8UMQI5S7-L24WFDVB2N*OQRRMLF15U7X9L1AGVFU0WCJC0.CCW/DB*C*YKTZM9ULPW5U0ND94X9F/07UK2K*EC%2$I0BH3YUA*4MRQQIHS9WDB813.3B11%RRAFFM23N263SG91CDMIWFEI40$43AAII9UNAN6 P01E$M7A*VSTCUL1LILRV2 4BSL5HWPWGSEQOGHPZBV2-P6902HFVZTBJ37-8YF9Y/8JCA9O3XA0:VES4",
-    publicKey: "",
-  },
-  "refugee-identity": {
-    name: "Refugee Identity",
-    qrData: "6BF-+IJQF5OAWS3J4GYF5XZ3 -8GV3J.E$CBYWG%EK%-6WJB$M8*M5Y1LKUA4SCX3N1+73CUE:DEPEXIIVMKFPEVJ4:9N$HHMI6:A6QQ1PW7-GN7H7$%0GT9MO32LPP-5:KCK7Q7+0J4FDKP1GW.:1C 7RPEZBT16OZ4F2FVRSF:XG3%3R2S5-4BMQUAJ 13:OHA HHKS8L7:/BU$UD1JD3T79VTY4SPI-.LL1E6QEEZI9ZA$0T0G1/VHUKB9:4ROI QR%E3CUIW*HX96%$GPBMPPRB64$C5IH6K$LRR8%Z887IN/GYPDEXK%7M9AEYS8JXBE1L-QQ0-OUT4D-AO:91NUW6P1*K*FI94OTUUGP1VCTRIL+Z6:$8/XMVQS3:Q7/F-QCKMTR0PD0LAUJ0YENZO+4P$5U1FPKZAPI6LH8PHJ77R62DYZ41V6IQ6I$66EOMSKIQ6.-SNGA:68TYLG.B-O0$AH$6DP8BIQD6BDS%9B9BH.A%3EFSR.8MWS04VST30.0PDIGM:2WWVJSR$6VO71GIFRNBU5MJ1VU9IPDMUOEFJAY7BWRBSI8+.PX$N.YSTCQPN8VHSI+FE5961NV+5F 715T$IR4DCX2W-9H9PNL/F+F4E89FFTHK3J7K*TD/BFN21U7A+DU/Q4X%94IP*H0K EOZF9NCK6D130Z:KZ3OHVSPHJE9GDI2L5CVS9LQ4L3PPS7%VPWMBJ9URD0%P6Y%S1F0L9UHBW.%3CJ3E9Q%H1KLFGESQE1FVEGPG2%O SP-:81TGMRTJQ8LKDIIKWVUF1O7DABN9*YTCTTO4M2MMO+T CVO25ILVPSG3OVY98SA0SXH5O3JGQ4V25FQN:S$$H+2R-$2YAEXADZHNBWUI 20ASRUMPFWO%5R4E1HD8SFEZVYL0OW7UPB5AUCWIWECHEAF*7WW6AFM8*61/VVYIS1F.WAG M$*GTIT:WKD+2W4RZD5.18X%NQVUXH1G$23I4H6K95P-LB248I6E6EISGAJ3IQNEI5SZ:6H/2*W2V/TG4JDX3FZHL+7-%F9FEMPMW63U0L%/18.K2NVDESYEBU+E.OR01CK-U6 L%TLI.0J9NM4DMC3M4LCAM679 +J9*NZ/519M:ILS-C.DH++J%*G:-39ES:6NZ:508S2LJA63$F2C9LYNB+%FLAWN:MNBOH9F.:R-P4:6E6TLRI6-*E/-MW4L%HQ9 MJF9%7S%Z3II6HTHEMHOF06%H9$POZRKCQXYRT$7R86PBEAJNC5HBJRUD2F4FJU4I 5-:VFG8JS1OXN2UQO7F2LH+$SL B*9VC0KX510OLXSOTZE%:LRXVO.EGSVP-NPFFQOD0DR*5VS:6/YGDAN4ERYDI2UP+D946K.QFSY348SW8C/8G+V7D72%:FV36HVRFY3ZSKCNQKJRZ5BBPMPXKZF2.UL*JNDME$OKK360RUY*8I3KS89TTVRO2GR8KMBA144FP-1",
-    publicKey: "",
-  },
-  "encrypted-signed": {
-    name: "Encrypted + Signed",
-    qrData: "6BFCA0410DFWXQG.FKTK06U0 DKAPKT K33LMEL-PLV9BIQFGWFU2G8 N.BGZF1VSIYEV7Q3FLRS3AJNDF.3Z0N+ZE:MD1D8R22LF3WC9*9O-P9VYJ3NGZ%3L9BTN0/5LOP0X2RL0ERSVBHVN EUZUQ2C$Y05CLKYU+9653893EU%2ICEALJ864MHB:QK 2SSTKGY6EPJFFS:R0OBF7O57NDH$12PBS1GOQGKY2BDW0Z02NPQO0SPGZ1REG0GPGV6OCRN0RI$IN751T%2SO2TFI2DSV431V5TYUW5H9 9QJU.JN7M6$95:1FJKF9P84DRF/P:0",
-    publicKey: "994c54604862f73d4bce14120b318f720119c6498b59257fb89cbead939ba0f5",
-    decryptionKey: "101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
-    encryptionMethod: "aes256" as EncryptionMethod,
-  },
-}
 
 export function UnifiedPlayground() {
   // Core state
@@ -68,10 +42,15 @@ export function UnifiedPlayground() {
   // UI state
   const [showScanner, setShowScanner] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [samplePhotoUrl, setSamplePhotoUrl] = useState<string | null>(null)
 
   // Track which side initiated the last change to prevent loops
   const lastChangeSource = useRef<"encode" | "decode" | null>(null)
   const isInitialMount = useRef(true)
+  // Guards against onClaim169Change resetting lastChangeSource during
+  // programmatic example loads (where async photo fetch can race with
+  // the debounced encode/decode effects).
+  const programmaticLoadRef = useRef(false)
 
   // Generate fresh keys when signing method changes (if no key is set)
   const generateFreshKeys = useCallback(async (method: SigningMethod) => {
@@ -258,11 +237,13 @@ export function UnifiedPlayground() {
       })
 
       lastChangeSource.current = "encode"
+      programmaticLoadRef.current = false
       setBase45Data(encoded)
       setPipelineStages(stages)
       setAlgorithm(algName)
       setVerificationStatus(signingMethod !== "unsigned" ? "verified" : "none")
     } catch (err) {
+      programmaticLoadRef.current = false
       setError(err instanceof Error ? err.message : String(err))
       setVerificationStatus("invalid")
     } finally {
@@ -453,23 +434,19 @@ export function UnifiedPlayground() {
   // Load sample data with fresh keys
   const loadSampleData = async () => {
     const now = Math.floor(Date.now() / 1000)
+    const keyPair = await generateEd25519KeyPair()
 
-    // Generate fresh keys and compress sample photo in parallel
-    const [keyPair, samplePhoto] = await Promise.all([
-      generateEd25519KeyPair(),
-      fetch(import.meta.env.BASE_URL + "sample_id_pictures/sample_id_4.png")
-        .then((r) => r.blob())
-        .then((blob) => compressPhoto(new File([blob], "sample.png", { type: "image/png" })))
-        .catch(() => null),
-    ])
-
+    // Prevent the stale decode effect from clearing claim169 before encode runs.
+    // programmaticLoadRef guards against onClaim169Change (from async photo load)
+    // resetting lastChangeSource before the debounced effects fire.
+    lastChangeSource.current = "encode"
+    programmaticLoadRef.current = true
     setClaim169({
       id: "ID-12345-DEMO",
       fullName: "Siriwan Chaiyaporn",
       dateOfBirth: "1990-05-15",
       gender: 2,
       nationality: "TH",
-      ...(samplePhoto ? { photo: samplePhoto.data, photoFormat: samplePhoto.format } : {}),
     })
     setCwtMeta({
       issuer: "https://id.example.org",
@@ -484,27 +461,49 @@ export function UnifiedPlayground() {
     setEncryptionKey("")
     setError(null)
     setParsedError(null)
+    // Photo loaded via PhotoUpload's samplePhotoUrl — enables compression sliders
+    setSamplePhotoUrl(import.meta.env.BASE_URL + "sample_id_pictures/sample_id_4.png")
   }
 
-  // Load example
-  const loadExample = (key: string) => {
-    const example = EXAMPLES[key as keyof typeof EXAMPLES]
-    if (!example) return
+  // Load refugee identity example with sample photo
+  const loadRefugeeExample = () => {
+    const now = Math.floor(Date.now() / 1000)
 
-    lastChangeSource.current = "decode"
-    setBase45Data(example.qrData)
-    setPublicKey(example.publicKey)
-    if ("decryptionKey" in example && example.decryptionKey) {
-      setEncryptionKey(example.decryptionKey)
-      setEncryptionMethod(example.encryptionMethod || "none")
-    } else {
-      setEncryptionKey("")
-      setEncryptionMethod("none")
-    }
-    setSigningMethod(example.publicKey ? "ed25519" : "unsigned")
+    lastChangeSource.current = "encode"
+    programmaticLoadRef.current = true
+    setClaim169({
+      id: "3215489387",
+      fullName: "Janardhan Bangalore Srinivas",
+      language: "eng",
+      secondaryLanguage: "ara",
+      secondaryFullName: "\u062C\u0627\u0646\u0627\u0631\u062F\u0627\u0646 \u0628\u0646\u063A\u0627\u0644\u0648\u0631 \u0633\u0631\u064A\u0646\u064A\u0641\u0627\u0633",
+      dateOfBirth: "1987-03-12",
+      gender: 1,
+      nationality: "IN",
+      legalStatus: "refugee",
+    })
+    setCwtMeta({
+      issuer: "https://unhcr.example.org",
+      subject: "3215489387",
+      issuedAt: now,
+      expiresAt: now + 365 * 24 * 60 * 60,
+    })
+    setSigningMethod("unsigned")
     setPrivateKey("")
+    setPublicKey("")
+    setEncryptionMethod("none")
+    setEncryptionKey("")
     setError(null)
     setParsedError(null)
+    // Photo loaded via PhotoUpload's samplePhotoUrl — enables compression sliders
+    setSamplePhotoUrl(import.meta.env.BASE_URL + "sample_id_pictures/sample_id_1.png")
+  }
+
+  // Load example by key
+  const loadExample = (key: string) => {
+    if (key === "refugee-identity") {
+      loadRefugeeExample()
+    }
   }
 
   // Handle QR scan
@@ -521,7 +520,9 @@ export function UnifiedPlayground() {
         claim169={claim169}
         encodedSize={base45Data.length || undefined}
         onClaim169Change={(value) => {
-          lastChangeSource.current = null
+          if (!programmaticLoadRef.current) {
+            lastChangeSource.current = null
+          }
           setClaim169(value)
         }}
         cwtMeta={cwtMeta}
@@ -541,7 +542,7 @@ export function UnifiedPlayground() {
         onEncryptionKeyChange={setEncryptionKey}
         onLoadSample={loadSampleData}
         onLoadExample={loadExample}
-        examples={EXAMPLES}
+        samplePhotoUrl={samplePhotoUrl}
       />
 
       {/* Right Panel: QR Code + Verification + Base45 */}

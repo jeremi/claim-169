@@ -71,7 +71,7 @@
     "title": "Photo",
     "dropzone": "Cliquez ou déposez une image",
     "dropzoneActive": "Déposez l'image ici",
-    "resolution": "Résolution",
+    "resolution": "Résolution (largeur)",
     "quality": "Qualité",
     "compressionSettings": "Paramètres de compression",
     "format": "Format",
@@ -82,6 +82,11 @@
     "slidersDisabled": "Ajustez les paramètres lors du téléchargement d'une nouvelle photo",
     "tooLarge": "Fichier trop volumineux (max 10 Mo)",
     "invalidFile": "Ce n'est pas un fichier image valide",
+    "grayscale": "Niveaux de gris",
+    "maxBytes": "Taille max (octets)",
+    "maxBytesPlaceholder": "ex. 500",
+    "maxBytesWarning": "La taille cible ne peut pas être atteinte même à la qualité minimale",
+    "autoQuality": "Qualité : {{quality}}% (auto)",
     "compressedPreviewAlt": "Aperçu de la photo compressée",
     "decodedPhotoAlt": "Photo décodée"
   },
@@ -155,10 +160,7 @@
   "examples": {
     "loadExample": "Charger un exemple...",
     "demoIdentity": "Identité démo",
-    "ed25519Signed": "Signé Ed25519",
-    "fullDemographics": "Données complètes",
-    "refugeeIdentity": "Identité réfugié",
-    "encryptedSigned": "Chiffré + Signé"
+    "refugeeIdentity": "Identité réfugié"
   },
   "common": {
     "copy": "Copier",

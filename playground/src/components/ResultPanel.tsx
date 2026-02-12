@@ -185,7 +185,7 @@ export function ResultPanel({
             <img
               src={decodedPhotoUrl}
               alt={t("photo.decodedPhotoAlt")}
-              className="w-12 h-12 rounded border"
+              className="w-9 h-12 rounded border"
               style={{ imageRendering: "pixelated" }}
             />
           </button>

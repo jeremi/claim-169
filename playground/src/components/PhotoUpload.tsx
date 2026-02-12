@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { compressPhoto, createPhotoPreviewUrl } from "@/lib/image"
+import { compressPhoto, compressPhotoToFit, createPhotoPreviewUrl } from "@/lib/image"
 import { PHOTO_FORMAT_MAP, cn } from "@/lib/utils"
 import { ImagePlus, X, ChevronDown, ChevronRight } from "lucide-react"
 
@@ -11,6 +11,7 @@ interface PhotoUploadProps {
   photoFormat: number | undefined
   onPhotoChange: (photo: Uint8Array | undefined, format: number | undefined) => void
   encodedSize?: number
+  samplePhotoUrl?: string | null
 }
 
 export function PhotoUpload({
@@ -18,10 +19,15 @@ export function PhotoUpload({
   photoFormat,
   onPhotoChange,
   encodedSize,
+  samplePhotoUrl,
 }: PhotoUploadProps) {
   const { t } = useTranslation()
   const [resolution, setResolution] = useState(48)
   const [quality, setQuality] = useState(60)
+  const [grayscale, setGrayscale] = useState(false)
+  const [maxBytes, setMaxBytes] = useState<number | null>(null)
+  const [autoQuality, setAutoQuality] = useState<number | null>(null)
+  const [fitWarning, setFitWarning] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,12 +64,27 @@ export function PhotoUpload({
     originalFileRef.current = file
     const version = ++compressionVersionRef.current
     try {
-      const result = await compressPhoto(file, {
-        maxDimension: resolution,
-        quality: quality / 100,
-      })
-      if (compressionVersionRef.current !== version) return
-      onPhotoChange(result.data, result.format)
+      if (maxBytes !== null) {
+        const result = await compressPhotoToFit(file, {
+          maxDimension: resolution,
+          maxBytes,
+          grayscale,
+        })
+        if (compressionVersionRef.current !== version) return
+        setAutoQuality(Math.round(result.qualityUsed * 100))
+        setFitWarning(!result.reachedTarget)
+        onPhotoChange(result.data, result.format)
+      } else {
+        const result = await compressPhoto(file, {
+          maxDimension: resolution,
+          quality: quality / 100,
+          grayscale,
+        })
+        if (compressionVersionRef.current !== version) return
+        setAutoQuality(null)
+        setFitWarning(false)
+        onPhotoChange(result.data, result.format)
+      }
     } catch (err) {
       if (compressionVersionRef.current !== version) return
       const message = err instanceof Error ? err.message : String(err)
@@ -73,7 +94,29 @@ export function PhotoUpload({
         setError(t("photo.invalidFile"))
       }
     }
-  }, [resolution, quality, onPhotoChange, t])
+  }, [resolution, quality, grayscale, maxBytes, onPhotoChange, t])
+
+  // Keep a stable ref to handleFile so the sample-photo effect doesn't
+  // re-trigger when handleFile's reference changes due to parent re-renders.
+  const handleFileRef = useRef(handleFile)
+  handleFileRef.current = handleFile
+
+  // Load a sample photo from URL (used by examples to enable compression sliders)
+  useEffect(() => {
+    if (!samplePhotoUrl) return
+    let cancelled = false
+    fetch(samplePhotoUrl)
+      .then((r) => r.blob())
+      .then((blob) => {
+        if (cancelled) return
+        const file = new File([blob], "sample.png", { type: blob.type || "image/png" })
+        handleFileRef.current(file)
+      })
+      .catch(() => {
+        // Fetch failed — ignore silently
+      })
+    return () => { cancelled = true }
+  }, [samplePhotoUrl])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -110,35 +153,80 @@ export function PhotoUpload({
     setError(null)
   }
 
-  // Re-compress when sliders change (debounced)
-  const recompress = useCallback(async (dim: number, qual: number) => {
+  // Re-compress when sliders/toggles change (debounced)
+  const recompress = useCallback(async (
+    dim: number,
+    qual: number,
+    gray: boolean,
+    maxB: number | null,
+  ) => {
     if (!originalFileRef.current) return
     const version = ++compressionVersionRef.current
     try {
-      const result = await compressPhoto(originalFileRef.current, {
-        maxDimension: dim,
-        quality: qual / 100,
-      })
-      if (compressionVersionRef.current !== version) return
-      onPhotoChange(result.data, result.format)
+      if (maxB !== null) {
+        const result = await compressPhotoToFit(originalFileRef.current, {
+          maxDimension: dim,
+          maxBytes: maxB,
+          grayscale: gray,
+        })
+        if (compressionVersionRef.current !== version) return
+        setAutoQuality(Math.round(result.qualityUsed * 100))
+        setFitWarning(!result.reachedTarget)
+        onPhotoChange(result.data, result.format)
+      } else {
+        const result = await compressPhoto(originalFileRef.current, {
+          maxDimension: dim,
+          quality: qual / 100,
+          grayscale: gray,
+        })
+        if (compressionVersionRef.current !== version) return
+        setAutoQuality(null)
+        setFitWarning(false)
+        onPhotoChange(result.data, result.format)
+      }
     } catch {
       // Original file ref is stale or invalid — ignore
     }
   }, [onPhotoChange])
 
-  // Both sliders share a single debounce timer — the last slider change within
+  // All controls share a single debounce timer — the last change within
   // 150ms wins, and the fired callback receives explicit parameter values
   // (not stale closures), so the result is always correct.
   const handleResolutionChange = (value: number) => {
     setResolution(value)
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
-    debounceTimerRef.current = setTimeout(() => recompress(value, quality), 150)
+    debounceTimerRef.current = setTimeout(() => recompress(value, quality, grayscale, maxBytes), 150)
   }
 
   const handleQualityChange = (value: number) => {
     setQuality(value)
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
-    debounceTimerRef.current = setTimeout(() => recompress(resolution, value), 150)
+    debounceTimerRef.current = setTimeout(() => recompress(resolution, value, grayscale, maxBytes), 150)
+  }
+
+  const handleGrayscaleChange = (checked: boolean) => {
+    setGrayscale(checked)
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => recompress(resolution, quality, checked, maxBytes), 150)
+  }
+
+  const handleMaxBytesChange = (value: string) => {
+    if (value === "") {
+      setMaxBytes(null)
+      setAutoQuality(null)
+      setFitWarning(false)
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = setTimeout(() => recompress(resolution, quality, grayscale, null), 150)
+      return
+    }
+    const parsed = parseInt(value, 10)
+    if (isNaN(parsed)) return
+    setMaxBytes(parsed)
+    // Only trigger compression when the value is usable (>= 50)
+    if (parsed >= 50) {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = setTimeout(() => recompress(resolution, quality, grayscale, parsed), 150)
+    }
   }
 
   const hasOriginalFile = originalFileRef.current !== null
@@ -197,7 +285,7 @@ export function PhotoUpload({
               <img
                 src={previewUrl}
                 alt={t("photo.compressedPreviewAlt")}
-                className="w-12 h-12 rounded border border-green-300 dark:border-green-700"
+                className="w-9 h-12 rounded border border-green-300 dark:border-green-700"
                 style={{ imageRendering: "pixelated" }}
               />
             </button>
@@ -235,7 +323,7 @@ export function PhotoUpload({
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <Label className="text-[10px]">{t("photo.resolution")}</Label>
-                        <span className="text-[10px] text-muted-foreground">{resolution}px</span>
+                        <span className="text-[10px] text-muted-foreground">{resolution}×{Math.round(resolution * 4 / 3)}</span>
                       </div>
                       <input
                         type="range"
@@ -249,20 +337,56 @@ export function PhotoUpload({
                     </div>
 
                     {/* Quality slider */}
-                    <div className="space-y-1">
+                    <div className={cn("space-y-1", maxBytes !== null && "opacity-40")}>
                       <div className="flex items-center justify-between">
                         <Label className="text-[10px]">{t("photo.quality")}</Label>
-                        <span className="text-[10px] text-muted-foreground">{quality}%</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {maxBytes !== null && autoQuality !== null
+                            ? t("photo.autoQuality", { quality: autoQuality })
+                            : `${quality}%`}
+                        </span>
                       </div>
                       <input
                         type="range"
                         min={10}
                         max={100}
                         step={5}
-                        value={quality}
+                        value={maxBytes !== null && autoQuality !== null ? autoQuality : quality}
                         onChange={(e) => handleQualityChange(Number(e.target.value))}
+                        disabled={maxBytes !== null}
                         className="w-full h-1 accent-green-600"
                       />
+                    </div>
+
+                    {/* Grayscale checkbox */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="grayscale-toggle"
+                        checked={grayscale}
+                        onChange={(e) => handleGrayscaleChange(e.target.checked)}
+                        className="accent-green-600"
+                      />
+                      <Label htmlFor="grayscale-toggle" className="text-[10px]">{t("photo.grayscale")}</Label>
+                    </div>
+
+                    {/* Max size input */}
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">{t("photo.maxBytes")}</Label>
+                      <input
+                        type="number"
+                        min={50}
+                        max={10000}
+                        placeholder={t("photo.maxBytesPlaceholder")}
+                        value={maxBytes ?? ""}
+                        onChange={(e) => handleMaxBytesChange(e.target.value)}
+                        className="w-full h-6 px-2 text-[10px] rounded border border-input bg-background"
+                      />
+                      {fitWarning && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                          {t("photo.maxBytesWarning")}
+                        </p>
+                      )}
                     </div>
                   </>
                 ) : (
