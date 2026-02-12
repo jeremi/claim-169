@@ -10,6 +10,8 @@ claim169-core = { path = "../../core/claim169-core" }
 coset.workspace = true
 ciborium.workspace = true
 flate2.workspace = true
+brotli.workspace = true
+zstd.workspace = true
 base45.workspace = true
 rand.workspace = true
 hex.workspace = true

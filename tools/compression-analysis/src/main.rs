@@ -1,14 +1,17 @@
 //! Compression impact analysis for MOSIP Claim 169 QR codes.
 //!
-//! This tool analyzes whether zlib compression helps or hurts QR code data size
+//! This tool analyzes multiple strategies for reducing QR code size
 //! across various realistic credential scenarios. The encoding pipeline is:
 //!
 //! ```text
-//! Claim169 → CBOR → CWT → COSE_Sign1 → [zlib] → Base45 → QR Code
+//! Claim169 → CBOR → CWT → COSE_Sign1 → [compress] → Base45 → QR Code
 //! ```
 //!
-//! We compare sizes with and without the zlib step to determine when compression
-//! is beneficial.
+//! Strategies tested:
+//!   1. Compression algorithms: zlib vs Brotli vs Zstandard
+//!   2. QR encoding modes: Base45 alphanumeric vs raw binary (byte mode)
+//!   3. CWT metadata overhead: URL issuer vs numeric ID, full vs relative timestamps
+//!   4. CBOR deduplication: shared values in repeated biometric structures
 
 use std::io::Write as IoWrite;
 use std::path::Path;
@@ -25,15 +28,16 @@ use rand::RngCore;
 
 fn main() {
     println!("=============================================================================");
-    println!("  Claim 169 QR Code — Compression Impact Analysis");
+    println!("  Claim 169 QR Code — Size Optimization Analysis");
     println!("=============================================================================");
     println!();
-    println!("Pipeline: Claim169 → CBOR → CWT → COSE_Sign1 → [zlib] → Base45 → QR");
+    println!("Pipeline: Claim169 → CBOR → CWT → COSE_Sign1 → [compress] → Base45 → QR");
     println!();
     println!("All scenarios are Ed25519-signed (production-realistic).");
     println!();
 
-    let scenarios = build_scenarios();
+    let signer = Ed25519Signer::generate();
+    let scenarios = build_scenarios(&signer);
 
     // ── Per-scenario detailed report ──────────────────────────────────────
     println!("─────────────────────────────────────────────────────────────────────────────────");
@@ -69,9 +73,25 @@ fn main() {
     println!();
     print_compression_levels(&scenarios);
 
+    // ══ NEW: Multi-algorithm compression comparison ══════════════════════
+    println!();
+    print_algorithm_comparison(&scenarios);
+
+    // ══ NEW: QR byte mode vs alphanumeric mode ═══════════════════════════
+    println!();
+    print_qr_mode_comparison(&scenarios);
+
     // ── QR version impact ────────────────────────────────────────────────
     println!();
     print_qr_version_analysis(&scenarios, &results);
+
+    // ══ NEW: CWT metadata overhead analysis ══════════════════════════════
+    println!();
+    print_cwt_overhead_analysis(&signer);
+
+    // ══ NEW: CBOR deduplication analysis ═════════════════════════════════
+    println!();
+    print_cbor_dedup_analysis(&signer);
 
     // ── Conclusions ──────────────────────────────────────────────────────
     println!();
@@ -179,8 +199,7 @@ fn shannon_entropy(data: &[u8]) -> f64 {
 // Scenario builders
 // ════════════════════════════════════════════════════════════════════════════
 
-fn build_scenarios() -> Vec<Scenario> {
-    let signer = Ed25519Signer::generate();
+fn build_scenarios(signer: &Ed25519Signer) -> Vec<Scenario> {
 
     // NOTE: ALL scenarios are Ed25519-signed to reflect production reality.
     // Categories reflect the data type, not the signing status.
@@ -196,7 +215,7 @@ fn build_scenarios() -> Vec<Scenario> {
                 (4, Value::Text("John Doe".to_string())),
             ]),
             &minimal_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "A2. Basic demographics (Latin)",
@@ -215,7 +234,7 @@ fn build_scenarios() -> Vec<Scenario> {
                 ),
             ]),
             &minimal_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "A3. Full demographics (all 23 keys)",
@@ -223,7 +242,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_full_demographics_latin(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         // ── Arabic (RTL, high-entropy UTF-8) ──────────────────────────────
         build_scenario(
@@ -232,7 +251,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_arabic_persona(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         // ── Devanagari (Hindi) ────────────────────────────────────────────
         build_scenario(
@@ -241,7 +260,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_hindi_persona(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         // ── Chinese (CJK, 3-byte UTF-8) ──────────────────────────────────
         build_scenario(
@@ -250,7 +269,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_chinese_persona(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         // ── Cyrillic (Russian) ────────────────────────────────────────────
         build_scenario(
@@ -259,7 +278,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_cyrillic_persona(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         // ── Thai ──────────────────────────────────────────────────────────
         build_scenario(
@@ -268,7 +287,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_thai_persona(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         // ── Bilingual (two scripts) ──────────────────────────────────────
         build_scenario(
@@ -277,7 +296,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_bilingual_arabic_persona(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "A10. Bilingual Hindi+Latin",
@@ -285,7 +304,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_bilingual_hindi_persona(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         // ═══ SECTION B: Payloads with binary data (random = incompressible) ══
         build_scenario(
@@ -294,7 +313,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(200),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "B2. Demo + random photo 400B",
@@ -302,7 +321,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(400),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "B3. Demo + random photo 600B",
@@ -310,7 +329,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(600),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "B4. Demo + random photo 800B",
@@ -318,7 +337,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(800),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "B5. Demo + face biometric 500B",
@@ -326,7 +345,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_face_biometric(500),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "B6. Demo + 2 fingerprint templates",
@@ -334,7 +353,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_fingerprints(2, 64),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "B7. Demo + 4 fingerprint templates",
@@ -342,7 +361,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_fingerprints(4, 64),
             &full_cwt(),
-            &signer,
+            signer,
         ),
         build_scenario(
             "B8. Full credential (demo+photo+face)",
@@ -350,7 +369,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_full_credential_random(),
             &full_cwt(),
-            &signer,
+            signer,
         ),
     ];
 
@@ -365,7 +384,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_demographics_with_real_photo(&webp_data),
             &full_cwt(),
-            &signer,
+            signer,
         ));
 
         scenarios.push(build_scenario(
@@ -374,7 +393,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_demographics_with_real_face_bio(&webp_data),
             &full_cwt(),
-            &signer,
+            signer,
         ));
 
         scenarios.push(build_scenario(
@@ -383,7 +402,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_full_credential_real(&webp_data),
             &full_cwt(),
-            &signer,
+            signer,
         ));
 
         // C4-C6: stripped WebP (ICC profile removed, as playground does)
@@ -405,7 +424,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_demographics_with_real_photo(&stripped),
             &full_cwt(),
-            &signer,
+            signer,
         ));
 
         scenarios.push(build_scenario(
@@ -414,7 +433,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_demographics_with_real_face_bio(&stripped),
             &full_cwt(),
-            &signer,
+            signer,
         ));
 
         scenarios.push(build_scenario(
@@ -423,7 +442,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_full_credential_real(&stripped),
             &full_cwt(),
-            &signer,
+            signer,
         ));
     } else {
         println!("  [NOTE] Real image not found, skipping section C scenarios.");
@@ -438,7 +457,7 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::Compressible,
         &create_demographics_with_uniform_photo(400, 0x00),
         &full_cwt(),
-        &signer,
+        signer,
     ));
     scenarios.push(build_scenario(
         "D2. All-zeros photo 800B",
@@ -446,7 +465,7 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::Compressible,
         &create_demographics_with_uniform_photo(800, 0x00),
         &full_cwt(),
-        &signer,
+        signer,
     ));
     scenarios.push(build_scenario(
         "D3. Patterned biometric 400B",
@@ -454,7 +473,7 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::Compressible,
         &create_demographics_with_patterned_bio(400),
         &full_cwt(),
-        &signer,
+        signer,
     ));
 
     // ═══ SECTION E: Edge cases ══════════════════════════════════════════
@@ -464,7 +483,7 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::TextOnly,
         &create_claim169_map(vec![(1, Value::Text("X".to_string()))]),
         &CwtMeta::new().with_issuer("i"),
-        &signer,
+        signer,
     ));
     scenarios.push(build_scenario(
         "E2. Long address (500 char Latin)",
@@ -472,7 +491,7 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::TextOnly,
         &create_long_address_persona(),
         &full_cwt(),
-        &signer,
+        signer,
     ));
 
     scenarios
@@ -1453,4 +1472,474 @@ fn qr_version_for_alphanumeric(chars: usize) -> Option<u8> {
         }
     }
     None
+}
+
+/// Returns the minimum QR Code version needed for the given number of
+/// raw bytes (byte/binary mode), using error correction level L.
+fn qr_version_for_byte_mode(bytes: usize) -> Option<u8> {
+    // Byte mode capacity for QR versions 1-40 at EC level L
+    let capacities: &[usize] = &[
+        17, 32, 53, 78, 106, 134, 154, 192, 230, 271, // V1-V10
+        321, 367, 425, 458, 520, 586, 644, 718, 792, 858, // V11-V20
+        929, 1003, 1091, 1171, 1273, 1367, 1465, 1528, 1628, 1732, // V21-V30
+        1840, 1952, 2068, 2188, 2303, 2431, 2563, 2699, 2809, 2953, // V31-V40
+    ];
+
+    for (i, &cap) in capacities.iter().enumerate() {
+        if bytes <= cap {
+            return Some((i + 1) as u8);
+        }
+    }
+    None
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Brotli / Zstd compression helpers
+// ════════════════════════════════════════════════════════════════════════════
+
+fn brotli_compress(input: &[u8], quality: u32) -> Vec<u8> {
+    let mut output = Vec::new();
+    {
+        let params = brotli::enc::BrotliEncoderParams {
+            quality: quality as i32,
+            ..Default::default()
+        };
+        let mut writer =
+            brotli::CompressorWriter::with_params(&mut output, 4096, &params);
+        writer.write_all(input).expect("brotli compression failed");
+    }
+    output
+}
+
+fn zstd_compress(input: &[u8], level: i32) -> Vec<u8> {
+    zstd::bulk::compress(input, level).expect("zstd compression failed")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Strategy 1: Multi-algorithm compression comparison
+// ════════════════════════════════════════════════════════════════════════════
+
+fn print_algorithm_comparison(scenarios: &[Scenario]) {
+    println!("═══════════════════════════════════════════════════════════════════════════════════════════════════");
+    println!("  COMPRESSION ALGORITHM COMPARISON (final Base45 chars — lower is better)");
+    println!("═══════════════════════════════════════════════════════════════════════════════════════════════════");
+    println!();
+    println!(
+        "{:<40} {:>7} {:>7} {:>7} {:>7} {:>7} {:>9}",
+        "Scenario", "None", "zlib-6", "brotli4", "brotli9", "zstd-3", "Best"
+    );
+    println!("─────────────────────────────────────────────────────────────────────────────────────────────────");
+
+    let mut wins = [0u32; 5]; // none, zlib, brotli4, brotli9, zstd
+    let labels = ["none", "zlib", "brotli4", "brotli9", "zstd"];
+
+    for scenario in scenarios {
+        let cose = &scenario.cose_bytes;
+
+        let none_len = base45_encode(cose).len();
+        let zlib_len = base45_encode(&zlib_compress(cose, Compression::default())).len();
+        let br4_len = base45_encode(&brotli_compress(cose, 4)).len();
+        let br9_len = base45_encode(&brotli_compress(cose, 9)).len();
+        let zstd_len = base45_encode(&zstd_compress(cose, 3)).len();
+
+        let sizes = [none_len, zlib_len, br4_len, br9_len, zstd_len];
+        let min_val = *sizes.iter().min().unwrap();
+        let best_idx = sizes.iter().position(|&s| s == min_val).unwrap();
+        wins[best_idx] += 1;
+
+        let best_label = labels[best_idx];
+
+        // Truncate long scenario names
+        let name = if scenario.name.len() > 40 {
+            format!("{}...", &scenario.name[..37])
+        } else {
+            scenario.name.clone()
+        };
+
+        println!(
+            "{:<40} {:>7} {:>7} {:>7} {:>7} {:>7} {:>9}",
+            name, none_len, zlib_len, br4_len, br9_len, zstd_len, best_label
+        );
+    }
+
+    println!("─────────────────────────────────────────────────────────────────────────────────────────────────");
+    println!();
+    println!("  Win counts (scenarios where algorithm produces smallest output):");
+    for (i, label) in labels.iter().enumerate() {
+        println!("    {:<10} {} wins", label, wins[i]);
+    }
+    println!();
+    println!("  NOTE: Brotli/Zstd outputs are still Base45-encoded for comparison.");
+    println!("  With QR byte mode (see below), raw compressed bytes skip Base45 entirely.");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Strategy 2: QR byte mode vs alphanumeric mode
+// ════════════════════════════════════════════════════════════════════════════
+
+fn print_qr_mode_comparison(scenarios: &[Scenario]) {
+    println!("═══════════════════════════════════════════════════════════════════════════════════════════════════════════");
+    println!("  QR ENCODING MODE COMPARISON: Base45 (Alphanumeric) vs Raw Bytes (Byte Mode)");
+    println!("═══════════════════════════════════════════════════════════════════════════════════════════════════════════");
+    println!();
+    println!("  Base45 uses QR alphanumeric mode (5.5 bits/char, 45-char alphabet).");
+    println!("  Raw bytes use QR byte mode (8 bits/byte) — skip Base45, send compressed bytes directly.");
+    println!("  Lower QR version = smaller, faster to scan.");
+    println!();
+    println!(
+        "{:<40} {:>11} {:>11} {:>11} {:>11} {:>8}",
+        "Scenario",
+        "B45+zlib",
+        "QR(alpha)",
+        "raw+zlib",
+        "QR(byte)",
+        "Winner"
+    );
+    println!(
+        "{:<40} {:>11} {:>11} {:>11} {:>11} {:>8}",
+        "", "chars", "version", "bytes", "version", ""
+    );
+    println!("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
+
+    let mut alpha_wins = 0u32;
+    let mut byte_wins = 0u32;
+    let mut ties = 0u32;
+
+    for scenario in scenarios {
+        let cose = &scenario.cose_bytes;
+
+        // Path A: current pipeline — zlib → Base45 → QR alphanumeric
+        let compressed = zlib_compress(cose, Compression::default());
+        let b45 = base45_encode(&compressed);
+        let b45_len = b45.len();
+        let qr_alpha = qr_version_for_alphanumeric(b45_len);
+
+        // Path B: zlib → QR byte mode (no Base45)
+        let raw_len = compressed.len();
+        let qr_byte = qr_version_for_byte_mode(raw_len);
+
+        let qr_alpha_str = qr_alpha
+            .map(|v| format!("V{}", v))
+            .unwrap_or_else(|| "TOO BIG".into());
+        let qr_byte_str = qr_byte
+            .map(|v| format!("V{}", v))
+            .unwrap_or_else(|| "TOO BIG".into());
+
+        let winner = match (qr_alpha, qr_byte) {
+            (Some(a), Some(b)) if a < b => {
+                alpha_wins += 1;
+                "alpha"
+            }
+            (Some(a), Some(b)) if b < a => {
+                byte_wins += 1;
+                "byte"
+            }
+            (Some(_), None) => {
+                alpha_wins += 1;
+                "alpha"
+            }
+            (None, Some(_)) => {
+                byte_wins += 1;
+                "byte"
+            }
+            _ => {
+                ties += 1;
+                "tie"
+            }
+        };
+
+        let name = if scenario.name.len() > 40 {
+            format!("{}...", &scenario.name[..37])
+        } else {
+            scenario.name.clone()
+        };
+
+        println!(
+            "{:<40} {:>11} {:>11} {:>11} {:>11} {:>8}",
+            name, b45_len, qr_alpha_str, raw_len, qr_byte_str, winner
+        );
+    }
+
+    println!("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
+    println!();
+    println!("  Results:  alphanumeric wins {} | byte mode wins {} | ties {}", alpha_wins, byte_wins, ties);
+    println!();
+    println!("  Analysis: Base45 expands binary by ~37%, but QR alphanumeric mode encodes");
+    println!("  2 chars in 11 bits (5.5 bits/char) vs byte mode's 8 bits/byte.");
+    println!("  Effective bits/input-byte: alphanumeric = ~7.5, byte = 8.");
+    println!("  For high-entropy data (compressed binary), alphanumeric wins slightly.");
+    println!("  For already-small payloads, byte mode avoids the Base45 expansion.");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Strategy 3: CWT metadata overhead analysis
+// ════════════════════════════════════════════════════════════════════════════
+
+fn print_cwt_overhead_analysis(signer: &Ed25519Signer) {
+    println!("═══════════════════════════════════════════════════════════════════════════════════");
+    println!("  CWT METADATA OVERHEAD ANALYSIS");
+    println!("═══════════════════════════════════════════════════════════════════════════════════");
+    println!();
+    println!("  Compares different CWT metadata strategies and their final QR size impact.");
+    println!();
+
+    let claim_data = create_claim169_map(vec![
+        (1, Value::Text("ID-67890-FGHIJ".to_string())),
+        (4, Value::Text("Jane Marie Smith".to_string())),
+        (5, Value::Text("Jane".to_string())),
+        (7, Value::Text("Smith".to_string())),
+        (8, Value::Text("19900515".to_string())),
+        (9, Value::Integer(2.into())),
+        (
+            10,
+            Value::Text("123 Main St\nNew York, NY 10001".to_string()),
+        ),
+    ]);
+
+    // Variant A: full URL issuer + all timestamps (current default)
+    let cwt_full = CwtMeta::new()
+        .with_issuer("https://mosip.example.org")
+        .with_subject("ID-67890-FGHIJ")
+        .with_issued_at(1700000000)
+        .with_expires_at(1800000000)
+        .with_not_before(1700000000);
+
+    // Variant B: short issuer ID (numeric-like)
+    let cwt_short_iss = CwtMeta::new()
+        .with_issuer("42")
+        .with_subject("ID-67890-FGHIJ")
+        .with_issued_at(1700000000)
+        .with_expires_at(1800000000)
+        .with_not_before(1700000000);
+
+    // Variant C: no subject (it's already in claim 169 key 1)
+    let cwt_no_sub = CwtMeta::new()
+        .with_issuer("https://mosip.example.org")
+        .with_issued_at(1700000000)
+        .with_expires_at(1800000000);
+
+    // Variant D: minimal — short issuer, no subject, no nbf
+    let cwt_minimal = CwtMeta::new()
+        .with_issuer("42")
+        .with_issued_at(1700000000)
+        .with_expires_at(1800000000);
+
+    // Variant E: no CWT metadata at all (just claim 169)
+    let cwt_none = CwtMeta::new();
+
+    let variants: Vec<(&str, &CwtMeta)> = vec![
+        ("A. Full URL issuer + all timestamps", &cwt_full),
+        ("B. Short issuer ID (\"42\")", &cwt_short_iss),
+        ("C. URL issuer, no subject/nbf", &cwt_no_sub),
+        ("D. Minimal (short iss + iat/exp)", &cwt_minimal),
+        ("E. No CWT metadata", &cwt_none),
+    ];
+
+    println!(
+        "  {:<42} {:>6} {:>6} {:>8} {:>7} {:>8}",
+        "CWT variant", "CWT", "COSE", "zlib+B45", "QR ver", "vs Full"
+    );
+    println!(
+        "  {:<42} {:>6} {:>6} {:>8} {:>7} {:>8}",
+        "", "bytes", "bytes", "chars", "", "saved"
+    );
+    println!("  ─────────────────────────────────────────────────────────────────────────────────");
+
+    let mut full_b45_len = 0;
+
+    for (i, (label, cwt_meta)) in variants.iter().enumerate() {
+        let cwt_bytes = cwt_encode(cwt_meta, &claim_data);
+        let cwt_size = cwt_bytes.len();
+        let cose_bytes = build_signed_cose(&cwt_bytes, signer);
+        let cose_size = cose_bytes.len();
+        let compressed = zlib_compress(&cose_bytes, Compression::default());
+        let b45 = base45_encode(&compressed);
+        let b45_len = b45.len();
+        let qr = qr_version_for_alphanumeric(b45_len);
+        let qr_str = qr
+            .map(|v| format!("V{}", v))
+            .unwrap_or_else(|| "TOO BIG".into());
+
+        if i == 0 {
+            full_b45_len = b45_len;
+        }
+
+        let saved = if i == 0 {
+            "baseline".to_string()
+        } else {
+            let diff = full_b45_len as i64 - b45_len as i64;
+            if diff >= 0 {
+                format!("-{}", diff)
+            } else {
+                format!("+{}", -diff)
+            }
+        };
+
+        println!(
+            "  {:<42} {:>6} {:>6} {:>8} {:>7} {:>8}",
+            label, cwt_size, cose_size, b45_len, qr_str, saved
+        );
+    }
+
+    println!();
+    println!("  Takeaway: Replacing the URL issuer with a numeric registry ID and dropping");
+    println!("  redundant subject/nbf fields can save significant bytes in the final QR code.");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Strategy 4: CBOR deduplication analysis for biometrics
+// ════════════════════════════════════════════════════════════════════════════
+
+fn print_cbor_dedup_analysis(signer: &Ed25519Signer) {
+    println!("═══════════════════════════════════════════════════════════════════════════════════");
+    println!("  CBOR DEDUPLICATION ANALYSIS (biometric structure overhead)");
+    println!("═══════════════════════════════════════════════════════════════════════════════════");
+    println!();
+    println!("  Each biometric entry repeats keys (format, sub_format, issuer).");
+    println!("  This section measures overhead from repeated structure vs payload data,");
+    println!("  and estimates savings from a shared-value table approach.");
+    println!();
+
+    let cwt_meta = &minimal_cwt();
+
+    // Test different counts of fingerprint templates with repeated metadata
+    println!(
+        "  {:<42} {:>6} {:>6} {:>8} {:>7} {:>10}",
+        "Biometric configuration", "CBOR", "COSE", "zlib+B45", "QR ver", "Overhead"
+    );
+    println!("  ─────────────────────────────────────────────────────────────────────────────────");
+
+    // Baseline: demographics only
+    let demo_only = create_claim169_map(vec![
+        (1, Value::Text("ID-67890-FGHIJ".to_string())),
+        (4, Value::Text("Jane Marie Smith".to_string())),
+        (8, Value::Text("19900515".to_string())),
+        (9, Value::Integer(2.into())),
+    ]);
+    let demo_cwt = cwt_encode(cwt_meta, &demo_only);
+    let demo_cose = build_signed_cose(&demo_cwt, signer);
+    let demo_b45_len = base45_encode(&zlib_compress(&demo_cose, Compression::default())).len();
+    let demo_cbor_len = cbor_encode(&demo_only).len();
+    let demo_qr = qr_version_for_alphanumeric(demo_b45_len);
+
+    println!(
+        "  {:<42} {:>6} {:>6} {:>8} {:>7} {:>10}",
+        "Demographics only (baseline)",
+        demo_cbor_len,
+        demo_cose.len(),
+        demo_b45_len,
+        demo_qr
+            .map(|v| format!("V{}", v))
+            .unwrap_or_else(|| "TOO BIG".into()),
+        "—"
+    );
+
+    // Fingerprints: varying count with fixed 64-byte templates
+    for count in [1, 2, 4, 6, 10] {
+        // Standard encoding: each bio has its own format/sub_format/issuer keys
+        let standard = create_fingerprint_with_issuer(count, 64, "MOSIP");
+        let std_cbor = cbor_encode(&standard);
+        let std_cwt = cwt_encode(cwt_meta, &standard);
+        let std_cose = build_signed_cose(&std_cwt, signer);
+        let std_compressed = zlib_compress(&std_cose, Compression::default());
+        let std_b45_len = base45_encode(&std_compressed).len();
+        let std_qr = qr_version_for_alphanumeric(std_b45_len);
+
+        // Deduplicated encoding: shared issuer, format, sub_format extracted
+        let dedup = create_fingerprint_dedup(count, 64, "MOSIP");
+        let dedup_cbor = cbor_encode(&dedup);
+        let dedup_cwt = cwt_encode(cwt_meta, &dedup);
+        let dedup_cose = build_signed_cose(&dedup_cwt, signer);
+        let dedup_compressed = zlib_compress(&dedup_cose, Compression::default());
+        let dedup_b45_len = base45_encode(&dedup_compressed).len();
+
+        let overhead = std_b45_len as i64 - demo_b45_len as i64;
+        let pure_data = count * 64; // just the template bytes
+        let struct_overhead = overhead as f64 - (pure_data as f64 * 1.37); // rough B45 expansion
+        let saving = std_b45_len as i64 - dedup_b45_len as i64;
+
+        println!(
+            "  {:<42} {:>6} {:>6} {:>8} {:>7} {:>9}B",
+            format!("{} fingerprints (standard)", count),
+            std_cbor.len(),
+            std_cose.len(),
+            std_b45_len,
+            std_qr
+                .map(|v| format!("V{}", v))
+                .unwrap_or_else(|| "TOO BIG".into()),
+            overhead,
+        );
+
+        println!(
+            "  {:<42} {:>6} {:>6} {:>8} {:>7} {:>8}B",
+            format!("  └─ deduplicated ({} saved)", saving),
+            dedup_cbor.len(),
+            dedup_cose.len(),
+            dedup_b45_len,
+            "",
+            format!("{:.0}", struct_overhead),
+        );
+    }
+
+    println!();
+    println!("  Dedup approach: Move shared fields (format, sub_format, issuer) into a");
+    println!("  header map, each biometric entry carries only its data blob.");
+    println!("  Savings grow linearly with biometric count.");
+}
+
+/// Encode a CBOR Value to bytes (for size measurement).
+fn cbor_encode(value: &Value) -> Vec<u8> {
+    let mut buf = Vec::new();
+    ciborium::into_writer(value, &mut buf).expect("CBOR encode failed");
+    buf
+}
+
+/// Create a claim169 map with N fingerprint biometrics, each including issuer.
+fn create_fingerprint_with_issuer(count: usize, template_size: usize, issuer: &str) -> Value {
+    let mut fields: Vec<(i64, Value)> = vec![
+        (1, Value::Text("ID-67890-FGHIJ".to_string())),
+        (4, Value::Text("Jane Marie Smith".to_string())),
+        (8, Value::Text("19900515".to_string())),
+        (9, Value::Integer(2.into())),
+    ];
+    for i in 0..count {
+        let template_data = random_bytes(template_size);
+        let bio = Value::Array(vec![Value::Map(vec![
+            (Value::Integer(0.into()), Value::Bytes(template_data)),
+            (Value::Integer(1.into()), Value::Integer(1.into())),   // format: ISO
+            (Value::Integer(2.into()), Value::Integer(1.into())),   // sub_format
+            (Value::Integer(3.into()), Value::Text(issuer.to_string())), // issuer
+        ])]);
+        fields.push((50 + i as i64, bio));
+    }
+    create_claim169_map(fields)
+}
+
+/// Create a "deduplicated" claim169 map where biometric metadata is factored out.
+/// Instead of repeating format/sub_format/issuer in each entry, we store them once
+/// in the array header and each entry is just the raw data bytes.
+fn create_fingerprint_dedup(count: usize, template_size: usize, issuer: &str) -> Value {
+    let mut fields: Vec<(i64, Value)> = vec![
+        (1, Value::Text("ID-67890-FGHIJ".to_string())),
+        (4, Value::Text("Jane Marie Smith".to_string())),
+        (8, Value::Text("19900515".to_string())),
+        (9, Value::Integer(2.into())),
+    ];
+
+    // Shared header: format, sub_format, issuer stored once
+    let mut bio_entries: Vec<Value> = vec![Value::Map(vec![
+        (Value::Integer(1.into()), Value::Integer(1.into())),   // format: ISO
+        (Value::Integer(2.into()), Value::Integer(1.into())),   // sub_format
+        (Value::Integer(3.into()), Value::Text(issuer.to_string())), // issuer
+    ])];
+
+    // Each fingerprint is just its data blob
+    for _ in 0..count {
+        let template_data = random_bytes(template_size);
+        bio_entries.push(Value::Bytes(template_data));
+    }
+
+    // Use a single key (50) with array: [shared_header, data1, data2, ...]
+    fields.push((50, Value::Array(bio_entries)));
+    create_claim169_map(fields)
 }

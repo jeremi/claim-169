@@ -24,6 +24,8 @@ ciborium = "0.2"
 # Compression/encoding
 base45 = "3.2"
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+brotli = "7"
+zstd = "0.13"
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
