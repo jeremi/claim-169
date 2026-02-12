@@ -30,6 +30,8 @@ fn main() {
     println!();
     println!("Pipeline: Claim169 → CBOR → CWT → COSE_Sign1 → [zlib] → Base45 → QR");
     println!();
+    println!("All scenarios are Ed25519-signed (production-realistic).");
+    println!();
 
     let scenarios = build_scenarios();
 
@@ -94,7 +96,6 @@ enum ScenarioCategory {
     WithBinary,
     Compressible,
     RealImage,
-    Signed,
 }
 
 impl ScenarioCategory {
@@ -104,7 +105,6 @@ impl ScenarioCategory {
             Self::WithBinary => "random-binary",
             Self::Compressible => "compressible",
             Self::RealImage => "real-image",
-            Self::Signed => "signed",
         }
     }
 }
@@ -182,6 +182,9 @@ fn shannon_entropy(data: &[u8]) -> f64 {
 fn build_scenarios() -> Vec<Scenario> {
     let signer = Ed25519Signer::generate();
 
+    // NOTE: ALL scenarios are Ed25519-signed to reflect production reality.
+    // Categories reflect the data type, not the signing status.
+
     let mut scenarios = vec![
         // ═══ SECTION A: Text-only payloads (no binary data) ═══════════════
         build_scenario(
@@ -193,7 +196,7 @@ fn build_scenarios() -> Vec<Scenario> {
                 (4, Value::Text("John Doe".to_string())),
             ]),
             &minimal_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "A2. Basic demographics (Latin)",
@@ -212,7 +215,7 @@ fn build_scenarios() -> Vec<Scenario> {
                 ),
             ]),
             &minimal_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "A3. Full demographics (all 23 keys)",
@@ -220,7 +223,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_full_demographics_latin(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         // ── Arabic (RTL, high-entropy UTF-8) ──────────────────────────────
         build_scenario(
@@ -229,7 +232,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_arabic_persona(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         // ── Devanagari (Hindi) ────────────────────────────────────────────
         build_scenario(
@@ -238,7 +241,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_hindi_persona(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         // ── Chinese (CJK, 3-byte UTF-8) ──────────────────────────────────
         build_scenario(
@@ -247,7 +250,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_chinese_persona(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         // ── Cyrillic (Russian) ────────────────────────────────────────────
         build_scenario(
@@ -256,7 +259,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_cyrillic_persona(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         // ── Thai ──────────────────────────────────────────────────────────
         build_scenario(
@@ -265,7 +268,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_thai_persona(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         // ── Bilingual (two scripts) ──────────────────────────────────────
         build_scenario(
@@ -274,7 +277,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_bilingual_arabic_persona(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "A10. Bilingual Hindi+Latin",
@@ -282,7 +285,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::TextOnly,
             &create_bilingual_hindi_persona(),
             &full_cwt(),
-            None,
+            &signer,
         ),
         // ═══ SECTION B: Payloads with binary data (random = incompressible) ══
         build_scenario(
@@ -291,7 +294,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(200),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "B2. Demo + random photo 400B",
@@ -299,7 +302,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(400),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "B3. Demo + random photo 600B",
@@ -307,7 +310,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(600),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "B4. Demo + random photo 800B",
@@ -315,7 +318,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_photo(800),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "B5. Demo + face biometric 500B",
@@ -323,7 +326,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_face_biometric(500),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "B6. Demo + 2 fingerprint templates",
@@ -331,7 +334,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_fingerprints(2, 64),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "B7. Demo + 4 fingerprint templates",
@@ -339,7 +342,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_demographics_with_fingerprints(4, 64),
             &full_cwt(),
-            None,
+            &signer,
         ),
         build_scenario(
             "B8. Full credential (demo+photo+face)",
@@ -347,7 +350,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::WithBinary,
             &create_full_credential_random(),
             &full_cwt(),
-            None,
+            &signer,
         ),
     ];
 
@@ -360,17 +363,16 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_demographics_with_real_photo(&webp_data),
             &full_cwt(),
-            None,
+            &signer,
         ));
 
-        // Also test the spec example face biometric (WebP inside CBOR biometric)
         scenarios.push(build_scenario(
             &format!("C2. Real WebP as face bio ({}B)", webp_len),
             "real WebP in biometric CBOR structure",
             ScenarioCategory::RealImage,
             &create_demographics_with_real_face_bio(&webp_data),
             &full_cwt(),
-            None,
+            &signer,
         ));
 
         scenarios.push(build_scenario(
@@ -379,7 +381,7 @@ fn build_scenarios() -> Vec<Scenario> {
             ScenarioCategory::RealImage,
             &create_full_credential_real(&webp_data),
             &full_cwt(),
-            None,
+            &signer,
         ));
     } else {
         println!("  [NOTE] Real image not found, skipping section C scenarios.");
@@ -394,7 +396,7 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::Compressible,
         &create_demographics_with_uniform_photo(400, 0x00),
         &full_cwt(),
-        None,
+        &signer,
     ));
     scenarios.push(build_scenario(
         "D2. All-zeros photo 800B",
@@ -402,7 +404,7 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::Compressible,
         &create_demographics_with_uniform_photo(800, 0x00),
         &full_cwt(),
-        None,
+        &signer,
     ));
     scenarios.push(build_scenario(
         "D3. Patterned biometric 400B",
@@ -410,90 +412,25 @@ fn build_scenarios() -> Vec<Scenario> {
         ScenarioCategory::Compressible,
         &create_demographics_with_patterned_bio(400),
         &full_cwt(),
-        None,
+        &signer,
     ));
 
-    // ═══ SECTION E: Signed payloads (production-realistic) ═══════════════
+    // ═══ SECTION E: Edge cases ══════════════════════════════════════════
     scenarios.push(build_scenario(
-        "E1. Signed: minimal",
-        "Ed25519 signed, ID + name",
-        ScenarioCategory::Signed,
-        &create_claim169_map(vec![
-            (1, Value::Text("ID-12345-ABCDE".to_string())),
-            (4, Value::Text("John Doe".to_string())),
-        ]),
-        &full_cwt(),
-        Some(&signer),
-    ));
-    scenarios.push(build_scenario(
-        "E2. Signed: full demographics",
-        "Ed25519 signed, all 23 fields",
-        ScenarioCategory::Signed,
-        &create_full_demographics_latin(),
-        &full_cwt(),
-        Some(&signer),
-    ));
-    scenarios.push(build_scenario(
-        "E3. Signed: Arabic persona",
-        "Ed25519 signed, Arabic text",
-        ScenarioCategory::Signed,
-        &create_arabic_persona(),
-        &full_cwt(),
-        Some(&signer),
-    ));
-    scenarios.push(build_scenario(
-        "E4. Signed: demo + random photo 400B",
-        "Ed25519 signed + 400B random photo",
-        ScenarioCategory::Signed,
-        &create_demographics_with_photo(400),
-        &full_cwt(),
-        Some(&signer),
-    ));
-    scenarios.push(build_scenario(
-        "E5. Signed: demo + random photo 600B",
-        "Ed25519 signed + 600B random photo",
-        ScenarioCategory::Signed,
-        &create_demographics_with_photo(600),
-        &full_cwt(),
-        Some(&signer),
-    ));
-
-    if let Some(webp_data) = load_real_image() {
-        scenarios.push(build_scenario(
-            "E6. Signed: real WebP photo",
-            "Ed25519 signed + real WebP",
-            ScenarioCategory::Signed,
-            &create_demographics_with_real_photo(&webp_data),
-            &full_cwt(),
-            Some(&signer),
-        ));
-    }
-
-    scenarios.push(build_scenario(
-        "E7. Signed: full credential",
-        "Ed25519 signed, all fields + photo + bio",
-        ScenarioCategory::Signed,
-        &create_full_credential_random(),
-        &full_cwt(),
-        Some(&signer),
-    ));
-
-    // ═══ SECTION F: Edge cases ══════════════════════════════════════════
-    scenarios.push(build_scenario(
-        "F1. Absolute minimal (id=X)",
+        "E1. Absolute minimal (id=X)",
         "single 1-char field",
         ScenarioCategory::TextOnly,
         &create_claim169_map(vec![(1, Value::Text("X".to_string()))]),
         &CwtMeta::new().with_issuer("i"),
-        None,
+        &signer,
     ));
     scenarios.push(build_scenario(
-        "F2. Long address (500 char Latin)",
+        "E2. Long address (500 char Latin)",
         "test with very long text field",
         ScenarioCategory::TextOnly,
         &create_long_address_persona(),
         &full_cwt(),
-        None,
+        &signer,
     ));
 
     scenarios
@@ -505,13 +442,10 @@ fn build_scenario(
     category: ScenarioCategory,
     claim_169_cbor: &Value,
     cwt_meta: &CwtMeta,
-    signer: Option<&Ed25519Signer>,
+    signer: &Ed25519Signer,
 ) -> Scenario {
     let cwt_bytes = cwt_encode(cwt_meta, claim_169_cbor);
-    let cose_bytes = match signer {
-        Some(s) => build_signed_cose(&cwt_bytes, s),
-        None => build_unsigned_cose(&cwt_bytes),
-    };
+    let cose_bytes = build_signed_cose(&cwt_bytes, signer);
     Scenario {
         name: name.to_string(),
         description: description.to_string(),
@@ -1019,18 +953,6 @@ fn create_full_credential_real(photo_data: &[u8]) -> Value {
 // COSE builders
 // ════════════════════════════════════════════════════════════════════════════
 
-fn build_unsigned_cose(payload: &[u8]) -> Vec<u8> {
-    let sign1 = CoseSign1Builder::new()
-        .protected(
-            HeaderBuilder::new()
-                .algorithm(iana::Algorithm::EdDSA)
-                .build(),
-        )
-        .payload(payload.to_vec())
-        .build();
-    sign1.to_tagged_vec().unwrap()
-}
-
 fn build_signed_cose(payload: &[u8], signer: &Ed25519Signer) -> Vec<u8> {
     let protected = HeaderBuilder::new()
         .algorithm(iana::Algorithm::EdDSA)
@@ -1151,7 +1073,6 @@ fn print_summary(scenarios: &[Scenario], results: &[ScenarioResult]) {
         ScenarioCategory::WithBinary,
         ScenarioCategory::RealImage,
         ScenarioCategory::Compressible,
-        ScenarioCategory::Signed,
     ] {
         let in_cat: Vec<_> = scenarios
             .iter()
@@ -1316,10 +1237,6 @@ fn print_conclusions(scenarios: &[Scenario], results: &[ScenarioResult]) {
         (
             "COMPRESSIBLE BINARY (patterned/uniform data)",
             ScenarioCategory::Compressible,
-        ),
-        (
-            "SIGNED PAYLOADS (Ed25519, production-like)",
-            ScenarioCategory::Signed,
         ),
     ] {
         let in_cat: Vec<_> = scenarios
