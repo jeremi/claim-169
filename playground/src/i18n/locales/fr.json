@@ -88,7 +88,10 @@
     "maxBytesWarning": "La taille cible ne peut pas être atteinte même à la qualité minimale",
     "autoQuality": "Qualité : {{quality}}% (auto)",
     "compressedPreviewAlt": "Aperçu de la photo compressée",
-    "decodedPhotoAlt": "Photo décodée"
+    "decodedPhotoAlt": "Photo décodée",
+    "placement": "Stocker dans",
+    "placementPhoto": "Champ photo",
+    "placementFace": "Biométrie faciale"
   },
   "identity": {
     "title": "Identité",

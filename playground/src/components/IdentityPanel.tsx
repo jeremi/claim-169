@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ChevronDown, ChevronRight, Copy, Check, Eye, EyeOff, AlertTriangle, RefreshCw } from "lucide-react"
 import { copyToClipboard, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey, detectPublicKeyFormat, detectEncryptionKeyFormat } from "@/lib/utils"
-import { PhotoUpload } from "@/components/PhotoUpload"
+import { PhotoUpload, type PhotoPlacement } from "@/components/PhotoUpload"
 import type { SigningMethod, EncryptionMethod } from "@/components/UnifiedPlayground"
 
 interface IdentityPanelProps {
@@ -55,6 +55,7 @@ export function IdentityPanel({
   const { t } = useTranslation()
   const [showCwtMeta, setShowCwtMeta] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [photoPlacement, setPhotoPlacement] = useState<PhotoPlacement>("photo")
   const [showPrivateKey, setShowPrivateKey] = useState(false)
   const [publicKeyCopied, setPublicKeyCopied] = useState(false)
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
@@ -73,9 +74,61 @@ export function IdentityPanel({
 
   const claim169Ref = useRef(claim169)
   claim169Ref.current = claim169
+  const photoPlacementRef = useRef(photoPlacement)
+  photoPlacementRef.current = photoPlacement
   const handlePhotoChange = useCallback(
     (photo: Uint8Array | undefined, format: number | undefined) => {
-      onClaim169Change({ ...claim169Ref.current, photo, photoFormat: format })
+      if (photoPlacementRef.current === "face") {
+        // Route to face biometric field, clearing demographic photo fields
+        const face = photo && photo.length > 0
+          ? [{ data: photo, format: 0, subFormat: format }]
+          : undefined
+        onClaim169Change({
+          ...claim169Ref.current,
+          photo: undefined,
+          photoFormat: undefined,
+          face: face as Claim169Input["face"],
+        })
+      } else {
+        // Route to demographic photo field, clearing face biometric
+        onClaim169Change({
+          ...claim169Ref.current,
+          photo,
+          photoFormat: format,
+          face: undefined,
+        })
+      }
+    },
+    [onClaim169Change],
+  )
+
+  const handlePhotoPlacementChange = useCallback(
+    (placement: PhotoPlacement) => {
+      setPhotoPlacement(placement)
+      // Re-route existing photo data to the selected field
+      const current = claim169Ref.current
+      const existingPhoto = current.photo
+      const existingFormat = current.photoFormat
+      const existingFace = current.face
+      if (placement === "face" && existingPhoto && existingPhoto.length > 0) {
+        // Move from photo field to face biometric
+        const face = [{ data: existingPhoto, format: 0, subFormat: existingFormat }]
+        onClaim169Change({
+          ...current,
+          photo: undefined,
+          photoFormat: undefined,
+          face: face as Claim169Input["face"],
+        })
+      } else if (placement === "photo" && existingFace && existingFace.length > 0) {
+        // Move from face biometric to photo field
+        const faceEntry = existingFace[0]
+        onClaim169Change({
+          ...current,
+          photo: faceEntry.data,
+          photoFormat: faceEntry.subFormat,
+          face: undefined,
+        })
+      }
     },
     [onClaim169Change],
   )
@@ -188,13 +241,23 @@ export function IdentityPanel({
           </div>
         </div>
 
-        {/* Photo upload */}
+        {/* Photo upload — resolve effective photo bytes from either field */}
         <PhotoUpload
-          photo={claim169.photo}
-          photoFormat={claim169.photoFormat}
+          photo={
+            photoPlacement === "face" && claim169.face && claim169.face.length > 0
+              ? claim169.face[0].data
+              : claim169.photo
+          }
+          photoFormat={
+            photoPlacement === "face" && claim169.face && claim169.face.length > 0
+              ? claim169.face[0].subFormat
+              : claim169.photoFormat
+          }
           onPhotoChange={handlePhotoChange}
           encodedSize={encodedSize}
           samplePhotoUrl={samplePhotoUrl}
+          photoPlacement={photoPlacement}
+          onPhotoPlacementChange={handlePhotoPlacementChange}
         />
 
         {/* Advanced fields - collapsible */}

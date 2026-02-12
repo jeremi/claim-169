@@ -801,6 +801,67 @@ impl WasmDecoder {
 // JS Input Types for Encoder
 // ============================================================================
 
+/// Biometric input data from JavaScript for encoding
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JsBiometricInput {
+    data: Vec<u8>,
+    format: i64,
+    sub_format: Option<i64>,
+    issuer: Option<String>,
+}
+
+/// Convert a list of JS biometric inputs to core Biometric structs
+fn convert_biometrics_input(input: Option<Vec<JsBiometricInput>>) -> Option<Vec<CoreBiometric>> {
+    use claim169_core::model::{BiometricFormat, BiometricSubFormat, ImageSubFormat, TemplateSubFormat, SoundSubFormat};
+
+    input.map(|v| {
+        v.into_iter()
+            .map(|b| {
+                let format = match b.format {
+                    0 => Some(BiometricFormat::Image),
+                    1 => Some(BiometricFormat::Template),
+                    2 => Some(BiometricFormat::Sound),
+                    3 => Some(BiometricFormat::BioHash),
+                    _ => None,
+                };
+
+                let sub_format = b.sub_format.map(|sf| match format {
+                    Some(BiometricFormat::Image) => match sf {
+                        0 => BiometricSubFormat::Image(ImageSubFormat::Png),
+                        1 => BiometricSubFormat::Image(ImageSubFormat::Jpeg),
+                        2 => BiometricSubFormat::Image(ImageSubFormat::Jpeg2000),
+                        3 => BiometricSubFormat::Image(ImageSubFormat::Avif),
+                        4 => BiometricSubFormat::Image(ImageSubFormat::Webp),
+                        5 => BiometricSubFormat::Image(ImageSubFormat::Tiff),
+                        6 => BiometricSubFormat::Image(ImageSubFormat::Wsq),
+                        other => BiometricSubFormat::Raw(other),
+                    },
+                    Some(BiometricFormat::Template) => match sf {
+                        0 => BiometricSubFormat::Template(TemplateSubFormat::Ansi378),
+                        1 => BiometricSubFormat::Template(TemplateSubFormat::Iso19794_2),
+                        2 => BiometricSubFormat::Template(TemplateSubFormat::Nist),
+                        other => BiometricSubFormat::Raw(other),
+                    },
+                    Some(BiometricFormat::Sound) => match sf {
+                        0 => BiometricSubFormat::Sound(SoundSubFormat::Wav),
+                        1 => BiometricSubFormat::Sound(SoundSubFormat::Mp3),
+                        other => BiometricSubFormat::Raw(other),
+                    },
+                    _ => BiometricSubFormat::Raw(sf),
+                });
+
+                CoreBiometric {
+                    data: b.data,
+                    format,
+                    sub_format,
+                    issuer: b.issuer,
+                }
+            })
+            .collect()
+    })
+}
+
 /// Input Claim 169 data from JavaScript
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -827,6 +888,24 @@ struct JsClaim169Input {
     location_code: Option<String>,
     legal_status: Option<String>,
     country_of_issuance: Option<String>,
+
+    // Biometrics
+    right_thumb: Option<Vec<JsBiometricInput>>,
+    right_pointer_finger: Option<Vec<JsBiometricInput>>,
+    right_middle_finger: Option<Vec<JsBiometricInput>>,
+    right_ring_finger: Option<Vec<JsBiometricInput>>,
+    right_little_finger: Option<Vec<JsBiometricInput>>,
+    left_thumb: Option<Vec<JsBiometricInput>>,
+    left_pointer_finger: Option<Vec<JsBiometricInput>>,
+    left_middle_finger: Option<Vec<JsBiometricInput>>,
+    left_ring_finger: Option<Vec<JsBiometricInput>>,
+    left_little_finger: Option<Vec<JsBiometricInput>>,
+    right_iris: Option<Vec<JsBiometricInput>>,
+    left_iris: Option<Vec<JsBiometricInput>>,
+    face: Option<Vec<JsBiometricInput>>,
+    right_palm: Option<Vec<JsBiometricInput>>,
+    left_palm: Option<Vec<JsBiometricInput>>,
+    voice: Option<Vec<JsBiometricInput>>,
 }
 
 impl From<JsClaim169Input> for CoreClaim169 {
@@ -872,8 +951,24 @@ impl From<JsClaim169Input> for CoreClaim169 {
             location_code: js.location_code,
             legal_status: js.legal_status,
             country_of_issuance: js.country_of_issuance,
-            // Biometrics not supported in WASM encoder for now
-            ..Default::default()
+            best_quality_fingers: None,
+            right_thumb: convert_biometrics_input(js.right_thumb),
+            right_pointer_finger: convert_biometrics_input(js.right_pointer_finger),
+            right_middle_finger: convert_biometrics_input(js.right_middle_finger),
+            right_ring_finger: convert_biometrics_input(js.right_ring_finger),
+            right_little_finger: convert_biometrics_input(js.right_little_finger),
+            left_thumb: convert_biometrics_input(js.left_thumb),
+            left_pointer_finger: convert_biometrics_input(js.left_pointer_finger),
+            left_middle_finger: convert_biometrics_input(js.left_middle_finger),
+            left_ring_finger: convert_biometrics_input(js.left_ring_finger),
+            left_little_finger: convert_biometrics_input(js.left_little_finger),
+            right_iris: convert_biometrics_input(js.right_iris),
+            left_iris: convert_biometrics_input(js.left_iris),
+            face: convert_biometrics_input(js.face),
+            right_palm: convert_biometrics_input(js.right_palm),
+            left_palm: convert_biometrics_input(js.left_palm),
+            voice: convert_biometrics_input(js.voice),
+            unknown_fields: Default::default(),
         }
     }
 }

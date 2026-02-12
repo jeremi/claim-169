@@ -6,12 +6,16 @@ import { compressPhoto, compressPhotoToFit, createPhotoPreviewUrl } from "@/lib/
 import { PHOTO_FORMAT_MAP, cn } from "@/lib/utils"
 import { ImagePlus, X, ChevronDown, ChevronRight } from "lucide-react"
 
+export type PhotoPlacement = "photo" | "face"
+
 interface PhotoUploadProps {
   photo: Uint8Array | undefined
   photoFormat: number | undefined
   onPhotoChange: (photo: Uint8Array | undefined, format: number | undefined) => void
   encodedSize?: number
   samplePhotoUrl?: string | null
+  photoPlacement?: PhotoPlacement
+  onPhotoPlacementChange?: (placement: PhotoPlacement) => void
 }
 
 export function PhotoUpload({
@@ -20,6 +24,8 @@ export function PhotoUpload({
   onPhotoChange,
   encodedSize,
   samplePhotoUrl,
+  photoPlacement = "photo",
+  onPhotoPlacementChange,
 }: PhotoUploadProps) {
   const { t } = useTranslation()
   const [resolution, setResolution] = useState(48)
@@ -244,7 +250,22 @@ export function PhotoUpload({
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-medium">{t("photo.title")}</Label>
+      <div className="flex items-center gap-2">
+        <Label className="text-xs font-medium">{t("photo.title")}</Label>
+        {onPhotoPlacementChange && (photo && photo.length > 0) && (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span>{t("photo.placement")}</span>
+            <select
+              value={photoPlacement}
+              onChange={(e) => onPhotoPlacementChange(e.target.value as PhotoPlacement)}
+              className="h-5 px-1 text-[10px] rounded border border-input bg-background"
+            >
+              <option value="photo">{t("photo.placementPhoto")}</option>
+              <option value="face">{t("photo.placementFace")}</option>
+            </select>
+          </div>
+        )}
+      </div>
 
       {!photo || photo.length === 0 ? (
         // Drop zone / file picker

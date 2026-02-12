@@ -502,6 +502,39 @@ export interface Claim169Input {
   legalStatus?: string;
   /** Country of issuance */
   countryOfIssuance?: string;
+
+  /** Right thumb biometrics */
+  rightThumb?: Biometric[];
+  /** Right pointer finger biometrics */
+  rightPointerFinger?: Biometric[];
+  /** Right middle finger biometrics */
+  rightMiddleFinger?: Biometric[];
+  /** Right ring finger biometrics */
+  rightRingFinger?: Biometric[];
+  /** Right little finger biometrics */
+  rightLittleFinger?: Biometric[];
+  /** Left thumb biometrics */
+  leftThumb?: Biometric[];
+  /** Left pointer finger biometrics */
+  leftPointerFinger?: Biometric[];
+  /** Left middle finger biometrics */
+  leftMiddleFinger?: Biometric[];
+  /** Left ring finger biometrics */
+  leftRingFinger?: Biometric[];
+  /** Left little finger biometrics */
+  leftLittleFinger?: Biometric[];
+  /** Right iris biometrics */
+  rightIris?: Biometric[];
+  /** Left iris biometrics */
+  leftIris?: Biometric[];
+  /** Face biometrics */
+  face?: Biometric[];
+  /** Right palm biometrics */
+  rightPalm?: Biometric[];
+  /** Left palm biometrics */
+  leftPalm?: Biometric[];
+  /** Voice biometrics */
+  voice?: Biometric[];
 }
 
 /**

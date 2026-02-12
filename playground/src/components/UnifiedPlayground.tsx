@@ -131,6 +131,7 @@ export function UnifiedPlayground() {
       if (claim169.countryOfIssuance) claimInput.countryOfIssuance = claim169.countryOfIssuance
       if (claim169.photo) claimInput.photo = claim169.photo
       if (claim169.photoFormat) claimInput.photoFormat = claim169.photoFormat
+      if (claim169.face) claimInput.face = claim169.face
 
       // Build CWT metadata
       const metaInput: CwtMetaInput = {}
