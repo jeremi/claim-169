@@ -357,9 +357,11 @@ fn build_scenarios() -> Vec<Scenario> {
     // ═══ SECTION C: Real image data ═══════════════════════════════════════
     if let Some(webp_data) = load_real_image() {
         let webp_len = webp_data.len();
+
+        // C1-C3: original WebP (with ICC profile)
         scenarios.push(build_scenario(
             &format!("C1. Real WebP photo ({}B)", webp_len),
-            "actual sample_id_1.webp from repo",
+            "actual sample_id_1.webp with ICC profile",
             ScenarioCategory::RealImage,
             &create_demographics_with_real_photo(&webp_data),
             &full_cwt(),
@@ -380,6 +382,46 @@ fn build_scenarios() -> Vec<Scenario> {
             "full demographics + real WebP photo",
             ScenarioCategory::RealImage,
             &create_full_credential_real(&webp_data),
+            &full_cwt(),
+            &signer,
+        ));
+
+        // C4-C6: stripped WebP (ICC profile removed, as playground does)
+        let stripped = strip_webp_icc_profile(&webp_data);
+        let stripped_len = stripped.len();
+        let saved = webp_len - stripped_len;
+        println!(
+            "  [INFO] ICC strip: {}B → {}B (saved {}B, {:.0}% of original)",
+            webp_len,
+            stripped_len,
+            saved,
+            saved as f64 / webp_len as f64 * 100.0,
+        );
+        println!();
+
+        scenarios.push(build_scenario(
+            &format!("C4. Stripped WebP photo ({}B)", stripped_len),
+            "ICC profile removed (playground pipeline)",
+            ScenarioCategory::RealImage,
+            &create_demographics_with_real_photo(&stripped),
+            &full_cwt(),
+            &signer,
+        ));
+
+        scenarios.push(build_scenario(
+            &format!("C5. Stripped WebP as face bio ({}B)", stripped_len),
+            "ICC-stripped WebP in biometric structure",
+            ScenarioCategory::RealImage,
+            &create_demographics_with_real_face_bio(&stripped),
+            &full_cwt(),
+            &signer,
+        ));
+
+        scenarios.push(build_scenario(
+            &format!("C6. Stripped full credential ({}B photo)", stripped_len),
+            "full demographics + ICC-stripped WebP",
+            ScenarioCategory::RealImage,
+            &create_full_credential_real(&stripped),
             &full_cwt(),
             &signer,
         ));
@@ -988,6 +1030,62 @@ fn random_bytes(n: usize) -> Vec<u8> {
     let mut buf = vec![0u8; n];
     rand::thread_rng().fill_bytes(&mut buf);
     buf
+}
+
+/// Strip the ICC color profile (ICCP chunk) and alpha (ALPH chunk) from a WebP file.
+///
+/// Mirrors the playground's `stripWebpIccProfile()` in `image.ts`.
+/// Chrome embeds an sRGB ICC profile (~456 bytes) via the VP8X extended format.
+/// This extracts only the VP8/VP8L bitstream into a minimal RIFF container.
+fn strip_webp_icc_profile(data: &[u8]) -> Vec<u8> {
+    if data.len() < 20 {
+        return data.to_vec();
+    }
+
+    // Verify RIFF + WEBP signature
+    if &data[0..4] != b"RIFF" || &data[8..12] != b"WEBP" {
+        return data.to_vec();
+    }
+
+    // Check first chunk at offset 12
+    if &data[12..16] != b"VP8X" {
+        // Already simple format — no stripping needed
+        return data.to_vec();
+    }
+
+    // Walk chunks after VP8X to find the VP8/VP8L image data chunk
+    // VP8X chunk: 4 (fourCC) + 4 (size) + 10 (payload) = 18 bytes
+    let mut offset = 12 + 4 + 4 + 10; // skip RIFF header (12) + VP8X chunk (18)
+
+    while offset + 8 <= data.len() {
+        let fourcc = &data[offset..offset + 4];
+        let chunk_size = u32::from_le_bytes([
+            data[offset + 4],
+            data[offset + 5],
+            data[offset + 6],
+            data[offset + 7],
+        ]) as usize;
+        let padded_size = chunk_size + (chunk_size % 2);
+
+        if fourcc == b"VP8 " || fourcc == b"VP8L" {
+            // Found the image chunk — rewrap in a minimal RIFF container
+            let chunk_total = 8 + padded_size; // fourCC + size + data
+            let riff_size = 4 + chunk_total; // "WEBP" + chunk
+
+            let mut result = Vec::with_capacity(12 + chunk_total);
+            result.extend_from_slice(b"RIFF");
+            result.extend_from_slice(&(riff_size as u32).to_le_bytes());
+            result.extend_from_slice(b"WEBP");
+            result.extend_from_slice(&data[offset..offset + chunk_total]);
+
+            return result;
+        }
+
+        offset += 8 + padded_size;
+    }
+
+    // No VP8/VP8L chunk found — return original
+    data.to_vec()
 }
 
 // ════════════════════════════════════════════════════════════════════════════
