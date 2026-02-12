@@ -6,6 +6,7 @@ members = [
     "core/claim169-python",
     "core/claim169-wasm",
     "tools/generate-vectors",
+    "tools/compression-analysis",
 ]
 
 [workspace.package]

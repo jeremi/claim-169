@@ -1,0 +1,15 @@
+[package]
+name = "compression-analysis"
+description = "Analyze the impact of zlib compression on Claim 169 QR code data size"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+claim169-core = { path = "../../core/claim169-core" }
+coset.workspace = true
+ciborium.workspace = true
+flate2.workspace = true
+base45.workspace = true
+rand.workspace = true
+hex.workspace = true
