@@ -72,7 +72,7 @@ jobs:
       - name: Build WASM
         run: |
           cd core/claim169-wasm
-          wasm-pack build --target bundler --release --out-dir ../../sdks/typescript/wasm
+          wasm-pack build --target bundler --release --out-dir ../../sdks/typescript/wasm --features compression-brotli
 
       - name: Build TypeScript SDK
         run: |

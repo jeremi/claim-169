@@ -58,6 +58,26 @@ fn to_py_err(e: Claim169Error) -> PyErr {
     }
 }
 
+fn detected_compression_to_string(dc: &claim169_core::DetectedCompression) -> &'static str {
+    match dc {
+        claim169_core::DetectedCompression::Zlib => "zlib",
+        #[cfg(feature = "compression-brotli")]
+        claim169_core::DetectedCompression::Brotli => "brotli",
+        claim169_core::DetectedCompression::None => "none",
+    }
+}
+
+fn core_decode_result_to_py(result: claim169_core::DecodeResult) -> DecodeResult {
+    DecodeResult {
+        claim169: Claim169::from(&result.claim169),
+        cwt_meta: CwtMeta::from(&result.cwt_meta),
+        verification_status: format!("{}", result.verification_status),
+        x509_headers: X509Headers::from(&result.x509_headers),
+        detected_compression: detected_compression_to_string(&result.detected_compression)
+            .to_string(),
+    }
+}
+
 // ============================================================================
 // Python Data Classes
 // ============================================================================
@@ -568,6 +588,8 @@ pub struct DecodeResult {
     pub verification_status: String,
     #[pyo3(get)]
     pub x509_headers: X509Headers,
+    #[pyo3(get)]
+    pub detected_compression: String,
 }
 
 #[pymethods]
@@ -859,12 +881,7 @@ fn decode_unverified(
 
     let result = decoder.decode().map_err(to_py_err)?;
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Decode a Claim 169 QR code with Ed25519 signature verification
@@ -908,12 +925,7 @@ fn decode_with_ed25519(
 
     let result = decoder.decode().map_err(to_py_err)?;
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Decode a Claim 169 QR code with ECDSA P-256 signature verification
@@ -957,12 +969,7 @@ fn decode_with_ecdsa_p256(
 
     let result = decoder.decode().map_err(to_py_err)?;
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Decode a Claim 169 QR code with Ed25519 signature verification using PEM format
@@ -1006,12 +1013,7 @@ fn decode_with_ed25519_pem(
 
     let result = decoder.decode().map_err(to_py_err)?;
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Decode a Claim 169 QR code with ECDSA P-256 signature verification using PEM format
@@ -1055,12 +1057,7 @@ fn decode_with_ecdsa_p256_pem(
 
     let result = decoder.decode().map_err(to_py_err)?;
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Decode a Claim 169 QR code with a custom verifier callback
@@ -1091,12 +1088,7 @@ fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<Decod
         .decode()
         .map_err(to_py_err)?;
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Decode an encrypted Claim 169 QR code with AES-GCM
@@ -1143,12 +1135,7 @@ fn decode_encrypted_aes(
         }
     };
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Decode an encrypted Claim 169 QR code with AES-256-GCM
@@ -1259,12 +1246,7 @@ fn decode_with_decryptor(
         }
     };
 
-    Ok(DecodeResult {
-        claim169: Claim169::from(&result.claim169),
-        cwt_meta: CwtMeta::from(&result.cwt_meta),
-        verification_status: format!("{}", result.verification_status),
-        x509_headers: X509Headers::from(&result.x509_headers),
-    })
+    Ok(core_decode_result_to_py(result))
 }
 
 /// Get the library version.
@@ -1551,7 +1533,7 @@ fn encode_with_ed25519(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential with ECDSA P-256 signature
@@ -1586,7 +1568,7 @@ fn encode_with_ecdsa_p256(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential with Ed25519 signature and AES-256-GCM encryption
@@ -1625,7 +1607,7 @@ fn encode_signed_encrypted(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential with Ed25519 signature and AES-128-GCM encryption
@@ -1664,7 +1646,7 @@ fn encode_signed_encrypted_aes128(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential without signature (INSECURE - testing only)
@@ -1695,7 +1677,7 @@ fn encode_unsigned(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential with a custom signer callback
@@ -1756,7 +1738,7 @@ fn encode_with_signer(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Encode a Claim 169 credential with custom signer and encryptor callbacks
@@ -1842,7 +1824,7 @@ fn encode_with_signer_and_encryptor(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Encode with software signing and custom encryptor callback
@@ -1896,7 +1878,7 @@ fn encode_with_encryptor(
         encoder = encoder.skip_biometrics();
     }
 
-    encoder.encode().map_err(to_py_err)
+    encoder.encode().map(|r| r.qr_data).map_err(to_py_err)
 }
 
 /// Generate a random 12-byte nonce for AES-GCM encryption.

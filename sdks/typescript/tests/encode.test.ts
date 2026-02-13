@@ -89,7 +89,7 @@ describe("Encoder", () => {
         expiresAt: 1900000000,
       };
 
-      const qrData = new Encoder(claim, meta).allowUnsigned().encode();
+      const qrData = new Encoder(claim, meta).allowUnsigned().encode().qrData;
 
       expect(typeof qrData).toBe("string");
       expect(qrData.length).toBeGreaterThan(0);
@@ -111,7 +111,7 @@ describe("Encoder", () => {
         expiresAt: 1900000000,
       };
 
-      const qrData = new Encoder(claim, meta).allowUnsigned().encode();
+      const qrData = new Encoder(claim, meta).allowUnsigned().encode().qrData;
       const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.id).toBe(originalId);
@@ -151,7 +151,7 @@ describe("Encoder", () => {
         notBefore: 1700000000,
       };
 
-      const qrData = new Encoder(claim, meta).allowUnsigned().encode();
+      const qrData = new Encoder(claim, meta).allowUnsigned().encode().qrData;
       const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.id).toBe("FULL-DEMO-001");
@@ -179,7 +179,7 @@ describe("Encoder", () => {
       const claim: Claim169Input = {};
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
-      const qrData = new Encoder(claim, meta).allowUnsigned().encode();
+      const qrData = new Encoder(claim, meta).allowUnsigned().encode().qrData;
       const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.id).toBeUndefined();
@@ -198,7 +198,7 @@ describe("Encoder", () => {
       };
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
-      const qrData = new Encoder(claim, meta).allowUnsigned().encode();
+      const qrData = new Encoder(claim, meta).allowUnsigned().encode().qrData;
       const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.fullName).toBe(unicodeName);
@@ -216,7 +216,7 @@ describe("Encoder", () => {
       };
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
-      const qrData = new Encoder(claim, meta).allowUnsigned().encode();
+      const qrData = new Encoder(claim, meta).allowUnsigned().encode().qrData;
       const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.fullName).toBe(longName);
@@ -235,7 +235,7 @@ describe("Encoder", () => {
       };
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
-      const qrData = new Encoder(claim, meta).allowUnsigned().encode();
+      const qrData = new Encoder(claim, meta).allowUnsigned().encode().qrData;
       const result = new Decoder(qrData).allowUnverified().decode();
 
       expect(result.claim169.fullName).toBe("O'Brien-Smith");
@@ -265,7 +265,7 @@ describe("Encoder", () => {
 
       const qrData = new Encoder(claim, meta)
         .signWithEd25519(privateKey)
-        .encode();
+        .encode().qrData;
 
       // Verify it can be decoded
       const result = new Decoder(qrData).allowUnverified().decode();
@@ -305,7 +305,7 @@ describe("Encoder", () => {
 
       const qrData = new Encoder(claim, meta)
         .signWithEcdsaP256(privateKey)
-        .encode();
+        .encode().qrData;
 
       // Verify it can be decoded
       const result = new Decoder(qrData).allowUnverified().decode();
@@ -351,7 +351,7 @@ describe("Encoder", () => {
       const qrData = new Encoder(claim, meta)
         .signWithEd25519(signKey)
         .encryptWithAes256(encryptKey)
-        .encode();
+        .encode().qrData;
 
       expect(typeof qrData).toBe("string");
       expect(qrData.length).toBeGreaterThan(0);
@@ -384,7 +384,7 @@ describe("Encoder", () => {
       const qrData = new Encoder(claim, meta)
         .signWithEd25519(signKey)
         .encryptWithAes128(encryptKey)
-        .encode();
+        .encode().qrData;
 
       expect(typeof qrData).toBe("string");
       expect(qrData.length).toBeGreaterThan(0);
@@ -463,10 +463,78 @@ describe("Encoder", () => {
         .signWithEd25519(privateKey)
         .skipBiometrics()
         .encryptWithAes256(encryptKey)
-        .encode();
+        .encode().qrData;
 
       expect(typeof qrData).toBe("string");
     });
+  });
+});
+
+describe("EncodeResult", () => {
+  it("should return qrData, compressionUsed, and warnings", () => {
+    const claim: Claim169Input = { id: "RESULT-001", fullName: "Result Test" };
+    const meta: CwtMetaInput = { expiresAt: 1900000000 };
+
+    const result = new Encoder(claim, meta).allowUnsigned().encode();
+
+    expect(result).toHaveProperty("qrData");
+    expect(result).toHaveProperty("compressionUsed");
+    expect(result).toHaveProperty("warnings");
+    expect(typeof result.qrData).toBe("string");
+    expect(result.qrData.length).toBeGreaterThan(0);
+    expect(typeof result.compressionUsed).toBe("string");
+    expect(Array.isArray(result.warnings)).toBe(true);
+  });
+
+  it("should default to zlib compression", () => {
+    const claim: Claim169Input = { id: "ZLIB-001", fullName: "Zlib Test" };
+    const meta: CwtMetaInput = { expiresAt: 1900000000 };
+
+    const result = new Encoder(claim, meta).allowUnsigned().encode();
+
+    expect(result.compressionUsed).toBe("zlib");
+  });
+
+  it("should support none compression and roundtrip", () => {
+    const claim: Claim169Input = { id: "NONE-001", fullName: "No Compression" };
+    const meta: CwtMetaInput = { expiresAt: 1900000000 };
+
+    const result = new Encoder(claim, meta)
+      .allowUnsigned()
+      .compression("none")
+      .encode();
+
+    expect(result.compressionUsed).toBe("none");
+    expect(result.qrData.length).toBeGreaterThan(0);
+
+    // Roundtrip decode
+    const decoded = new Decoder(result.qrData).allowUnverified().decode();
+    expect(decoded.claim169.id).toBe("NONE-001");
+    expect(decoded.claim169.fullName).toBe("No Compression");
+  });
+
+  it("should support compression method chaining", () => {
+    const claim: Claim169Input = { id: "CHAIN-001", fullName: "Chain Test" };
+    const meta: CwtMetaInput = { expiresAt: 1900000000 };
+
+    const result = new Encoder(claim, meta)
+      .allowUnsigned()
+      .compression("zlib")
+      .encode();
+
+    expect(result.compressionUsed).toBe("zlib");
+  });
+
+  it("should reject invalid compression mode", () => {
+    const claim: Claim169Input = { id: "BAD", fullName: "Bad Compression" };
+    const meta: CwtMetaInput = { expiresAt: 1900000000 };
+
+    expect(() => {
+      new Encoder(claim, meta)
+        .allowUnsigned()
+        .compression("invalid-mode")
+        .encode();
+    }).toThrow(Claim169Error);
   });
 });
 

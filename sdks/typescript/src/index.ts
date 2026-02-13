@@ -95,6 +95,8 @@ export type {
   CwtMetaInput,
   DecodeResult,
   DecryptorCallback,
+  EncodeResult,
+  EncodeWarning,
   EncryptorCallback,
   IDecoder,
   IEncoder,
@@ -111,6 +113,7 @@ import type {
   CwtMetaInput,
   DecodeResult,
   DecryptorCallback,
+  EncodeResult,
   EncryptorCallback,
   IDecoder,
   IEncoder,
@@ -1004,13 +1007,40 @@ export class Encoder implements IEncoder {
   }
 
   /**
-   * Encode the credential to a Base45 QR string.
-   * @returns Base45-encoded string suitable for QR code generation
+   * Set compression mode for encoding.
+   * @param mode - Compression mode: "zlib", "none", "adaptive", "brotli:N" (0-11), or "adaptive-brotli:N"
+   * @returns The encoder instance for chaining
+   * @throws {Claim169Error} If the mode is invalid or unsupported by the WASM build
+   */
+  compression(mode: string): Encoder {
+    try {
+      this.wasmEncoder = this.wasmEncoder.compression(mode);
+      return this;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Claim169Error(error.message);
+      }
+      throw new Claim169Error(String(error));
+    }
+  }
+
+  /**
+   * Encode the credential to a QR-ready result object.
+   * @returns Encode result with QR data, compression info, and warnings
    * @throws {Claim169Error} If encoding fails
    */
-  encode(): string {
+  encode(): EncodeResult {
     try {
-      return this.wasmEncoder.encode();
+      const raw = this.wasmEncoder.encode() as unknown as {
+        qrData: string;
+        compressionUsed: string;
+        warnings: Array<{ code: string; message: string }>;
+      };
+      return {
+        qrData: raw.qrData,
+        compressionUsed: raw.compressionUsed,
+        warnings: raw.warnings ?? [],
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new Claim169Error(error.message);

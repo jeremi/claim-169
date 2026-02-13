@@ -247,6 +247,9 @@ var meta = result.getCwtMeta();
 // Raw verification status string from decoded payload
 String status = result.getVerificationStatus();
 
+// Compression format detected during decoding
+String compression = result.getDetectedCompression();  // "zlib", "brotli", or "none"
+
 // Type-safe verification status enum
 var statusEnum = Claim169.verificationStatus(result);
 ```

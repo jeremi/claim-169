@@ -35,5 +35,32 @@ val result = Claim169.decode(qrData) {
 - `verificationStatus == "skipped"` : vérification explicitement ignorée (tests uniquement)
 - Erreur/exception : structure invalide, signature invalide, chiffrement invalide, expiré, etc.
 
+## Accéder aux données décodées
+
+### DecodeResultData
+
+La fonction de décodage renvoie un objet `DecodeResultData` :
+
+```kotlin
+val result = Claim169.decode(qrData) {
+    verifyWithEd25519(publicKey)
+}
+
+// Le claim d'identité décodé
+val claim = result.claim169
+
+// Métadonnées CWT (issuer, timestamps)
+val meta = result.cwtMeta
+
+// Statut de vérification
+val status = result.verificationStatus  // "verified", "skipped", etc.
+
+// Format de compression détecté pendant le décodage
+val compression = result.detectedCompression  // "zlib", "brotli", or "none"
+
+// Propriété helper
+val isVerified = result.isVerified  // true/false
+```
+
 !!! note "Détails"
-    Pour ECDSA P-256, PEM, tolérance d’horloge, limites de décompression, ou `skipBiometrics`, basculez sur la version anglaise via le sélecteur de langue (English).
+    Pour ECDSA P-256, PEM, tolérance d'horloge, limites de décompression, ou `skipBiometrics`, basculez sur la version anglaise via le sélecteur de langue (English).

@@ -120,6 +120,11 @@ The nonce/IV is 12 bytes and must be unique per encryption.
 
 The COSE bytes are compressed with zlib (DEFLATE) to fit comfortably in QR codes.
 
+The decoder auto-detects the compression format by inspecting the first bytes (`0x78` indicates zlib). This allows forward compatibility if other compression formats are used in the future.
+
+!!! note "Non-standard compression"
+    This library also supports encoding with no compression or with Brotli (opt-in via `compression-brotli` feature). These are non-standard extensions. The spec mandates zlib, and other Claim 169 implementations may not support alternative formats.
+
 ## 6) Base45 Encoding
 
 The compressed bytes are encoded as Base45 for QR alphanumeric mode.

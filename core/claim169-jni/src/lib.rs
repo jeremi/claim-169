@@ -307,11 +307,21 @@ impl From<&claim169::Warning> for WarningData {
             claim169::WarningCode::UnknownFields => "unknown_fields",
             claim169::WarningCode::TimestampValidationSkipped => "timestamp_validation_skipped",
             claim169::WarningCode::BiometricsSkipped => "biometrics_skipped",
+            claim169::WarningCode::NonStandardCompression => "non_standard_compression",
         };
         Self {
             code: code.to_string(),
             message: w.message.clone(),
         }
+    }
+}
+
+fn detected_compression_to_string(dc: &claim169::DetectedCompression) -> &'static str {
+    match dc {
+        claim169::DetectedCompression::Zlib => "zlib",
+        #[cfg(feature = "compression-brotli")]
+        claim169::DetectedCompression::Brotli => "brotli",
+        claim169::DetectedCompression::None => "none",
     }
 }
 
@@ -552,6 +562,8 @@ pub struct DecodeResultData {
     pub verification_status: String,
     /// X.509 certificate headers from the COSE structure.
     pub x509_headers: X509HeadersData,
+    /// Detected compression format: "zlib", "brotli", or "none".
+    pub detected_compression: String,
     /// Warnings generated during decoding.
     pub warnings: Vec<WarningData>,
 }
@@ -934,6 +946,8 @@ impl Claim169Decoder {
             cwt_meta: CwtMetaData::from(&result.cwt_meta),
             verification_status: result.verification_status.to_string(),
             x509_headers: X509HeadersData::from(&result.x509_headers),
+            detected_compression: detected_compression_to_string(&result.detected_compression)
+                .to_string(),
             warnings: result.warnings.iter().map(WarningData::from).collect(),
         })
     }
@@ -1058,7 +1072,10 @@ impl Claim169Encoder {
     /// Execute the encode operation and return the Base45-encoded QR string.
     pub fn execute(&self) -> Result<String, Claim169Exception> {
         let encoder = self.take_encoder()?;
-        encoder.encode().map_err(Claim169Exception::from)
+        encoder
+            .encode()
+            .map(|r| r.qr_data)
+            .map_err(Claim169Exception::from)
     }
 }
 
@@ -1090,7 +1107,8 @@ mod tests {
         let qr_data = claim169::Encoder::new(claim, cwt)
             .allow_unsigned()
             .encode()
-            .unwrap();
+            .unwrap()
+            .qr_data;
 
         let decoder = Claim169Decoder::new(qr_data);
         decoder.allow_unverified().unwrap();
@@ -1113,7 +1131,8 @@ mod tests {
         let qr_data = claim169::Encoder::new(claim, cwt)
             .sign_with(signer, iana::Algorithm::EdDSA)
             .encode()
-            .unwrap();
+            .unwrap()
+            .qr_data;
 
         let decoder = Claim169Decoder::new(qr_data);
         decoder.verify_with_ed25519(public_key.to_vec()).unwrap();
@@ -1197,7 +1216,8 @@ mod tests {
         let qr_data = claim169::Encoder::new(claim, cwt)
             .allow_unsigned()
             .encode()
-            .unwrap();
+            .unwrap()
+            .qr_data;
 
         let decoder = Claim169Decoder::new(qr_data);
         decoder.allow_unverified().unwrap();

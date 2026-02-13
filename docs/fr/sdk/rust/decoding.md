@@ -38,6 +38,9 @@ pub struct DecodeResult {
     /// Signature verification status
     pub verification_status: VerificationStatus,
 
+    /// Compression format detected during decoding
+    pub detected_compression: DetectedCompression,
+
     /// Non-fatal warnings
     pub warnings: Vec<Warning>,
 }
@@ -144,6 +147,9 @@ for warning in &result.warnings {
         }
         WarningCode::BiometricsSkipped => {
             println!("Biometrics skipped: {}", warning.message);
+        }
+        WarningCode::NonStandardCompression => {
+            println!("Non-standard compression: {}", warning.message);
         }
     }
 }
@@ -290,12 +296,44 @@ let result = Decoder::new(qr_content)
 
 Cela protège contre les attaques type zip bomb.
 
+### Compression stricte
+
+Par défaut, le décodeur détecte automatiquement et accepte tout format de compression (zlib, brotli, ou aucun). Pour imposer la conformité à la spécification et rejeter les données non-zlib :
+
+```rust
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .strict_compression()  // Rejeter la compression non-zlib
+    .decode()?;
+```
+
+Cela est utile pour les validateurs qui doivent imposer la conformité à la spécification. Sans `strict_compression()`, les identifiants non-zlib se décodent normalement mais produisent un avertissement `NonStandardCompression`.
+
+### Vérifier la compression détectée
+
+Après décodage, vous pouvez inspecter quel format de compression a été utilisé :
+
+```rust
+use claim169_core::DetectedCompression;
+
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+
+match result.detected_compression {
+    DetectedCompression::Zlib => println!("Standard zlib compression"),
+    DetectedCompression::None => println!("No compression"),
+    #[cfg(feature = "compression-brotli")]
+    DetectedCompression::Brotli => println!("Brotli compression"),
+}
+```
+
 ## Ordre des opérations
 
 Le décodeur traite toujours dans cet ordre, quel que soit l’ordre d’appel des méthodes :
 
 1. Décoder Base45
-2. Décompresser zlib
+2. Décompresser (détecte automatiquement zlib, brotli, ou brut)
 3. Déchiffrer COSE_Encrypt0 (si un déchiffreur est fourni)
 4. Vérifier COSE_Sign1 (si un vérificateur est fourni)
 5. Parser le CWT
@@ -417,6 +455,7 @@ fn verify_credential(
                 WarningCode::UnknownFields => "UNKNOWN_FIELDS",
                 WarningCode::TimestampValidationSkipped => "NO_TIMESTAMP_CHECK",
                 WarningCode::BiometricsSkipped => "NO_BIOMETRICS",
+                WarningCode::NonStandardCompression => "NON_STANDARD_COMPRESSION",
             },
             warning.message
         );

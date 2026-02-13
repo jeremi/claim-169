@@ -22,6 +22,7 @@ ciborium = "0.2"
 
 # Compression/encoding
 base45 = "3.2"
+brotli = "7"
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 # Serialization

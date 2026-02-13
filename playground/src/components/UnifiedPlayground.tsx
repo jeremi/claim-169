@@ -17,6 +17,7 @@ import type { VerificationStatus } from "@/components/VerificationBadge"
 
 export type SigningMethod = "ed25519" | "ecdsa" | "unsigned"
 export type EncryptionMethod = "none" | "aes256" | "aes128"
+export type CompressionMode = "zlib" | "none" | "adaptive-brotli:9" | "brotli:9"
 
 
 export function UnifiedPlayground() {
@@ -31,6 +32,7 @@ export function UnifiedPlayground() {
   const [publicKey, setPublicKey] = useState("")
   const [encryptionMethod, setEncryptionMethod] = useState<EncryptionMethod>("none")
   const [encryptionKey, setEncryptionKey] = useState("")
+  const [compressionMode, setCompressionMode] = useState<CompressionMode>("zlib")
 
   // Status
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("none")
@@ -190,7 +192,11 @@ export function UnifiedPlayground() {
         }
       }
 
-      const encoded = encoder.encode()
+      // Apply compression
+      encoder = encoder.compression(compressionMode)
+
+      const result = encoder.encode()
+      const encoded = result.qrData
 
       // Build pipeline stages - only show actual values, not estimates
       stages.push({
@@ -221,7 +227,7 @@ export function UnifiedPlayground() {
       })
 
       stages.push({
-        name: "zlib",
+        name: result.compressionUsed,
         inputSize: 0,
         outputSize: 0,
         status: "success",
@@ -250,7 +256,7 @@ export function UnifiedPlayground() {
     } finally {
       setIsProcessing(false)
     }
-  }, [claim169, cwtMeta, signingMethod, privateKey, encryptionMethod, encryptionKey])
+  }, [claim169, cwtMeta, signingMethod, privateKey, encryptionMethod, encryptionKey, compressionMode])
 
   // Decode: When Base45 input changes, decode and populate fields
   const decodeAndPopulate = useCallback(() => {
@@ -541,6 +547,8 @@ export function UnifiedPlayground() {
         onEncryptionMethodChange={handleEncryptionMethodChange}
         encryptionKey={encryptionKey}
         onEncryptionKeyChange={setEncryptionKey}
+        compressionMode={compressionMode}
+        onCompressionModeChange={setCompressionMode}
         onLoadSample={loadSampleData}
         onLoadExample={loadExample}
         samplePhotoUrl={samplePhotoUrl}

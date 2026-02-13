@@ -143,7 +143,7 @@ pub mod serde_utils;
 
 // Re-export builder pattern API (primary interface)
 pub use decode::Decoder;
-pub use encode::Encoder;
+pub use encode::{EncodeResult, Encoder};
 
 // Re-export nonce generation when software-crypto is enabled
 #[cfg(feature = "software-crypto")]
@@ -160,6 +160,9 @@ pub use model::{
     Biometric, BiometricFormat, BiometricSubFormat, CertHashAlgorithm, CertificateHash, Claim169,
     CwtMeta, Gender, MaritalStatus, PhotoFormat, VerificationStatus, X509Headers,
 };
+
+// Re-export compression types
+pub use pipeline::{Compression, DetectedCompression};
 
 // Re-export software crypto implementations when feature is enabled
 #[cfg(feature = "software-crypto")]
@@ -227,6 +230,12 @@ pub struct DecodeResult {
     /// protected/unprotected headers (x5bag, x5chain, x5t, x5u).
     pub x509_headers: X509Headers,
 
+    /// The compression format detected during decoding.
+    ///
+    /// Indicates which compression format was auto-detected and used:
+    /// `Zlib` (spec-compliant), `Brotli` (non-standard), or `None` (raw).
+    pub detected_compression: DetectedCompression,
+
     /// Warnings generated during decoding.
     ///
     /// Non-fatal issues that don't prevent decoding but may warrant attention,
@@ -261,6 +270,11 @@ pub enum WarningCode {
     TimestampValidationSkipped,
     /// Biometric data parsing was skipped via options.
     BiometricsSkipped,
+    /// Non-standard compression was detected during decoding or used during encoding.
+    ///
+    /// The Claim 169 spec mandates zlib compression. This warning indicates
+    /// that a different compression format (brotli, none) was used.
+    NonStandardCompression,
 }
 
 #[cfg(test)]

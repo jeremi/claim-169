@@ -243,6 +243,9 @@ val meta = result.cwtMeta
 // Verification status string
 val status = result.verificationStatus  // "verified", "skipped", etc.
 
+// Compression format detected during decoding
+val compression = result.detectedCompression  // "zlib", "brotli", or "none"
+
 // Helper property
 val isVerified = result.isVerified  // true/false
 

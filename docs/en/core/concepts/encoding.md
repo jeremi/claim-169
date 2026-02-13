@@ -108,11 +108,26 @@ Use `generate_random_nonce()` or your platform's secure random generator.
 
 ## 4. Compression
 
-The library automatically compresses the COSE structure using zlib:
+The library compresses the COSE structure before Base45 encoding. By default, zlib (DEFLATE) is used, which is the format mandated by the Claim 169 specification.
 
-- Reduces QR code size significantly
-- Especially effective for photo/biometric data
-- Transparent to the application
+### Compression Modes
+
+| Mode | Spec-compliant | Description |
+|------|:-:|-------------|
+| `Zlib` | Yes | Default. Standard zlib/DEFLATE compression |
+| `None` | No | No compression. Useful for tiny payloads where zlib adds overhead |
+| `Adaptive` | No | Picks zlib if it reduces size, otherwise stores raw |
+| `Brotli(quality)` | No | Brotli compression at quality 0–11. Requires `compression-brotli` feature |
+| `AdaptiveBrotli(quality)` | No | Picks brotli if it reduces size, otherwise stores raw |
+
+Non-standard modes (anything other than Zlib) generate a `NonStandardCompression` warning in the `EncodeResult`.
+
+### Auto-detection on Decode
+
+The decoder auto-detects the compression format used, so credentials created with any mode can be decoded transparently. The detected format is reported in `DecodeResult.detected_compression`.
+
+!!! warning "Interoperability"
+    Credentials compressed with a non-standard format can only be decoded by this library. Other Claim 169 decoders that only support zlib will reject them. Use non-standard compression only in closed ecosystems where you control both encoder and decoder.
 
 ## 5. Base45 Encoding
 
@@ -147,7 +162,18 @@ All SDKs use a builder pattern for encoding:
 1. Create encoder with claim data and CWT metadata
 2. Configure signing (required)
 3. Configure encryption (optional)
-4. Call `encode()` to produce Base45 string
+4. Configure compression (optional, defaults to zlib)
+5. Call `encode()` to produce the result
+
+### Encode Result
+
+`encode()` returns an `EncodeResult` (or equivalent in each SDK) containing:
+
+| Field | Description |
+|-------|-------------|
+| `qr_data` | The Base45-encoded string for QR code generation |
+| `compression_used` | Which compression was applied (`Zlib`, `Brotli`, or `None`) |
+| `warnings` | Non-fatal warnings (e.g., `NonStandardCompression`) |
 
 See the SDK-specific encoding guides for implementation examples.
 

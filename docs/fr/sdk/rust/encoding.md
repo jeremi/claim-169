@@ -195,6 +195,39 @@ let qr_data = Encoder::new(claim169, cwt_meta)
 
 Voir [Chiffrement](./encryption.md) pour plus de détails.
 
+## Compression
+
+Par défaut, l'encodeur utilise zlib (conforme à la spécification). Vous pouvez choisir un mode de compression différent :
+
+```rust
+use claim169_core::{Encoder, Compression};
+
+// Pas de compression (pour les petites charges utiles où zlib ajoute du poids)
+let result = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .compression(Compression::None)
+    .encode()?;
+
+// Adaptatif : utilise zlib si cela réduit la taille, sinon stocke brut
+let result = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .compression(Compression::Adaptive)
+    .encode()?;
+```
+
+Avec la feature `compression-brotli` activée :
+
+```rust
+// Brotli qualité 6 (non standard, ~15% plus petit que zlib)
+let result = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .compression(Compression::Brotli(6))
+    .encode()?;
+```
+
+!!! warning "Interopérabilité"
+    Les modes de compression non standard produisent des identifiants que seule cette bibliothèque peut décoder. Utilisez-les uniquement dans des écosystèmes fermés.
+
 ## Exclure la biométrie
 
 Pour réduire la taille du QR code, exclure les données biométriques :
@@ -248,15 +281,32 @@ Encoder::new(claim, meta)
     .encode()?;
 ```
 
-## Gestion des erreurs
+## Résultat d'encodage
 
-La méthode `encode()` renvoie `Result<String, Claim169Error>` :
+La méthode `encode()` renvoie `Result<EncodeResult, Claim169Error>` :
+
+```rust
+use claim169_core::EncodeResult;
+
+let result: EncodeResult = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .encode()?;
+
+println!("QR data: {}", result.qr_data);
+println!("Compression used: {:?}", result.compression_used);
+
+for warning in &result.warnings {
+    println!("Warning: {}", warning.message);
+}
+```
+
+## Gestion des erreurs
 
 ```rust
 use claim169_core::Claim169Error;
 
 match Encoder::new(claim169, cwt_meta).sign_with_ed25519(&key)?.encode() {
-    Ok(qr_data) => println!("Encoded: {}", qr_data),
+    Ok(result) => println!("Encoded: {}", result.qr_data),
     Err(Claim169Error::EncodingConfig(msg)) => {
         eprintln!("Configuration error: {}", msg);
     }

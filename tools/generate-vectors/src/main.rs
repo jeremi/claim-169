@@ -470,12 +470,9 @@ fn generate_refugee_identity() -> TestVector {
         (11, Value::Text("Johnny.Jana@gmail.com".to_string())),
         (12, Value::Text("9876678945".to_string())),
         (13, Value::Text("IN".to_string())),
-        (16, Value::Bytes(photo_data)),  // Photo binary data
-        (17, Value::Integer(4.into())),  // WebP format
-        (
-            19,
-            Value::Text("جاناردان بنغالور سرينيفاس".to_string()),
-        ),
+        (16, Value::Bytes(photo_data)), // Photo binary data
+        (17, Value::Integer(4.into())), // WebP format
+        (19, Value::Text("جاناردان بنغالور سرينيفاس".to_string())),
         (20, Value::Text("AR".to_string())),
         (21, Value::Text("849VCWC8+R9".to_string())),
         (22, Value::Text("Refugee".to_string())),
@@ -872,7 +869,7 @@ fn generate_not_cose() -> TestVector {
     let mut cbor_bytes = Vec::new();
     ciborium::into_writer(&cbor_array, &mut cbor_bytes).unwrap();
 
-    let compressed = decompress::compress(&cbor_bytes);
+    let compressed = decompress::compress_zlib(&cbor_bytes);
     let qr_data = base45::encode(&compressed);
 
     TestVector {
@@ -914,7 +911,7 @@ fn generate_missing_169() -> TestVector {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = decompress::compress(&cose_bytes);
+    let compressed = decompress::compress_zlib(&cose_bytes);
     let qr_data = base45::encode(&compressed);
 
     TestVector {
@@ -1068,7 +1065,7 @@ fn encode_unsigned_qr(meta: &CwtMeta, claim_169: &Value) -> String {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = decompress::compress(&cose_bytes);
+    let compressed = decompress::compress_zlib(&cose_bytes);
     base45::encode(&compressed)
 }
 
@@ -1094,7 +1091,7 @@ fn encode_signed_qr<S: Signer>(meta: &CwtMeta, claim_169: &Value, signer: &S) ->
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = decompress::compress(&cose_bytes);
+    let compressed = decompress::compress_zlib(&cose_bytes);
     base45::encode(&compressed)
 }
 
@@ -1129,7 +1126,7 @@ fn encode_encrypted_qr<E: Encryptor>(
         .build();
 
     let cose_bytes = encrypt0.to_tagged_vec().unwrap();
-    let compressed = decompress::compress(&cose_bytes);
+    let compressed = decompress::compress_zlib(&cose_bytes);
     base45::encode(&compressed)
 }
 
@@ -1167,7 +1164,7 @@ fn encode_ecdsa_signed_qr(meta: &CwtMeta, claim_169: &Value, signer: &EcdsaP256S
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = decompress::compress(&cose_bytes);
+    let compressed = decompress::compress_zlib(&cose_bytes);
     base45::encode(&compressed)
 }
 
@@ -1217,6 +1214,6 @@ fn encode_encrypted_signed_qr<E: Encryptor>(
         .build();
 
     let cose_bytes = encrypt0.to_tagged_vec().unwrap();
-    let compressed = decompress::compress(&cose_bytes);
+    let compressed = decompress::compress_zlib(&cose_bytes);
     base45::encode(&compressed)
 }

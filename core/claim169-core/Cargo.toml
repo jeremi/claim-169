@@ -14,6 +14,7 @@ ciborium.workspace = true
 
 # Compression/encoding
 base45.workspace = true
+brotli = { workspace = true, optional = true }
 flate2.workspace = true
 
 # Serialization
@@ -39,3 +40,4 @@ rand.workspace = true
 [features]
 default = ["software-crypto"]
 software-crypto = ["dep:ed25519-dalek", "dep:p256", "dep:aes-gcm", "dep:rand", "dep:zeroize"]
+compression-brotli = ["dep:brotli"]

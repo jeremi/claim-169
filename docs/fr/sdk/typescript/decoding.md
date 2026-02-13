@@ -146,6 +146,19 @@ const result = new Decoder(qrText)
 
 La limite par défaut est 65536 octets (64KB).
 
+### Compression stricte
+
+Par défaut, le décodeur détecte automatiquement et accepte tout format de compression (zlib, brotli, ou aucun). Pour imposer la conformité à la spécification et rejeter les données non-zlib :
+
+```typescript
+const result = new Decoder(qrText)
+  .verifyWithEd25519(publicKey)
+  .strictCompression()  // Rejeter la compression non-zlib
+  .decode();
+```
+
+Sans `strictCompression()`, les identifiants non-zlib se décodent normalement mais produisent un avertissement `non_standard_compression`.
+
 ## Accéder aux données décodées
 
 ### Données d’identité (Claim169)
@@ -198,6 +211,31 @@ if (cwtMeta.expiresAt) {
 }
 ```
 
+### Compression détectée
+
+Après décodage, vous pouvez vérifier quel format de compression a été utilisé :
+
+```typescript
+console.log('Compression:', result.detectedCompression);
+// "zlib", "brotli", or "none"
+```
+
+### Avertissements
+
+```typescript
+for (const warning of result.warnings) {
+  console.log(`Warning [${warning.code}]: ${warning.message}`);
+}
+```
+
+| Code d'avertissement | Signification |
+|----------------------|---------------|
+| `expiring_soon` | L'identifiant va bientôt expirer |
+| `unknown_fields` | Clés CBOR non reconnues (compatibilité ascendante) |
+| `timestamp_validation_skipped` | Les vérifications d'horodatage ont été désactivées |
+| `biometrics_skipped` | Le parsing biométrique a été ignoré |
+| `non_standard_compression` | Le format de compression n'est pas zlib |
+
 ### Statut de vérification
 
 ```typescript
@@ -241,6 +279,7 @@ const options: DecodeOptions = {
   validateTimestamps: true,
   clockSkewToleranceSeconds: 60,
   maxDecompressedBytes: 32768,
+  strictCompression: false,  // Mettre à true pour rejeter le non-zlib
 };
 
 const result = decode(qrText, options);
@@ -297,6 +336,7 @@ const result = new Decoder(qrText)
   .skipBiometrics()
   .clockSkewTolerance(120)
   .maxDecompressedBytes(65536)
+  .strictCompression()
   .decode();
 ```
 

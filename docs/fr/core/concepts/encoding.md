@@ -108,11 +108,26 @@ Utilisez `generate_random_nonce()` ou le générateur aléatoire sûr de votre p
 
 ## 4. Compression
 
-La bibliothèque compresse automatiquement la structure COSE via zlib :
+La bibliothèque compresse la structure COSE avant l'encodage Base45. Par défaut, zlib (DEFLATE) est utilisé, conformément à la spécification Claim 169.
 
-- Réduit fortement la taille du QR code
-- Très efficace pour les données photo/biométrie
-- Transparent côté application
+### Modes de compression
+
+| Mode | Conforme spec | Description |
+|------|:-:|-------------|
+| `Zlib` | Oui | Par défaut. Compression standard zlib/DEFLATE |
+| `None` | Non | Pas de compression. Utile pour les petites charges utiles où zlib ajoute du poids |
+| `Adaptive` | Non | Choisit zlib si cela réduit la taille, sinon stocke brut |
+| `Brotli(quality)` | Non | Compression Brotli avec qualité 0–11. Nécessite la feature `compression-brotli` |
+| `AdaptiveBrotli(quality)` | Non | Choisit Brotli si cela réduit la taille, sinon stocke brut |
+
+Les modes non standard (tout sauf Zlib) génèrent un avertissement `NonStandardCompression` dans le `EncodeResult`.
+
+### Auto-détection au décodage
+
+Le décodeur détecte automatiquement le format de compression utilisé, de sorte que les identifiants créés avec n'importe quel mode peuvent être décodés de manière transparente. Le format détecté est rapporté dans `DecodeResult.detected_compression`.
+
+!!! warning "Interopérabilité"
+    Les identifiants compressés avec un format non standard ne peuvent être décodés que par cette bibliothèque. Les autres décodeurs Claim 169 qui ne supportent que zlib les rejetteront. N'utilisez la compression non standard que dans des écosystèmes fermés où vous contrôlez à la fois l'encodeur et le décodeur.
 
 ## 5. Encodage Base45
 
@@ -140,16 +155,27 @@ La capacité d’un QR code limite ce que vous pouvez encoder :
 3. **Limiter la biométrie** — incluez uniquement l’essentiel
 4. **Ignorer la biométrie** — utilisez `skip_biometrics()` pour des codes plus petits
 
-## Pattern « builder » de l’encodeur
+## Pattern « builder » de l'encodeur
 
-Tous les SDKs suivent un pattern de type builder pour l’encodage :
+Tous les SDKs suivent un pattern de type builder pour l'encodage :
 
-1. Créer l’encodeur avec la donnée Claim et les métadonnées CWT
+1. Créer l'encodeur avec la donnée Claim et les métadonnées CWT
 2. Configurer la signature (requis)
 3. Configurer le chiffrement (optionnel)
-4. Appeler `encode()` pour produire la chaîne Base45
+4. Configurer la compression (optionnel, zlib par défaut)
+5. Appeler `encode()` pour produire le résultat
 
-Voir les guides d’encodage spécifiques à chaque SDK pour des exemples d’implémentation.
+### Résultat d'encodage
+
+`encode()` renvoie un `EncodeResult` (ou équivalent dans chaque SDK) contenant :
+
+| Champ | Description |
+|-------|-------------|
+| `qr_data` | La chaîne encodée en Base45 pour la génération du QR code |
+| `compression_used` | Quelle compression a été appliquée (`Zlib`, `Brotli`, ou `None`) |
+| `warnings` | Avertissements non fatals (p. ex. `NonStandardCompression`) |
+
+Voir les guides d'encodage spécifiques à chaque SDK pour des exemples d'implémentation.
 
 ## Gestion des erreurs
 

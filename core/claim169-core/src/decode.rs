@@ -44,6 +44,7 @@ use crate::crypto::traits::{Decryptor, SignatureVerifier};
 use crate::error::{Claim169Error, Result};
 use crate::model::VerificationStatus;
 use crate::pipeline;
+use crate::pipeline::decompress::DetectedCompression;
 use crate::{DecodeResult, Warning, WarningCode};
 
 #[cfg(feature = "software-crypto")]
@@ -92,6 +93,7 @@ pub struct Decoder {
     validate_timestamps: bool,
     clock_skew_tolerance_seconds: i64,
     max_decompressed_bytes: usize,
+    strict_compression: bool,
 }
 
 impl Decoder {
@@ -117,6 +119,7 @@ impl Decoder {
             validate_timestamps: true,
             clock_skew_tolerance_seconds: 0,
             max_decompressed_bytes: DEFAULT_MAX_DECOMPRESSED_BYTES,
+            strict_compression: false,
         }
     }
 
@@ -332,6 +335,19 @@ impl Decoder {
         self
     }
 
+    /// Require spec-compliant zlib compression.
+    ///
+    /// When enabled, the decoder will reject payloads that use non-standard
+    /// compression (brotli, uncompressed). This enforces strict compliance
+    /// with the Claim 169 specification.
+    ///
+    /// By default, the decoder auto-detects and accepts all supported
+    /// compression formats.
+    pub fn strict_compression(mut self) -> Self {
+        self.strict_compression = true;
+        self
+    }
+
     /// Decode the QR text and return the result.
     ///
     /// This method consumes the decoder and performs the full decoding pipeline:
@@ -377,8 +393,28 @@ impl Decoder {
         // Step 1: Base45 decode
         let compressed = pipeline::base45_decode(&self.qr_text)?;
 
-        // Step 2: zlib decompress
-        let cose_bytes = pipeline::decompress(&compressed, self.max_decompressed_bytes)?;
+        // Step 2: Decompress with auto-detection
+        let (cose_bytes, detected_compression) =
+            pipeline::decompress(&compressed, self.max_decompressed_bytes)?;
+
+        // Check strict compression mode
+        if self.strict_compression && detected_compression != DetectedCompression::Zlib {
+            return Err(Claim169Error::Decompress(format!(
+                "strict compression mode requires zlib, but detected: {}",
+                detected_compression
+            )));
+        }
+
+        // Warn about non-standard compression
+        if detected_compression != DetectedCompression::Zlib {
+            warnings.push(Warning {
+                code: WarningCode::NonStandardCompression,
+                message: format!(
+                    "non-standard compression detected: {}",
+                    detected_compression
+                ),
+            });
+        }
 
         // Step 3-4: Parse COSE and verify/decrypt
         let cose_result = pipeline::cose_parse(&cose_bytes, verifier_ref, decryptor_ref)?;
@@ -457,6 +493,7 @@ impl Decoder {
             cwt_meta: cwt_result.meta,
             verification_status: cose_result.verification_status,
             x509_headers: cose_result.x509_headers,
+            detected_compression,
             warnings,
         })
     }
@@ -485,6 +522,7 @@ mod tests {
             .allow_unsigned()
             .encode()
             .unwrap()
+            .qr_data
     }
 
     #[test]
@@ -585,13 +623,13 @@ mod tests {
         let public_key = signer.public_key_bytes();
 
         // Encode
-        let qr_data = Encoder::new(claim169.clone(), cwt_meta)
+        let encode_result = Encoder::new(claim169.clone(), cwt_meta)
             .sign_with(signer, iana::Algorithm::EdDSA)
             .encode()
             .unwrap();
 
         // Decode with verification
-        let result = Decoder::new(&qr_data)
+        let result = Decoder::new(&encode_result.qr_data)
             .verify_with_ed25519(&public_key)
             .unwrap()
             .decode()
@@ -601,6 +639,7 @@ mod tests {
         assert_eq!(result.claim169.id, claim169.id);
         assert_eq!(result.claim169.full_name, claim169.full_name);
         assert_eq!(result.claim169.email, claim169.email);
+        assert_eq!(result.detected_compression, DetectedCompression::Zlib);
     }
 
     #[cfg(feature = "software-crypto")]
@@ -627,7 +666,7 @@ mod tests {
         let nonce = [7u8; 12];
 
         // Encode with signing and encryption
-        let qr_data = Encoder::new(claim169.clone(), cwt_meta)
+        let encode_result = Encoder::new(claim169.clone(), cwt_meta)
             .sign_with(signer, iana::Algorithm::EdDSA)
             .encrypt_with_aes256_nonce(&aes_key, &nonce)
             .unwrap()
@@ -635,7 +674,7 @@ mod tests {
             .unwrap();
 
         // Decode with decryption and verification
-        let result = Decoder::new(&qr_data)
+        let result = Decoder::new(&encode_result.qr_data)
             .decrypt_with_aes256(&aes_key)
             .unwrap()
             .verify_with_ed25519(&public_key)
@@ -665,7 +704,8 @@ mod tests {
         let qr_data = Encoder::new(claim169, cwt_meta)
             .sign_with(signer, iana::Algorithm::EdDSA)
             .encode()
-            .unwrap();
+            .unwrap()
+            .qr_data;
 
         // Try to decode with wrong key
         let result = Decoder::new(&qr_data)
@@ -678,6 +718,68 @@ mod tests {
             result.unwrap_err(),
             Claim169Error::SignatureInvalid(_)
         ));
+    }
+
+    #[test]
+    fn test_decoder_strict_compression_accepts_zlib() {
+        let qr_text = create_test_qr();
+
+        let result = Decoder::new(&qr_text)
+            .allow_unverified()
+            .strict_compression()
+            .decode();
+
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap().detected_compression,
+            DetectedCompression::Zlib
+        );
+    }
+
+    #[test]
+    fn test_decoder_strict_compression_rejects_non_zlib() {
+        use crate::{Compression, Encoder};
+
+        let claim169 = Claim169::minimal("test", "Test");
+        let cwt_meta = CwtMeta::new().with_expires_at(i64::MAX);
+
+        let qr_data = Encoder::new(claim169, cwt_meta)
+            .allow_unsigned()
+            .compression(Compression::None)
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        let result = Decoder::new(&qr_data)
+            .allow_unverified()
+            .strict_compression()
+            .decode();
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), Claim169Error::Decompress(_)));
+    }
+
+    #[test]
+    fn test_decoder_non_standard_compression_warning() {
+        use crate::{Compression, Encoder};
+
+        let claim169 = Claim169::minimal("test", "Test");
+        let cwt_meta = CwtMeta::new().with_expires_at(i64::MAX);
+
+        let qr_data = Encoder::new(claim169, cwt_meta)
+            .allow_unsigned()
+            .compression(Compression::None)
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        let result = Decoder::new(&qr_data).allow_unverified().decode().unwrap();
+
+        assert_eq!(result.detected_compression, DetectedCompression::None);
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.code == WarningCode::NonStandardCompression));
     }
 
     #[test]

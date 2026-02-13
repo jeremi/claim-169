@@ -145,6 +145,18 @@ A successful decode returns:
 | `claim169` | Identity data (id, name, DOB, etc.) |
 | `cwt_meta` | Token metadata (issuer, timestamps) |
 | `verification_status` | `Verified` or `Skipped` |
+| `detected_compression` | Compression format found: `Zlib`, `Brotli`, or `None` |
+| `warnings` | Non-fatal warnings (see below) |
+
+### Warnings
+
+| Code | Meaning |
+|------|---------|
+| `ExpiringSoon` | Credential will expire soon |
+| `UnknownFields` | Unrecognized CBOR keys (forward compatibility) |
+| `TimestampValidationSkipped` | Timestamp checks were disabled |
+| `BiometricsSkipped` | Biometric parsing was skipped |
+| `NonStandardCompression` | Compression format is not zlib (non-standard) |
 
 ## Error Handling
 
@@ -195,3 +207,11 @@ Protect against decompression bombs:
 - Default limit: 64 KB
 - Increase only if needed
 - Consider memory constraints
+
+### Strict Compression Mode
+
+By default, the decoder auto-detects and accepts any compression format (zlib, brotli, or none). To enforce spec compliance and reject non-zlib data:
+
+- Use `strict_compression()` on the decoder builder
+- This returns an error if the credential uses a non-standard compression format
+- Useful for validators that must enforce spec conformance

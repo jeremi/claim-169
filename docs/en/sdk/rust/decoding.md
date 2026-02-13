@@ -38,6 +38,9 @@ pub struct DecodeResult {
     /// Signature verification status
     pub verification_status: VerificationStatus,
 
+    /// Compression format detected during decoding
+    pub detected_compression: DetectedCompression,
+
     /// Non-fatal warnings
     pub warnings: Vec<Warning>,
 }
@@ -144,6 +147,9 @@ for warning in &result.warnings {
         }
         WarningCode::BiometricsSkipped => {
             println!("Biometrics skipped: {}", warning.message);
+        }
+        WarningCode::NonStandardCompression => {
+            println!("Non-standard compression: {}", warning.message);
         }
     }
 }
@@ -290,12 +296,44 @@ let result = Decoder::new(qr_content)
 
 This protects against zip bomb attacks.
 
+### Strict Compression
+
+By default, the decoder auto-detects and accepts any compression format (zlib, brotli, or none). To enforce spec compliance and reject non-zlib data:
+
+```rust
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .strict_compression()  // Reject non-zlib compression
+    .decode()?;
+```
+
+This is useful for validators that must enforce spec conformance. Without `strict_compression()`, non-zlib credentials decode normally but produce a `NonStandardCompression` warning.
+
+### Checking Detected Compression
+
+After decoding, you can inspect which compression format was used:
+
+```rust
+use claim169_core::DetectedCompression;
+
+let result = Decoder::new(qr_content)
+    .verify_with_ed25519(&public_key)?
+    .decode()?;
+
+match result.detected_compression {
+    DetectedCompression::Zlib => println!("Standard zlib compression"),
+    DetectedCompression::None => println!("No compression"),
+    #[cfg(feature = "compression-brotli")]
+    DetectedCompression::Brotli => println!("Brotli compression"),
+}
+```
+
 ## Operation Order
 
 The decoder always processes in this order, regardless of method call order:
 
 1. Base45 decode
-2. zlib decompress
+2. Decompress (auto-detects zlib, brotli, or raw)
 3. Decrypt with COSE_Encrypt0 (if decryptor provided)
 4. Verify signature with COSE_Sign1 (if verifier provided)
 5. Parse CWT
@@ -417,6 +455,7 @@ fn verify_credential(
                 WarningCode::UnknownFields => "UNKNOWN_FIELDS",
                 WarningCode::TimestampValidationSkipped => "NO_TIMESTAMP_CHECK",
                 WarningCode::BiometricsSkipped => "NO_BIOMETRICS",
+                WarningCode::NonStandardCompression => "NON_STANDARD_COMPRESSION",
             },
             warning.message
         );

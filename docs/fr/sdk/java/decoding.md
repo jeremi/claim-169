@@ -55,6 +55,33 @@ if (status == VerificationStatus.Verified) {
 }
 ```
 
+## Accéder aux données décodées
+
+### DecodeResultData
+
+La fonction de décodage renvoie un objet `DecodeResultData` :
+
+```java
+DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) b -> {
+    b.verifyWithEd25519(publicKey);
+});
+
+// Le claim d'identité décodé
+var claim = result.getClaim169();
+
+// Métadonnées CWT (issuer, timestamps)
+var meta = result.getCwtMeta();
+
+// Statut de vérification
+String status = result.getVerificationStatus();
+
+// Format de compression détecté pendant le décodage
+String compression = result.getDetectedCompression();  // "zlib", "brotli", or "none"
+
+// Enum type-safe du statut de vérification
+var statusEnum = Claim169.verificationStatus(result);
+```
+
 ## Statut vs erreurs
 
 - `verificationStatus == "verified"` : signature valide

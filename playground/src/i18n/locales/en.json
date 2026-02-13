@@ -46,6 +46,14 @@
   "credential": {
     "title": "Credential Settings"
   },
+  "compression": {
+    "title": "Compression",
+    "zlib": "zlib (default)",
+    "none": "None",
+    "adaptive": "Adaptive",
+    "brotli9": "Brotli (quality 9)",
+    "nonStandardWarning": "Non-standard compression. Other decoders may not support this."
+  },
   "cwt": {
     "title": "Token Settings",
     "issuer": "Issuer",

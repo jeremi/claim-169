@@ -12,5 +12,5 @@ pub use self::cose::{
     CoseType,
 };
 pub use self::cwt::{encode as cwt_encode, parse as cwt_parse, CwtParseResult};
-pub use self::decompress::{compress, decompress};
+pub use self::decompress::{compress, compress_zlib, decompress, Compression, DetectedCompression};
 pub use self::encode::{encode_signed, encode_signed_and_encrypted, EncodeConfig};

@@ -142,9 +142,21 @@ Un décodage réussi retourne :
 
 | Champ | Contenu |
 |-------|---------|
-| `claim169` | Données d’identité (id, nom, date de naissance, etc.) |
+| `claim169` | Données d'identité (id, nom, date de naissance, etc.) |
 | `cwt_meta` | Métadonnées du jeton (issuer, horodatages) |
 | `verification_status` | `Verified` ou `Skipped` |
+| `detected_compression` | Format de compression détecté : `Zlib`, `Brotli`, ou `None` |
+| `warnings` | Avertissements non fatals (voir ci-dessous) |
+
+### Avertissements
+
+| Code | Signification |
+|------|---------------|
+| `ExpiringSoon` | L'identifiant va bientôt expirer |
+| `UnknownFields` | Clés CBOR non reconnues (compatibilité ascendante) |
+| `TimestampValidationSkipped` | Les vérifications d'horodatage ont été désactivées |
+| `BiometricsSkipped` | Le parsing biométrique a été ignoré |
+| `NonStandardCompression` | Le format de compression n'est pas zlib (non standard) |
 
 ## Gestion des erreurs
 
@@ -193,5 +205,13 @@ Traitez toutes les données QR comme non fiables :
 Se protéger des bombes de décompression :
 
 - Limite par défaut : 64 KB
-- N’augmenter que si nécessaire
+- N'augmenter que si nécessaire
 - Tenir compte des contraintes mémoire
+
+### Mode de compression strict
+
+Par défaut, le décodeur détecte automatiquement et accepte tout format de compression (zlib, brotli, ou aucun). Pour imposer la conformité à la spécification et rejeter les données non-zlib :
+
+- Utilisez `strict_compression()` sur le builder du décodeur
+- Cela renvoie une erreur si l'identifiant utilise un format de compression non standard
+- Utile pour les validateurs qui doivent imposer la conformité à la spécification

@@ -45,7 +45,7 @@ fn create_signed_qr(cwt_bytes: Vec<u8>) -> (String, [u8; 32]) {
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     (qr_data, public_key)

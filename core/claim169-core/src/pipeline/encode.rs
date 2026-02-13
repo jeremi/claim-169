@@ -17,13 +17,34 @@ use crate::crypto::traits::{Encryptor, Signer};
 use crate::error::{Claim169Error, Result};
 use crate::model::{Claim169, CwtMeta};
 
+use super::decompress::{Compression, DetectedCompression};
 use super::{base45_encode, claim169_to_cbor, compress, cwt_encode};
 
 /// Configuration for the encoding pipeline
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct EncodeConfig {
     /// Skip biometric fields during encoding
     pub skip_biometrics: bool,
+    /// Compression mode to use
+    pub compression: Compression,
+}
+
+impl Default for EncodeConfig {
+    fn default() -> Self {
+        Self {
+            skip_biometrics: false,
+            compression: Compression::Zlib,
+        }
+    }
+}
+
+/// Result of the encoding pipeline, including which compression was actually used.
+#[derive(Debug)]
+pub struct PipelineEncodeResult {
+    /// The Base45-encoded QR string
+    pub qr_data: String,
+    /// Which compression was actually applied
+    pub compression_used: DetectedCompression,
 }
 
 /// Encode a Claim169 to a Base45-encoded QR string with optional signing.
@@ -45,7 +66,7 @@ pub fn encode_signed(
     signer: Option<&dyn Signer>,
     algorithm: Option<iana::Algorithm>,
     config: &EncodeConfig,
-) -> Result<String> {
+) -> Result<PipelineEncodeResult> {
     // Step 1: Convert Claim169 to CBOR Value
     let claim169_cbor = if config.skip_biometrics {
         claim169_to_cbor(&claim169.without_biometrics())
@@ -59,11 +80,14 @@ pub fn encode_signed(
     // Step 3: Create and sign COSE_Sign1
     let cose_bytes = create_signed_cose(&cwt_payload, signer, algorithm)?;
 
-    // Step 4: Compress with zlib
-    let compressed = compress(&cose_bytes);
+    // Step 4: Compress
+    let (compressed, compression_used) = compress(&cose_bytes, config.compression);
 
     // Step 5: Encode as Base45
-    Ok(base45_encode(&compressed))
+    Ok(PipelineEncodeResult {
+        qr_data: base45_encode(&compressed),
+        compression_used,
+    })
 }
 
 /// Encode a Claim169 with signing and encryption.
@@ -92,7 +116,7 @@ pub fn encode_signed_and_encrypted(
     encrypt_algorithm: iana::Algorithm,
     nonce: &[u8; 12],
     config: &EncodeConfig,
-) -> Result<String> {
+) -> Result<PipelineEncodeResult> {
     // Step 1: Convert Claim169 to CBOR Value
     let claim169_cbor = if config.skip_biometrics {
         claim169_to_cbor(&claim169.without_biometrics())
@@ -110,11 +134,14 @@ pub fn encode_signed_and_encrypted(
     let encrypted_bytes =
         create_encrypted_cose(&signed_bytes, encryptor, encrypt_algorithm, nonce)?;
 
-    // Step 5: Compress with zlib
-    let compressed = compress(&encrypted_bytes);
+    // Step 5: Compress
+    let (compressed, compression_used) = compress(&encrypted_bytes, config.compression);
 
     // Step 6: Encode as Base45
-    Ok(base45_encode(&compressed))
+    Ok(PipelineEncodeResult {
+        qr_data: base45_encode(&compressed),
+        compression_used,
+    })
 }
 
 /// Create a COSE_Sign1 structure, optionally signed.
@@ -248,13 +275,15 @@ mod tests {
         let result = encode_signed(&claim169, &cwt_meta, None, None, &config);
 
         assert!(result.is_ok());
-        let qr_data = result.unwrap();
+        let encode_result = result.unwrap();
+        let qr_data = &encode_result.qr_data;
 
         // Base45 encoded data should be non-empty and contain valid chars
         assert!(!qr_data.is_empty());
         assert!(qr_data
             .chars()
             .all(|c| { c.is_ascii_uppercase() || c.is_ascii_digit() || " $%*+-./:".contains(c) }));
+        assert_eq!(encode_result.compression_used, DetectedCompression::Zlib);
     }
 
     #[test]
@@ -325,8 +354,8 @@ mod tests {
         );
 
         assert!(result.is_ok());
-        let qr_data = result.unwrap();
-        assert!(!qr_data.is_empty());
+        let encode_result = result.unwrap();
+        assert!(!encode_result.qr_data.is_empty());
     }
 
     #[cfg(feature = "software-crypto")]
@@ -362,8 +391,8 @@ mod tests {
         );
 
         assert!(result.is_ok());
-        let qr_data = result.unwrap();
-        assert!(!qr_data.is_empty());
+        let encode_result = result.unwrap();
+        assert!(!encode_result.qr_data.is_empty());
     }
 
     #[cfg(feature = "software-crypto")]
@@ -392,7 +421,7 @@ mod tests {
         let config = EncodeConfig::default();
 
         // Encode
-        let qr_data = encode_signed(
+        let encode_result = encode_signed(
             &original_claim,
             &cwt_meta,
             Some(&signer),
@@ -402,8 +431,8 @@ mod tests {
         .unwrap();
 
         // Decode: Base45 → decompress → COSE → CWT → Claim169
-        let compressed = base45_decode(&qr_data).unwrap();
-        let cose_bytes = decompress(&compressed, 65536).unwrap();
+        let compressed = base45_decode(&encode_result.qr_data).unwrap();
+        let (cose_bytes, _detected) = decompress(&compressed, 65536).unwrap();
         let cose_result = parse_and_verify(&cose_bytes, Some(&verifier), None).unwrap();
 
         assert_eq!(
@@ -453,7 +482,7 @@ mod tests {
         let config = EncodeConfig::default();
 
         // Encode
-        let qr_data = encode_signed_and_encrypted(
+        let encode_result = encode_signed_and_encrypted(
             &original_claim,
             &cwt_meta,
             Some(&signer),
@@ -466,8 +495,8 @@ mod tests {
         .unwrap();
 
         // Decode: Base45 → decompress → COSE (decrypt + verify) → CWT → Claim169
-        let compressed = base45_decode(&qr_data).unwrap();
-        let cose_bytes = decompress(&compressed, 65536).unwrap();
+        let compressed = base45_decode(&encode_result.qr_data).unwrap();
+        let (cose_bytes, _detected) = decompress(&compressed, 65536).unwrap();
         let cose_result = parse_and_verify(&cose_bytes, Some(&verifier), Some(&decryptor)).unwrap();
 
         assert_eq!(

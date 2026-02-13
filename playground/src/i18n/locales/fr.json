@@ -46,6 +46,14 @@
   "credential": {
     "title": "Paramètres du credential"
   },
+  "compression": {
+    "title": "Compression",
+    "zlib": "zlib (défaut)",
+    "none": "Aucune",
+    "adaptive": "Adaptatif",
+    "brotli9": "Brotli (qualité 9)",
+    "nonStandardWarning": "Compression non standard. Les autres décodeurs pourraient ne pas la supporter."
+  },
   "cwt": {
     "title": "Paramètres du jeton",
     "issuer": "Émetteur",

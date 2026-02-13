@@ -195,6 +195,39 @@ let qr_data = Encoder::new(claim169, cwt_meta)
 
 See [Encryption](./encryption.md) for more details.
 
+## Compression
+
+By default, the encoder uses zlib (spec-compliant). You can choose a different compression mode:
+
+```rust
+use claim169_core::{Encoder, Compression};
+
+// No compression (for tiny payloads where zlib adds overhead)
+let result = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .compression(Compression::None)
+    .encode()?;
+
+// Adaptive: uses zlib if it reduces size, otherwise stores raw
+let result = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .compression(Compression::Adaptive)
+    .encode()?;
+```
+
+With the `compression-brotli` feature enabled:
+
+```rust
+// Brotli at quality 6 (non-standard, ~15% smaller than zlib)
+let result = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .compression(Compression::Brotli(6))
+    .encode()?;
+```
+
+!!! warning "Interoperability"
+    Non-standard compression modes produce credentials that only this library can decode. Use them only in closed ecosystems.
+
 ## Excluding Biometrics
 
 To reduce QR code size, exclude biometric data:
@@ -248,15 +281,32 @@ Encoder::new(claim, meta)
     .encode()?;
 ```
 
-## Error Handling
+## Encode Result
 
-The `encode()` method returns `Result<String, Claim169Error>`:
+The `encode()` method returns `Result<EncodeResult, Claim169Error>`:
+
+```rust
+use claim169_core::EncodeResult;
+
+let result: EncodeResult = Encoder::new(claim169, cwt_meta)
+    .sign_with_ed25519(&private_key)?
+    .encode()?;
+
+println!("QR data: {}", result.qr_data);
+println!("Compression used: {:?}", result.compression_used);
+
+for warning in &result.warnings {
+    println!("Warning: {}", warning.message);
+}
+```
+
+## Error Handling
 
 ```rust
 use claim169_core::Claim169Error;
 
 match Encoder::new(claim169, cwt_meta).sign_with_ed25519(&key)?.encode() {
-    Ok(qr_data) => println!("Encoded: {}", qr_data),
+    Ok(result) => println!("Encoded: {}", result.qr_data),
     Err(Claim169Error::EncodingConfig(msg)) => {
         eprintln!("Configuration error: {}", msg);
     }

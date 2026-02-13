@@ -120,6 +120,11 @@ Le nonce/IV fait 12 octets et doit être unique pour chaque chiffrement.
 
 Les octets COSE sont compressés avec zlib (DEFLATE) afin de tenir confortablement dans des QR codes.
 
+Le décodeur détecte automatiquement le format de compression en inspectant les premiers octets (`0x78` indique zlib). Cela permet une compatibilité ascendante si d'autres formats de compression sont utilisés à l'avenir.
+
+!!! note "Compression non standard"
+    Cette bibliothèque prend également en charge l'encodage sans compression ou avec Brotli (opt-in via la feature `compression-brotli`). Ce sont des extensions non standard. La spécification impose zlib, et d'autres implémentations Claim 169 peuvent ne pas supporter les formats alternatifs.
+
 ## 6) Encodage Base45
 
 Les octets compressés sont encodés en Base45 pour le mode alphanumérique des QR codes.

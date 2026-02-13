@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ChevronDown, ChevronRight, Copy, Check, Eye, EyeOff, AlertTriangle, RefreshCw } from "lucide-react"
 import { copyToClipboard, generateEd25519KeyPair, generateEcdsaP256KeyPair, generateAesKey, detectPublicKeyFormat, detectEncryptionKeyFormat } from "@/lib/utils"
 import { PhotoUpload, type PhotoPlacement } from "@/components/PhotoUpload"
-import type { SigningMethod, EncryptionMethod } from "@/components/UnifiedPlayground"
+import type { SigningMethod, EncryptionMethod, CompressionMode } from "@/components/UnifiedPlayground"
 
 interface IdentityPanelProps {
   claim169: Claim169Input
@@ -27,6 +27,8 @@ interface IdentityPanelProps {
   onEncryptionMethodChange: (method: EncryptionMethod) => void
   encryptionKey: string
   onEncryptionKeyChange: (key: string) => void
+  compressionMode: CompressionMode
+  onCompressionModeChange: (mode: CompressionMode) => void
   onLoadSample: () => void
   onLoadExample: (key: string) => void
   samplePhotoUrl?: string | null
@@ -48,6 +50,8 @@ export function IdentityPanel({
   onEncryptionMethodChange,
   encryptionKey,
   onEncryptionKeyChange,
+  compressionMode,
+  onCompressionModeChange,
   onLoadSample,
   onLoadExample,
   samplePhotoUrl,
@@ -686,6 +690,27 @@ export function IdentityPanel({
           <span>{t("crypto.securityWarning")}</span>
         </div>
         </div>
+
+      {/* Compression Section */}
+      <div className="space-y-2 p-4 rounded-lg border border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20">
+        <Label className="text-xs font-medium text-purple-800 dark:text-purple-200">{t("compression.title")}</Label>
+        <Select
+          value={compressionMode}
+          onChange={(e) => onCompressionModeChange(e.target.value as CompressionMode)}
+          className="text-sm h-8"
+        >
+          <option value="zlib">{t("compression.zlib")}</option>
+          <option value="none">{t("compression.none")}</option>
+          <option value="adaptive-brotli:9">{t("compression.adaptive")}</option>
+          <option value="brotli:9">{t("compression.brotli9")}</option>
+        </Select>
+        {compressionMode !== "zlib" && (
+          <div className="flex items-start gap-2 p-2 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{t("compression.nonStandardWarning")}</span>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   )

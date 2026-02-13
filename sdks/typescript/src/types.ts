@@ -417,6 +417,43 @@ export interface DecodeResult {
 }
 
 /**
+ * Warning from the encode/decode pipeline.
+ */
+export interface EncodeWarning {
+  /** Warning code (e.g., "non_standard_compression") */
+  code: string;
+  /** Human-readable warning message */
+  message: string;
+}
+
+/**
+ * Result of encoding a Claim 169 credential.
+ *
+ * Contains the QR-ready Base45 string, the compression method that was
+ * actually used, and any warnings generated during encoding.
+ *
+ * @example
+ * ```typescript
+ * const result = new Encoder(claim169, cwtMeta)
+ *   .signWithEd25519(privateKey)
+ *   .compression("zlib")
+ *   .encode();
+ *
+ * console.log(result.qrData);           // Base45 string
+ * console.log(result.compressionUsed);  // "zlib"
+ * console.log(result.warnings);         // []
+ * ```
+ */
+export interface EncodeResult {
+  /** Base45-encoded string suitable for QR code generation */
+  qrData: string;
+  /** Compression method that was actually used (e.g., "zlib", "brotli", "none") */
+  compressionUsed: string;
+  /** Warnings generated during encoding */
+  warnings: EncodeWarning[];
+}
+
+/**
  * Error thrown when decoding fails.
  *
  * @example
@@ -663,11 +700,19 @@ export interface IEncoder {
   ): IEncoder;
 
   /**
-   * Encode the credential to a Base45 QR string.
-   * @returns Base45-encoded string suitable for QR code generation
+   * Set compression mode for encoding.
+   * @param mode - Compression mode: "zlib", "none", "adaptive", "brotli:N" (0-11), or "adaptive-brotli:N"
+   * @returns The encoder instance for chaining
+   * @throws {Claim169Error} If the mode is invalid or unsupported by the WASM build
+   */
+  compression(mode: string): IEncoder;
+
+  /**
+   * Encode the credential to a QR-ready result object.
+   * @returns Encode result with QR data, compression info, and warnings
    * @throws {Claim169Error} If encoding fails
    */
-  encode(): string;
+  encode(): EncodeResult;
 }
 
 // ============================================================================

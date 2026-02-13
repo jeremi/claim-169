@@ -45,7 +45,9 @@ use coset::iana;
 use crate::crypto::traits::{Encryptor, Signer};
 use crate::error::{Claim169Error, Result};
 use crate::model::{Claim169, CwtMeta};
+use crate::pipeline::decompress::{Compression, DetectedCompression};
 use crate::pipeline::encode::{encode_signed, encode_signed_and_encrypted, EncodeConfig};
+use crate::{Warning, WarningCode};
 
 #[cfg(feature = "software-crypto")]
 use crate::crypto::software::AesGcmEncryptor;
@@ -55,6 +57,17 @@ struct EncryptConfig {
     encryptor: Box<dyn Encryptor + Send + Sync>,
     algorithm: iana::Algorithm,
     nonce: Option<[u8; 12]>,
+}
+
+/// Result of encoding a Claim 169 credential.
+#[derive(Debug)]
+pub struct EncodeResult {
+    /// The Base45-encoded QR code string.
+    pub qr_data: String,
+    /// Which compression was actually applied.
+    pub compression_used: DetectedCompression,
+    /// Warnings generated during encoding.
+    pub warnings: Vec<Warning>,
 }
 
 /// Builder for encoding Claim 169 credentials into QR-ready strings.
@@ -97,6 +110,7 @@ pub struct Encoder {
     encrypt_config: Option<EncryptConfig>,
     allow_unsigned: bool,
     skip_biometrics: bool,
+    compression: Compression,
 }
 
 impl Encoder {
@@ -121,6 +135,7 @@ impl Encoder {
             encrypt_config: None,
             allow_unsigned: false,
             skip_biometrics: false,
+            compression: Compression::default(),
         }
     }
 
@@ -348,6 +363,29 @@ impl Encoder {
         self
     }
 
+    /// Set the compression mode for encoding.
+    ///
+    /// The default is `Compression::Zlib` (spec-compliant). Other modes
+    /// produce non-standard output and will generate a warning.
+    ///
+    /// # Arguments
+    ///
+    /// * `compression` - The compression mode to use
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use claim169_core::{Encoder, Compression};
+    ///
+    /// let encoder = Encoder::new(claim169, cwt_meta)
+    ///     .compression(Compression::Adaptive)
+    ///     .allow_unsigned();
+    /// ```
+    pub fn compression(mut self, compression: Compression) -> Self {
+        self.compression = compression;
+        self
+    }
+
     /// Encode the credential to a Base45 QR string.
     ///
     /// This method consumes the encoder and produces the final QR-ready string.
@@ -375,7 +413,7 @@ impl Encoder {
     ///
     /// println!("QR content: {}", qr_data);
     /// ```
-    pub fn encode(self) -> Result<String> {
+    pub fn encode(self) -> Result<EncodeResult> {
         // Validate configuration
         if self.signer.is_none() && !self.allow_unsigned {
             return Err(Claim169Error::EncodingConfig(
@@ -385,6 +423,7 @@ impl Encoder {
 
         let config = EncodeConfig {
             skip_biometrics: self.skip_biometrics,
+            compression: self.compression,
         };
 
         // Convert the boxed signer to a trait object reference
@@ -393,7 +432,7 @@ impl Encoder {
         let signer_ref: Option<&dyn Signer> =
             self.signer.as_ref().map(|s| s.as_ref() as &dyn Signer);
 
-        match self.encrypt_config {
+        let pipeline_result = match self.encrypt_config {
             Some(encrypt_config) => {
                 // Get nonce - auto-generate if software-crypto is enabled, otherwise require explicit
                 #[cfg(feature = "software-crypto")]
@@ -416,7 +455,7 @@ impl Encoder {
                     encrypt_config.algorithm,
                     &nonce,
                     &config,
-                )
+                )?
             }
             None => encode_signed(
                 &self.claim169,
@@ -424,8 +463,25 @@ impl Encoder {
                 signer_ref,
                 self.sign_algorithm,
                 &config,
-            ),
+            )?,
+        };
+
+        let mut warnings = Vec::new();
+        if pipeline_result.compression_used != DetectedCompression::Zlib {
+            warnings.push(Warning {
+                code: WarningCode::NonStandardCompression,
+                message: format!(
+                    "non-standard compression used: {}",
+                    pipeline_result.compression_used
+                ),
+            });
         }
+
+        Ok(EncodeResult {
+            qr_data: pipeline_result.qr_data,
+            compression_used: pipeline_result.compression_used,
+            warnings,
+        })
     }
 }
 
@@ -483,8 +539,10 @@ mod tests {
         let result = Encoder::new(claim169, cwt_meta).allow_unsigned().encode();
 
         assert!(result.is_ok());
-        let qr_data = result.unwrap();
-        assert!(!qr_data.is_empty());
+        let encode_result = result.unwrap();
+        assert!(!encode_result.qr_data.is_empty());
+        assert_eq!(encode_result.compression_used, DetectedCompression::Zlib);
+        assert!(encode_result.warnings.is_empty());
     }
 
     #[cfg(feature = "software-crypto")]
@@ -567,7 +625,7 @@ mod tests {
             .unwrap();
 
         // Without biometrics should be smaller
-        assert!(result_without_bio.len() < result_with_bio.len());
+        assert!(result_without_bio.qr_data.len() < result_with_bio.qr_data.len());
     }
 
     #[cfg(feature = "software-crypto")]
@@ -597,7 +655,7 @@ mod tests {
         let nonce = [11u8; 12];
 
         // Encode using builder
-        let qr_data = Encoder::new(original_claim.clone(), cwt_meta.clone())
+        let encode_result = Encoder::new(original_claim.clone(), cwt_meta.clone())
             .sign_with(signer, iana::Algorithm::EdDSA)
             .encrypt_with_aes256_nonce(&encrypt_key, &nonce)
             .unwrap()
@@ -605,8 +663,8 @@ mod tests {
             .unwrap();
 
         // Decode and verify
-        let compressed = base45_decode(&qr_data).unwrap();
-        let cose_bytes = decompress(&compressed, 65536).unwrap();
+        let compressed = base45_decode(&encode_result.qr_data).unwrap();
+        let (cose_bytes, _detected) = decompress(&compressed, 65536).unwrap();
         let decryptor = AesGcmDecryptor::aes256(&encrypt_key).unwrap();
         let cose_result = cose_parse(&cose_bytes, Some(&verifier), Some(&decryptor)).unwrap();
 
@@ -621,6 +679,66 @@ mod tests {
         assert_eq!(decoded_claim.id, original_claim.id);
         assert_eq!(decoded_claim.full_name, original_claim.full_name);
         assert_eq!(decoded_claim.email, original_claim.email);
+    }
+
+    #[test]
+    fn test_encoder_compression_none_produces_warning() {
+        let claim169 = Claim169::minimal("test", "Test");
+        let cwt_meta = CwtMeta::default();
+
+        let result = Encoder::new(claim169, cwt_meta)
+            .allow_unsigned()
+            .compression(Compression::None)
+            .encode()
+            .unwrap();
+
+        assert_eq!(result.compression_used, DetectedCompression::None);
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.code == WarningCode::NonStandardCompression));
+    }
+
+    #[test]
+    fn test_encoder_default_compression_is_zlib() {
+        let claim169 = Claim169::minimal("test", "Test");
+        let cwt_meta = CwtMeta::default();
+
+        let result = Encoder::new(claim169, cwt_meta)
+            .allow_unsigned()
+            .encode()
+            .unwrap();
+
+        assert_eq!(result.compression_used, DetectedCompression::Zlib);
+        assert!(!result
+            .warnings
+            .iter()
+            .any(|w| w.code == WarningCode::NonStandardCompression));
+    }
+
+    #[test]
+    fn test_encoder_compression_none_roundtrips_through_decoder() {
+        use crate::Decoder;
+
+        let claim169 = Claim169::minimal("no-compress", "Test User");
+        let cwt_meta = CwtMeta::new().with_expires_at(i64::MAX);
+
+        let encode_result = Encoder::new(claim169, cwt_meta)
+            .allow_unsigned()
+            .compression(Compression::None)
+            .encode()
+            .unwrap();
+
+        let decode_result = Decoder::new(&encode_result.qr_data)
+            .allow_unverified()
+            .decode()
+            .unwrap();
+
+        assert_eq!(decode_result.claim169.id.as_deref(), Some("no-compress"));
+        assert_eq!(
+            decode_result.detected_compression,
+            DetectedCompression::None
+        );
     }
 
     #[test]

@@ -54,7 +54,7 @@ fn test_empty_signature_rejected() {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Try to verify - should fail
@@ -99,7 +99,7 @@ fn test_truncated_signature_rejected() {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let signer = Ed25519Signer::generate();
@@ -156,7 +156,7 @@ fn test_corrupted_signature_rejected() {
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let result = Decoder::new(&qr_data)
@@ -197,7 +197,7 @@ fn test_missing_algorithm_rejected_with_verifier() {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let signer = Ed25519Signer::generate();
@@ -258,7 +258,7 @@ fn test_eddsa_signed_ecdsa_verifier_rejected() {
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Try to verify with ECDSA verifier - should fail due to algorithm mismatch
@@ -337,7 +337,7 @@ fn test_ecdsa_signed_eddsa_verifier_rejected() {
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Try to verify with EdDSA verifier - should fail due to algorithm mismatch
@@ -423,7 +423,7 @@ fn test_ecdsa_p256_full_pipeline_sign_verify() {
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Decode with verification
@@ -477,7 +477,7 @@ fn test_ecdsa_p256_wrong_verifier_fails() {
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Try to verify with different ECDSA key
@@ -528,7 +528,7 @@ fn test_zip_bomb_protection() {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Use builder with small decompression limit
@@ -594,7 +594,7 @@ fn test_deeply_nested_cbor_rejected() {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let result = Decoder::new(&qr_data)
@@ -662,7 +662,7 @@ fn test_all_zeros_key_rejected() {
             .build();
 
         let cose_bytes = sign1.to_tagged_vec().unwrap();
-        let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+        let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
         let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
         let result = Decoder::new(&qr_data)
@@ -742,7 +742,7 @@ fn test_tampered_payload_detected() {
     sign1.payload = Some(tampered_cwt);
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     // Verification should fail because signature doesn't match tampered content

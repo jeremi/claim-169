@@ -18,6 +18,9 @@ coset.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
+[features]
+compression-brotli = ["claim169-core/compression-brotli"]
+
 [[bin]]
 name = "uniffi-bindgen"
 path = "uniffi-bindgen.rs"

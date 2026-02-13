@@ -146,6 +146,19 @@ const result = new Decoder(qrText)
 
 The default limit is 65536 bytes (64KB).
 
+### Strict Compression
+
+By default, the decoder auto-detects and accepts any compression format (zlib, brotli, or none). To enforce spec compliance and reject non-zlib data:
+
+```typescript
+const result = new Decoder(qrText)
+  .verifyWithEd25519(publicKey)
+  .strictCompression()  // Reject non-zlib compression
+  .decode();
+```
+
+Without `strictCompression()`, non-zlib credentials decode normally but produce a `non_standard_compression` warning.
+
 ## Accessing Decoded Data
 
 ### Identity Data (Claim169)
@@ -198,6 +211,31 @@ if (cwtMeta.expiresAt) {
 }
 ```
 
+### Detected Compression
+
+After decoding, you can check which compression format was used:
+
+```typescript
+console.log('Compression:', result.detectedCompression);
+// "zlib", "brotli", or "none"
+```
+
+### Warnings
+
+```typescript
+for (const warning of result.warnings) {
+  console.log(`Warning [${warning.code}]: ${warning.message}`);
+}
+```
+
+| Warning Code | Meaning |
+|--------------|---------|
+| `expiring_soon` | Credential will expire soon |
+| `unknown_fields` | Unrecognized CBOR keys (forward compatibility) |
+| `timestamp_validation_skipped` | Timestamp checks were disabled |
+| `biometrics_skipped` | Biometric parsing was skipped |
+| `non_standard_compression` | Compression format is not zlib |
+
 ### Verification Status
 
 ```typescript
@@ -241,6 +279,7 @@ const options: DecodeOptions = {
   validateTimestamps: true,
   clockSkewToleranceSeconds: 60,
   maxDecompressedBytes: 32768,
+  strictCompression: false,  // Set to true to reject non-zlib
 };
 
 const result = decode(qrText, options);
@@ -297,6 +336,7 @@ const result = new Decoder(qrText)
   .skipBiometrics()
   .clockSkewTolerance(120)
   .maxDecompressedBytes(65536)
+  .strictCompression()
   .decode();
 ```
 

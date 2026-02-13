@@ -41,7 +41,7 @@ fn encode_unsigned_qr(meta: &CwtMeta, claim_169: &Value) -> String {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     claim169_core::pipeline::base45::encode(&compressed)
 }
 
@@ -65,7 +65,7 @@ fn encode_signed_qr(meta: &CwtMeta, claim_169: &Value, signer: &Ed25519Signer) -
     sign1.signature = signature;
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     claim169_core::pipeline::base45::encode(&compressed)
 }
 
@@ -109,7 +109,7 @@ fn encode_encrypted_qr(
         .build();
 
     let cose_bytes = encrypt0.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     claim169_core::pipeline::base45::encode(&compressed)
 }
 
@@ -390,12 +390,28 @@ fn test_invalid_base45_rejected() {
 
 #[test]
 fn test_invalid_zlib_rejected() {
-    // Valid Base45 but garbage data
+    // Valid Base45 but garbage data — with auto-detection, non-zlib data
+    // is treated as raw COSE and fails at COSE parsing instead.
     let garbage = claim169_core::pipeline::base45::encode(&[0xDE, 0xAD, 0xBE, 0xEF]);
 
     let result = Decoder::new(&garbage)
         .allow_unverified()
         .without_timestamp_validation()
+        .decode();
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_strict_compression_rejects_non_zlib_data() {
+    // With strict compression, garbage data that doesn't start with 0x78
+    // should be rejected as non-zlib.
+    let garbage = claim169_core::pipeline::base45::encode(&[0xDE, 0xAD, 0xBE, 0xEF]);
+
+    let result = Decoder::new(&garbage)
+        .allow_unverified()
+        .without_timestamp_validation()
+        .strict_compression()
         .decode();
 
     assert!(result.is_err());
@@ -413,7 +429,7 @@ fn test_not_cose_rejected() {
     let mut cbor_bytes = Vec::new();
     ciborium::into_writer(&cbor_array, &mut cbor_bytes).unwrap();
 
-    let compressed = claim169_core::pipeline::decompress::compress(&cbor_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cbor_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let result = Decoder::new(&qr_data)
@@ -450,7 +466,7 @@ fn test_missing_claim_169_rejected() {
         .build();
 
     let cose_bytes = sign1.to_tagged_vec().unwrap();
-    let compressed = claim169_core::pipeline::decompress::compress(&cose_bytes);
+    let compressed = claim169_core::pipeline::decompress::compress_zlib(&cose_bytes);
     let qr_data = claim169_core::pipeline::base45::encode(&compressed);
 
     let result = Decoder::new(&qr_data)

@@ -40,7 +40,7 @@ describe("security regressions", () => {
       { issuer: "https://security.example", issuedAt: 0, expiresAt: 1 }
     )
       .signWithEd25519(privateKey)
-      .encode();
+      .encode().qrData;
 
     // Default behavior: timestamp validation happens in JS (host-side), so expired
     // credentials are rejected even though signature verification succeeds.

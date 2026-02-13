@@ -204,6 +204,9 @@ meta = result.cwt_meta
 # Verification status string
 status = result.verification_status  # "verified", "skipped", etc.
 
+# Compression format detected during decoding
+compression = result.detected_compression  # "zlib", "brotli", or "none"
+
 # Helper method
 is_verified = result.is_verified()  # True/False
 ```

@@ -167,12 +167,43 @@ const qrData = new Encoder(claim169, cwtMeta)
 
 ## Encoder Options
 
+### Compression
+
+By default, the encoder uses zlib compression (spec-compliant). You can choose a different compression mode:
+
+```typescript
+// No compression (for tiny payloads where zlib adds overhead)
+const result = new Encoder(claim169, cwtMeta)
+  .signWithEd25519(privateKey)
+  .compression("none")
+  .encode();
+
+// Adaptive: uses zlib if it reduces size, otherwise stores raw
+const result = new Encoder(claim169, cwtMeta)
+  .signWithEd25519(privateKey)
+  .compression("adaptive")
+  .encode();
+```
+
+Supported compression modes:
+
+| Mode | Spec-compliant | Description |
+|------|:-:|-------------|
+| `"zlib"` | Yes | Default. Standard zlib/DEFLATE compression |
+| `"none"` | No | No compression |
+| `"adaptive"` | No | Picks zlib if it reduces size, otherwise stores raw |
+| `"brotli:N"` | No | Brotli at quality N (0–11). Requires brotli feature |
+| `"adaptive-brotli:N"` | No | Picks brotli if it reduces size, otherwise stores raw |
+
+!!! warning "Interoperability"
+    Non-standard compression modes produce credentials that only this library can decode. Use them only in closed ecosystems.
+
 ### Skip Biometrics
 
 Skip biometric fields during encoding:
 
 ```typescript
-const qrData = new Encoder(claim169, cwtMeta)
+const result = new Encoder(claim169, cwtMeta)
   .signWithEd25519(privateKey)
   .skipBiometrics()
   .encode();
@@ -183,12 +214,36 @@ const qrData = new Encoder(claim169, cwtMeta)
 All encoder methods return the encoder instance for fluent chaining:
 
 ```typescript
-const qrData = new Encoder(claim169, cwtMeta)
+const result = new Encoder(claim169, cwtMeta)
   .signWithEd25519(signKey)
   .skipBiometrics()
+  .compression("adaptive")
   .encryptWithAes256(encryptKey)
   .encode();
 ```
+
+## Encode Result
+
+The `encode()` method returns an object with the QR data, compression info, and warnings:
+
+```typescript
+const result = new Encoder(claim169, cwtMeta)
+  .signWithEd25519(privateKey)
+  .encode();
+
+console.log('QR data:', result.qrData);
+console.log('Compression used:', result.compressionUsed);  // "zlib", "brotli", or "none"
+
+for (const warning of result.warnings) {
+  console.log(`Warning [${warning.code}]: ${warning.message}`);
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `qrData` | `string` | The Base45-encoded string for QR code generation |
+| `compressionUsed` | `string` | Compression applied: `"zlib"`, `"brotli"`, or `"none"` |
+| `warnings` | `Array<{code, message}>` | Non-fatal warnings (e.g., `non_standard_compression`) |
 
 ## Error Handling
 
@@ -196,7 +251,7 @@ const qrData = new Encoder(claim169, cwtMeta)
 import { Encoder, Claim169Error } from 'claim169';
 
 try {
-  const qrData = new Encoder(claim169, cwtMeta)
+  const result = new Encoder(claim169, cwtMeta)
     .signWithEd25519(privateKey)
     .encode();
 } catch (error) {
@@ -276,13 +331,13 @@ import { Encoder, Decoder } from 'claim169';
 const claim169 = { id: "TEST-001", fullName: "Test User" };
 const cwtMeta = { issuer: "https://test.example" };
 
-const qrData = new Encoder(claim169, cwtMeta)
+const encodeResult = new Encoder(claim169, cwtMeta)
   .signWithEd25519(privateKey)
   .encode();
 
 // Decode and verify
 const publicKey = derivePublicKey(privateKey);
-const result = new Decoder(qrData)
+const result = new Decoder(encodeResult.qrData)
   .verifyWithEd25519(publicKey)
   .decode();
 

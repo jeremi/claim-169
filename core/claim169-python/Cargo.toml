@@ -13,3 +13,6 @@ crate-type = ["cdylib"]
 claim169-core = { path = "../claim169-core" }
 pyo3.workspace = true
 coset.workspace = true
+
+[features]
+compression-brotli = ["claim169-core/compression-brotli"]

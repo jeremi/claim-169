@@ -521,6 +521,58 @@ impl From<&CoreClaim169> for JsClaim169 {
     }
 }
 
+/// Warning from encode/decode
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsWarning {
+    pub code: String,
+    pub message: String,
+}
+
+fn warning_code_to_string(code: claim169_core::WarningCode) -> &'static str {
+    match code {
+        claim169_core::WarningCode::ExpiringSoon => "expiring_soon",
+        claim169_core::WarningCode::UnknownFields => "unknown_fields",
+        claim169_core::WarningCode::TimestampValidationSkipped => "timestamp_validation_skipped",
+        claim169_core::WarningCode::BiometricsSkipped => "biometrics_skipped",
+        claim169_core::WarningCode::NonStandardCompression => "non_standard_compression",
+    }
+}
+
+fn detected_compression_to_string(dc: &claim169_core::DetectedCompression) -> &'static str {
+    match dc {
+        claim169_core::DetectedCompression::Zlib => "zlib",
+        #[cfg(feature = "compression-brotli")]
+        claim169_core::DetectedCompression::Brotli => "brotli",
+        claim169_core::DetectedCompression::None => "none",
+    }
+}
+
+fn parse_compression(mode: &str) -> Result<claim169_core::Compression, JsError> {
+    match mode {
+        "zlib" => Ok(claim169_core::Compression::Zlib),
+        "none" => Ok(claim169_core::Compression::None),
+        "adaptive" => Ok(claim169_core::Compression::Adaptive),
+        #[cfg(feature = "compression-brotli")]
+        s if s.starts_with("brotli:") => {
+            let quality: u32 = s[7..].parse().map_err(|_| {
+                JsError::new("Invalid brotli quality; use 'brotli:N' where N is 0-11")
+            })?;
+            Ok(claim169_core::Compression::Brotli(quality))
+        }
+        #[cfg(feature = "compression-brotli")]
+        s if s.starts_with("adaptive-brotli:") => {
+            let quality: u32 = s[16..].parse().map_err(|_| {
+                JsError::new("Invalid brotli quality; use 'adaptive-brotli:N' where N is 0-11")
+            })?;
+            Ok(claim169_core::Compression::AdaptiveBrotli(quality))
+        }
+        _ => Err(JsError::new(
+            "Unknown compression mode. Use 'zlib', 'none', or 'adaptive'",
+        )),
+    }
+}
+
 /// Decode result
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -529,6 +581,17 @@ pub struct JsDecodeResult {
     pub cwt_meta: JsCwtMeta,
     pub verification_status: String,
     pub x509_headers: JsX509Headers,
+    pub detected_compression: String,
+    pub warnings: Vec<JsWarning>,
+}
+
+/// Encode result
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsEncodeResult {
+    pub qr_data: String,
+    pub compression_used: String,
+    pub warnings: Vec<JsWarning>,
 }
 
 // ============================================================================
@@ -571,6 +634,7 @@ pub struct WasmDecoder {
     max_decompressed_bytes: usize,
     verify_config: VerifyConfig,
     decrypt_config: Option<DecryptConfig>,
+    strict_compression: bool,
 }
 
 #[wasm_bindgen]
@@ -585,6 +649,7 @@ impl WasmDecoder {
             max_decompressed_bytes: 65536,
             verify_config: VerifyConfig::None,
             decrypt_config: None,
+            strict_compression: false,
         }
     }
 
@@ -727,6 +792,13 @@ impl WasmDecoder {
         self
     }
 
+    /// Require spec-compliant zlib compression; reject other formats
+    #[wasm_bindgen(js_name = "strictCompression")]
+    pub fn strict_compression(mut self) -> WasmDecoder {
+        self.strict_compression = true;
+        self
+    }
+
     /// Decode the QR code with configured verification and decryption
     pub fn decode(self) -> Result<JsValue, JsError> {
         let mut decoder =
@@ -784,6 +856,10 @@ impl WasmDecoder {
         // Always disable core timestamp validation and let callers validate in JS.
         decoder = decoder.without_timestamp_validation();
 
+        if self.strict_compression {
+            decoder = decoder.strict_compression();
+        }
+
         let result = decoder.decode().map_err(|e| JsError::new(&e.to_string()))?;
 
         let js_result = JsDecodeResult {
@@ -791,6 +867,16 @@ impl WasmDecoder {
             cwt_meta: JsCwtMeta::from(&result.cwt_meta),
             verification_status: format!("{}", result.verification_status),
             x509_headers: JsX509Headers::from(&result.x509_headers),
+            detected_compression: detected_compression_to_string(&result.detected_compression)
+                .to_string(),
+            warnings: result
+                .warnings
+                .iter()
+                .map(|w| JsWarning {
+                    code: warning_code_to_string(w.code).to_string(),
+                    message: w.message.clone(),
+                })
+                .collect(),
         };
 
         serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))
@@ -813,7 +899,9 @@ struct JsBiometricInput {
 
 /// Convert a list of JS biometric inputs to core Biometric structs
 fn convert_biometrics_input(input: Option<Vec<JsBiometricInput>>) -> Option<Vec<CoreBiometric>> {
-    use claim169_core::model::{BiometricFormat, BiometricSubFormat, ImageSubFormat, TemplateSubFormat, SoundSubFormat};
+    use claim169_core::model::{
+        BiometricFormat, BiometricSubFormat, ImageSubFormat, SoundSubFormat, TemplateSubFormat,
+    };
 
     input.map(|v| {
         v.into_iter()
@@ -1038,6 +1126,7 @@ pub struct WasmEncoder {
     sign_config: SignConfig,
     encrypt_config: Option<WasmEncryptConfig>,
     skip_biometrics: bool,
+    compression_mode: String,
 }
 
 #[wasm_bindgen]
@@ -1059,6 +1148,7 @@ impl WasmEncoder {
             sign_config: SignConfig::None,
             encrypt_config: None,
             skip_biometrics: false,
+            compression_mode: "zlib".to_string(),
         })
     }
 
@@ -1183,6 +1273,15 @@ impl WasmEncoder {
         Ok(self)
     }
 
+    /// Set compression mode: "zlib" (default), "none", "adaptive",
+    /// "brotli:N" (0-11), or "adaptive-brotli:N" (requires compression-brotli feature)
+    pub fn compression(mut self, mode: &str) -> Result<WasmEncoder, JsError> {
+        // Validate the mode string eagerly
+        parse_compression(mode)?;
+        self.compression_mode = mode.to_string();
+        Ok(self)
+    }
+
     /// Allow encoding without a signature (INSECURE - testing only)
     #[wasm_bindgen(js_name = "allowUnsigned")]
     pub fn allow_unsigned(mut self) -> WasmEncoder {
@@ -1197,9 +1296,10 @@ impl WasmEncoder {
         self
     }
 
-    /// Encode the credential to a Base45 QR string
-    pub fn encode(self) -> Result<String, JsError> {
-        let mut encoder = Encoder::new(self.claim169, self.cwt_meta);
+    /// Encode the credential to a QR-ready result object
+    pub fn encode(self) -> Result<JsValue, JsError> {
+        let compression = parse_compression(&self.compression_mode)?;
+        let mut encoder = Encoder::new(self.claim169, self.cwt_meta).compression(compression);
 
         if self.skip_biometrics {
             encoder = encoder.skip_biometrics();
@@ -1240,7 +1340,22 @@ impl WasmEncoder {
             };
         }
 
-        encoder.encode().map_err(|e| JsError::new(&e.to_string()))
+        let result = encoder.encode().map_err(|e| JsError::new(&e.to_string()))?;
+
+        let js_result = JsEncodeResult {
+            qr_data: result.qr_data,
+            compression_used: detected_compression_to_string(&result.compression_used).to_string(),
+            warnings: result
+                .warnings
+                .iter()
+                .map(|w| JsWarning {
+                    code: warning_code_to_string(w.code).to_string(),
+                    message: w.message.clone(),
+                })
+                .collect(),
+        };
+
+        serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))
     }
 }
 

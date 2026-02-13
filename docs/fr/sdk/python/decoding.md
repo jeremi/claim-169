@@ -195,7 +195,7 @@ Les fonctions de décodage renvoient un objet `DecodeResult` :
 ```python
 result = claim169.decode_with_ed25519(qr_data, public_key)
 
-# Le claim d’identité décodé
+# Le claim d'identité décodé
 claim = result.claim169
 
 # Métadonnées CWT (issuer, timestamps)
@@ -203,6 +203,9 @@ meta = result.cwt_meta
 
 # Statut de vérification sous forme de chaîne
 status = result.verification_status  # "verified", "skipped", etc.
+
+# Format de compression détecté pendant le décodage
+compression = result.detected_compression  # "zlib", "brotli", or "none"
 
 # Méthode helper
 is_verified = result.is_verified()  # True/False

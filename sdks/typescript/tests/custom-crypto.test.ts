@@ -53,7 +53,7 @@ describe("Custom Crypto Providers", () => {
         expiresAt: 1900000000,
       };
 
-      const qrData = new Encoder(claim, meta).signWith(mySigner, "EdDSA").encode();
+      const qrData = new Encoder(claim, meta).signWith(mySigner, "EdDSA").encode().qrData;
 
       expect(signerCalled).toBe(true);
       expect(receivedAlgorithm).toBe("EdDSA");
@@ -89,7 +89,7 @@ describe("Custom Crypto Providers", () => {
         expiresAt: 1900000000,
       };
 
-      const qrData = new Encoder(claim, meta).signWith(mySigner, "ES256").encode();
+      const qrData = new Encoder(claim, meta).signWith(mySigner, "ES256").encode().qrData;
 
       expect(receivedAlgorithm).toBe("ES256");
       expect(typeof qrData).toBe("string");
@@ -116,7 +116,7 @@ describe("Custom Crypto Providers", () => {
       const expectedKeyId = new Uint8Array([1, 2, 3, 4, 5]);
       const qrData = new Encoder(claim, meta)
         .signWith(mySigner, "EdDSA", expectedKeyId)
-        .encode();
+        .encode().qrData;
 
       expect(typeof qrData).toBe("string");
       expect(receivedKeyId).not.toBeNull();
@@ -154,7 +154,7 @@ describe("Custom Crypto Providers", () => {
         expiresAt: 1900000000,
       };
 
-      const qrData = new Encoder(claim, meta).signWithEd25519(privateKey).encode();
+      const qrData = new Encoder(claim, meta).signWithEd25519(privateKey).encode().qrData;
 
       // Now decode with a custom verifier that always passes
       let verifierCalled = false;
@@ -187,7 +187,7 @@ describe("Custom Crypto Providers", () => {
       };
       const meta: CwtMetaInput = { expiresAt: 1900000000 };
 
-      const qrData = new Encoder(claim, meta).signWithEd25519(privateKey).encode();
+      const qrData = new Encoder(claim, meta).signWithEd25519(privateKey).encode().qrData;
 
       // Verifier that always throws
       const failingVerifier: VerifierCallback = (algorithm, keyId, data, signature) => {
@@ -239,7 +239,7 @@ describe("Custom Crypto Providers", () => {
       const qrData = new Encoder(claim, meta)
         .signWithEd25519(privateKey)
         .encryptWith(myEncryptor, "A256GCM")
-        .encode();
+        .encode().qrData;
 
       expect(encryptorCalled).toBe(true);
       expect(receivedAlgorithm).toBe("A256GCM");
@@ -276,7 +276,7 @@ describe("Custom Crypto Providers", () => {
       const qrData = new Encoder(claim, meta)
         .signWithEd25519(privateKey)
         .encryptWith(myEncryptor, "A128GCM")
-        .encode();
+        .encode().qrData;
 
       expect(receivedAlgorithm).toBe("A128GCM");
       expect(typeof qrData).toBe("string");
@@ -305,7 +305,7 @@ describe("Custom Crypto Providers", () => {
       const qrData = new Encoder(claim, meta)
         .signWithEd25519(privateKey)
         .encryptWithAes256(encryptKey)
-        .encode();
+        .encode().qrData;
 
       // Now decode with custom decryptor that delegates to our known key
       let decryptorCalled = false;
@@ -380,7 +380,7 @@ describe("Custom Crypto Providers", () => {
       };
 
       // Encode with custom signer
-      const qrData = new Encoder(claim, meta).signWith(mySigner, "EdDSA").encode();
+      const qrData = new Encoder(claim, meta).signWith(mySigner, "EdDSA").encode().qrData;
 
       expect(signedData).not.toBeNull();
       expect(signatureProduced).not.toBeNull();
@@ -437,7 +437,7 @@ describe("Custom Crypto Providers", () => {
       const qrData = new Encoder(claim, meta)
         .signWith(mySigner, "EdDSA")
         .encryptWith(myEncryptor, "A256GCM")
-        .encode();
+        .encode().qrData;
 
       expect(signerCalled).toBe(true);
       expect(encryptorCalled).toBe(true);
