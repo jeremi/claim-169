@@ -414,6 +414,10 @@ export interface DecodeResult {
    * Contains certificate information for signature verification.
    */
   x509Headers: X509Headers;
+  /** Compression format detected during decoding (e.g., "zlib", "brotli", "none") */
+  detectedCompression: string;
+  /** Warnings generated during decoding */
+  warnings: EncodeWarning[];
 }
 
 /**

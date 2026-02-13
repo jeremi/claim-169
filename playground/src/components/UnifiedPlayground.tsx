@@ -332,7 +332,7 @@ export function UnifiedPlayground() {
       })
 
       stages.push({
-        name: "zlib",
+        name: result.detectedCompression,
         inputSize: 0,
         outputSize: 0,
         status: "success",
@@ -388,7 +388,11 @@ export function UnifiedPlayground() {
       // Set verification status
       if (result.verificationStatus === "verified") {
         setVerificationStatus("verified")
-        setAlgorithm("EdDSA")
+        if (signingMethod === "ecdsa") {
+          setAlgorithm("ES256 (P-256)")
+        } else {
+          setAlgorithm("EdDSA (Ed25519)")
+        }
       } else if (result.verificationStatus === "skipped") {
         setVerificationStatus("unverified")
         setAlgorithm(undefined)

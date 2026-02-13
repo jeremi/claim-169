@@ -267,6 +267,8 @@ function transformResult(raw: unknown): DecodeResult {
     cwtMeta: Record<string, unknown>;
     verificationStatus: string;
     x509Headers: Record<string, unknown>;
+    detectedCompression: string;
+    warnings: Array<{ code: string; message: string }>;
   };
 
   return {
@@ -283,6 +285,8 @@ function transformResult(raw: unknown): DecodeResult {
       | "skipped"
       | "failed",
     x509Headers: transformX509Headers(result.x509Headers),
+    detectedCompression: result.detectedCompression ?? "zlib",
+    warnings: result.warnings ?? [],
   };
 }
 
