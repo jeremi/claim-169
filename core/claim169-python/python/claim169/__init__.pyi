@@ -69,6 +69,14 @@ class Biometric:
     sub_format: Optional[int]
     issuer: Optional[str]
 
+    def __init__(
+        self,
+        data: bytes,
+        format: Optional[int] = None,
+        sub_format: Optional[int] = None,
+        issuer: Optional[str] = None,
+    ) -> None: ...
+
 class CwtMeta:
     """CWT metadata (issuer, subject, timestamps)."""
     issuer: Optional[str]
@@ -531,6 +539,24 @@ class Claim169Input:
     legal_status: Optional[str]
     country_of_issuance: Optional[str]
 
+    # Biometrics
+    right_thumb: Optional[list[Biometric]]
+    right_pointer_finger: Optional[list[Biometric]]
+    right_middle_finger: Optional[list[Biometric]]
+    right_ring_finger: Optional[list[Biometric]]
+    right_little_finger: Optional[list[Biometric]]
+    left_thumb: Optional[list[Biometric]]
+    left_pointer_finger: Optional[list[Biometric]]
+    left_middle_finger: Optional[list[Biometric]]
+    left_ring_finger: Optional[list[Biometric]]
+    left_little_finger: Optional[list[Biometric]]
+    right_iris: Optional[list[Biometric]]
+    left_iris: Optional[list[Biometric]]
+    face: Optional[list[Biometric]]
+    right_palm: Optional[list[Biometric]]
+    left_palm: Optional[list[Biometric]]
+    voice: Optional[list[Biometric]]
+
     def __init__(
         self,
         id: Optional[str] = None,
@@ -555,6 +581,22 @@ class Claim169Input:
         location_code: Optional[str] = None,
         legal_status: Optional[str] = None,
         country_of_issuance: Optional[str] = None,
+        right_thumb: Optional[list[Biometric]] = None,
+        right_pointer_finger: Optional[list[Biometric]] = None,
+        right_middle_finger: Optional[list[Biometric]] = None,
+        right_ring_finger: Optional[list[Biometric]] = None,
+        right_little_finger: Optional[list[Biometric]] = None,
+        left_thumb: Optional[list[Biometric]] = None,
+        left_pointer_finger: Optional[list[Biometric]] = None,
+        left_middle_finger: Optional[list[Biometric]] = None,
+        left_ring_finger: Optional[list[Biometric]] = None,
+        left_little_finger: Optional[list[Biometric]] = None,
+        right_iris: Optional[list[Biometric]] = None,
+        left_iris: Optional[list[Biometric]] = None,
+        face: Optional[list[Biometric]] = None,
+        right_palm: Optional[list[Biometric]] = None,
+        left_palm: Optional[list[Biometric]] = None,
+        voice: Optional[list[Biometric]] = None,
     ) -> None: ...
 
 class CwtMetaInput:

@@ -106,6 +106,22 @@ pub struct Biometric {
 
 #[pymethods]
 impl Biometric {
+    #[new]
+    #[pyo3(signature = (data, format=None, sub_format=None, issuer=None))]
+    fn new(
+        data: Vec<u8>,
+        format: Option<i64>,
+        sub_format: Option<i64>,
+        issuer: Option<String>,
+    ) -> Self {
+        Biometric {
+            data,
+            format,
+            sub_format,
+            issuer,
+        }
+    }
+
     #[getter]
     fn data<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
         PyBytes::new(py, &self.data)
@@ -128,6 +144,26 @@ impl From<&CoreBiometric> for Biometric {
             format: b.format.map(|f| f as i64),
             sub_format: b.sub_format.as_ref().map(|s| s.to_value()),
             issuer: b.issuer.clone(),
+        }
+    }
+}
+
+impl From<&Biometric> for CoreBiometric {
+    fn from(py: &Biometric) -> Self {
+        use claim169_core::{BiometricFormat, BiometricSubFormat};
+
+        let format = py.format.and_then(|f| BiometricFormat::try_from(f).ok());
+        let sub_format = match (format, py.sub_format) {
+            (Some(fmt), Some(sf)) => Some(BiometricSubFormat::from_format_and_value(fmt, sf)),
+            (None, Some(sf)) => Some(BiometricSubFormat::Raw(sf)),
+            _ => None,
+        };
+
+        CoreBiometric {
+            data: py.data.clone(),
+            format,
+            sub_format,
+            issuer: py.issuer.clone(),
         }
     }
 }
@@ -580,6 +616,12 @@ fn convert_biometrics(biometrics: &Option<Vec<CoreBiometric>>) -> Option<Vec<Bio
     biometrics
         .as_ref()
         .map(|v| v.iter().map(Biometric::from).collect())
+}
+
+fn convert_biometrics_to_core(biometrics: &Option<Vec<Biometric>>) -> Option<Vec<CoreBiometric>> {
+    biometrics
+        .as_ref()
+        .map(|v| v.iter().map(CoreBiometric::from).collect())
 }
 
 impl From<&CoreClaim169> for Claim169 {
@@ -1433,6 +1475,40 @@ pub struct Claim169Input {
     pub legal_status: Option<String>,
     #[pyo3(get, set)]
     pub country_of_issuance: Option<String>,
+
+    // Biometrics
+    #[pyo3(get, set)]
+    pub right_thumb: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub right_pointer_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub right_middle_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub right_ring_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub right_little_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub left_thumb: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub left_pointer_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub left_middle_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub left_ring_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub left_little_finger: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub right_iris: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub left_iris: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub face: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub right_palm: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub left_palm: Option<Vec<Biometric>>,
+    #[pyo3(get, set)]
+    pub voice: Option<Vec<Biometric>>,
 }
 
 #[pymethods]
@@ -1452,6 +1528,12 @@ impl Claim169Input {
         photo_format=None, secondary_full_name=None,
         secondary_language=None, location_code=None,
         legal_status=None, country_of_issuance=None,
+        right_thumb=None, right_pointer_finger=None, right_middle_finger=None,
+        right_ring_finger=None, right_little_finger=None,
+        left_thumb=None, left_pointer_finger=None, left_middle_finger=None,
+        left_ring_finger=None, left_little_finger=None,
+        right_iris=None, left_iris=None, face=None,
+        right_palm=None, left_palm=None, voice=None,
     ))]
     #[allow(clippy::too_many_arguments)]
     fn new(
@@ -1477,6 +1559,22 @@ impl Claim169Input {
         location_code: Option<String>,
         legal_status: Option<String>,
         country_of_issuance: Option<String>,
+        right_thumb: Option<Vec<Biometric>>,
+        right_pointer_finger: Option<Vec<Biometric>>,
+        right_middle_finger: Option<Vec<Biometric>>,
+        right_ring_finger: Option<Vec<Biometric>>,
+        right_little_finger: Option<Vec<Biometric>>,
+        left_thumb: Option<Vec<Biometric>>,
+        left_pointer_finger: Option<Vec<Biometric>>,
+        left_middle_finger: Option<Vec<Biometric>>,
+        left_ring_finger: Option<Vec<Biometric>>,
+        left_little_finger: Option<Vec<Biometric>>,
+        right_iris: Option<Vec<Biometric>>,
+        left_iris: Option<Vec<Biometric>>,
+        face: Option<Vec<Biometric>>,
+        right_palm: Option<Vec<Biometric>>,
+        left_palm: Option<Vec<Biometric>>,
+        voice: Option<Vec<Biometric>>,
     ) -> Self {
         Claim169Input {
             id,
@@ -1501,6 +1599,22 @@ impl Claim169Input {
             location_code,
             legal_status,
             country_of_issuance,
+            right_thumb,
+            right_pointer_finger,
+            right_middle_finger,
+            right_ring_finger,
+            right_little_finger,
+            left_thumb,
+            left_pointer_finger,
+            left_middle_finger,
+            left_ring_finger,
+            left_little_finger,
+            right_iris,
+            left_iris,
+            face,
+            right_palm,
+            left_palm,
+            voice,
         }
     }
 
@@ -1553,6 +1667,22 @@ impl From<&Claim169Input> for CoreClaim169 {
             location_code: py.location_code.clone(),
             legal_status: py.legal_status.clone(),
             country_of_issuance: py.country_of_issuance.clone(),
+            right_thumb: convert_biometrics_to_core(&py.right_thumb),
+            right_pointer_finger: convert_biometrics_to_core(&py.right_pointer_finger),
+            right_middle_finger: convert_biometrics_to_core(&py.right_middle_finger),
+            right_ring_finger: convert_biometrics_to_core(&py.right_ring_finger),
+            right_little_finger: convert_biometrics_to_core(&py.right_little_finger),
+            left_thumb: convert_biometrics_to_core(&py.left_thumb),
+            left_pointer_finger: convert_biometrics_to_core(&py.left_pointer_finger),
+            left_middle_finger: convert_biometrics_to_core(&py.left_middle_finger),
+            left_ring_finger: convert_biometrics_to_core(&py.left_ring_finger),
+            left_little_finger: convert_biometrics_to_core(&py.left_little_finger),
+            right_iris: convert_biometrics_to_core(&py.right_iris),
+            left_iris: convert_biometrics_to_core(&py.left_iris),
+            face: convert_biometrics_to_core(&py.face),
+            right_palm: convert_biometrics_to_core(&py.right_palm),
+            left_palm: convert_biometrics_to_core(&py.left_palm),
+            voice: convert_biometrics_to_core(&py.voice),
             ..Default::default()
         }
     }

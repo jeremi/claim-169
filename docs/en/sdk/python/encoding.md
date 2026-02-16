@@ -220,6 +220,65 @@ meta = claim169.CwtMetaInput(expires_at=1900000000)
 qr_data = claim169.encode(claim, meta, allow_unsigned=True)
 ```
 
+## Including Biometrics
+
+All 16 biometric fields can be set on `Claim169Input`. Each field accepts a list of `Biometric` objects:
+
+```python
+import claim169
+
+# Create a biometric entry
+face_biometric = claim169.Biometric(
+    data=face_image_bytes,
+    format=1,   # Image format
+    sub_format=2,
+    issuer="https://biometrics.example.org",
+)
+
+# Include biometrics in the credential
+claim = claim169.Claim169Input(
+    id="BIO-001",
+    full_name="Jane Doe",
+    face=[face_biometric],
+    right_thumb=[claim169.Biometric(data=thumb_bytes, format=1)],
+    left_iris=[claim169.Biometric(data=iris_bytes, format=1)],
+)
+
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
+```
+
+### Biometric Fields
+
+| Field | Description |
+|-------|-------------|
+| `right_thumb` | Right thumb fingerprint |
+| `right_pointer_finger` | Right pointer/index finger |
+| `right_middle_finger` | Right middle finger |
+| `right_ring_finger` | Right ring finger |
+| `right_little_finger` | Right little/pinky finger |
+| `left_thumb` | Left thumb fingerprint |
+| `left_pointer_finger` | Left pointer/index finger |
+| `left_middle_finger` | Left middle finger |
+| `left_ring_finger` | Left ring finger |
+| `left_little_finger` | Left little/pinky finger |
+| `right_iris` | Right iris scan |
+| `left_iris` | Left iris scan |
+| `face` | Face image |
+| `right_palm` | Right palm print |
+| `left_palm` | Left palm print |
+| `voice` | Voice sample |
+
+### Biometric Object
+
+Each `Biometric` has the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `bytes` | Raw biometric data (required) |
+| `format` | `int` | Biometric data format |
+| `sub_format` | `int` | Biometric sub-format |
+| `issuer` | `str` | Issuing authority |
+
 ## Skipping Biometrics
 
 To reduce QR code size, skip encoding biometric data:

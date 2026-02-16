@@ -220,9 +220,68 @@ meta = claim169.CwtMetaInput(expires_at=1900000000)
 qr_data = claim169.encode(claim, meta, allow_unsigned=True)
 ```
 
+## Inclure la biométrie
+
+Les 16 champs biométriques peuvent être définis sur `Claim169Input`. Chaque champ accepte une liste d'objets `Biometric` :
+
+```python
+import claim169
+
+# Créer une entrée biométrique
+face_biometric = claim169.Biometric(
+    data=face_image_bytes,
+    format=1,   # Format image
+    sub_format=2,
+    issuer="https://biometrics.example.org",
+)
+
+# Inclure la biométrie dans le credential
+claim = claim169.Claim169Input(
+    id="BIO-001",
+    full_name="Jane Doe",
+    face=[face_biometric],
+    right_thumb=[claim169.Biometric(data=thumb_bytes, format=1)],
+    left_iris=[claim169.Biometric(data=iris_bytes, format=1)],
+)
+
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
+```
+
+### Champs biométriques
+
+| Champ | Description |
+|-------|-------------|
+| `right_thumb` | Empreinte du pouce droit |
+| `right_pointer_finger` | Index droit |
+| `right_middle_finger` | Majeur droit |
+| `right_ring_finger` | Annulaire droit |
+| `right_little_finger` | Auriculaire droit |
+| `left_thumb` | Empreinte du pouce gauche |
+| `left_pointer_finger` | Index gauche |
+| `left_middle_finger` | Majeur gauche |
+| `left_ring_finger` | Annulaire gauche |
+| `left_little_finger` | Auriculaire gauche |
+| `right_iris` | Scan de l'iris droit |
+| `left_iris` | Scan de l'iris gauche |
+| `face` | Image du visage |
+| `right_palm` | Empreinte palmaire droite |
+| `left_palm` | Empreinte palmaire gauche |
+| `voice` | Échantillon vocal |
+
+### Objet Biometric
+
+Chaque `Biometric` possède les champs suivants :
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `data` | `bytes` | Données biométriques brutes (obligatoire) |
+| `format` | `int` | Format des données biométriques |
+| `sub_format` | `int` | Sous-format biométrique |
+| `issuer` | `str` | Autorité émettrice |
+
 ## Ignorer la biométrie
 
-Pour réduire la taille du QR code, ignorez l’encodage des données biométriques :
+Pour réduire la taille du QR code, ignorez l'encodage des données biométriques :
 
 ```python
 qr_data = claim169.encode(

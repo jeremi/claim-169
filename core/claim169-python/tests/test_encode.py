@@ -769,3 +769,328 @@ class TestUnifiedEncode:
             skip_biometrics=True,
         )
         assert isinstance(qr_data, str)
+
+
+class TestBiometricConstruction:
+    """Tests for constructing Biometric objects from Python."""
+
+    def test_create_biometric_with_data_only(self):
+        """Test creating a Biometric with only data."""
+        bio = claim169.Biometric(data=b"\x01\x02\x03")
+        assert bio.data == b"\x01\x02\x03"
+        assert bio.format is None
+        assert bio.sub_format is None
+        assert bio.issuer is None
+
+    def test_create_biometric_with_all_fields(self):
+        """Test creating a Biometric with all fields."""
+        bio = claim169.Biometric(
+            data=b"\xDE\xAD\xBE\xEF",
+            format=0,  # Image
+            sub_format=1,  # JPEG
+            issuer="VendorA",
+        )
+        assert bio.data == b"\xDE\xAD\xBE\xEF"
+        assert bio.format == 0
+        assert bio.sub_format == 1
+        assert bio.issuer == "VendorA"
+
+
+class TestBiometricEncodeDecodeRoundtrip:
+    """Tests for encoding biometric fields and decoding them back."""
+
+    def test_face_biometric_roundtrip(self):
+        """Test encoding and decoding a face biometric."""
+        face_data = b"\x89PNG\r\n\x1a\nFACE_IMAGE_DATA"
+        bio = claim169.Biometric(
+            data=face_data,
+            format=0,  # Image
+            sub_format=1,  # JPEG
+            issuer="TestIssuer",
+        )
+
+        claim = claim169.Claim169Input(
+            id="BIO-FACE-001",
+            full_name="Face Test Person",
+            face=[bio],
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.face is not None
+        assert len(result.claim169.face) == 1
+        decoded_bio = result.claim169.face[0]
+        assert decoded_bio.data == face_data
+        assert decoded_bio.format == 0
+        assert decoded_bio.sub_format == 1
+        assert decoded_bio.issuer == "TestIssuer"
+
+    def test_fingerprint_biometrics_roundtrip(self):
+        """Test encoding and decoding fingerprint biometrics."""
+        right_thumb_data = b"RIGHT_THUMB_DATA"
+        left_pointer_data = b"LEFT_POINTER_DATA"
+
+        right_thumb_bio = claim169.Biometric(
+            data=right_thumb_data,
+            format=0,  # Image
+            sub_format=1,  # JPEG
+        )
+        left_pointer_bio = claim169.Biometric(
+            data=left_pointer_data,
+            format=1,  # Template
+            sub_format=0,  # ANSI378
+            issuer="FingerprintVendor",
+        )
+
+        claim = claim169.Claim169Input(
+            id="BIO-FINGER-001",
+            full_name="Fingerprint Person",
+            right_thumb=[right_thumb_bio],
+            left_pointer_finger=[left_pointer_bio],
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.right_thumb is not None
+        assert len(result.claim169.right_thumb) == 1
+        assert result.claim169.right_thumb[0].data == right_thumb_data
+        assert result.claim169.right_thumb[0].format == 0
+
+        assert result.claim169.left_pointer_finger is not None
+        assert len(result.claim169.left_pointer_finger) == 1
+        assert result.claim169.left_pointer_finger[0].data == left_pointer_data
+        assert result.claim169.left_pointer_finger[0].format == 1
+        assert result.claim169.left_pointer_finger[0].issuer == "FingerprintVendor"
+
+    def test_iris_biometrics_roundtrip(self):
+        """Test encoding and decoding iris biometrics."""
+        right_iris_data = b"RIGHT_IRIS_DATA"
+        left_iris_data = b"LEFT_IRIS_DATA"
+
+        claim = claim169.Claim169Input(
+            id="BIO-IRIS-001",
+            full_name="Iris Person",
+            right_iris=[claim169.Biometric(data=right_iris_data, format=0)],
+            left_iris=[claim169.Biometric(data=left_iris_data, format=0)],
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.right_iris is not None
+        assert result.claim169.right_iris[0].data == right_iris_data
+        assert result.claim169.left_iris is not None
+        assert result.claim169.left_iris[0].data == left_iris_data
+
+    def test_palm_biometrics_roundtrip(self):
+        """Test encoding and decoding palm biometrics."""
+        right_palm_data = b"RIGHT_PALM_DATA"
+        left_palm_data = b"LEFT_PALM_DATA"
+
+        claim = claim169.Claim169Input(
+            id="BIO-PALM-001",
+            full_name="Palm Person",
+            right_palm=[claim169.Biometric(data=right_palm_data)],
+            left_palm=[claim169.Biometric(data=left_palm_data)],
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.right_palm is not None
+        assert result.claim169.right_palm[0].data == right_palm_data
+        assert result.claim169.left_palm is not None
+        assert result.claim169.left_palm[0].data == left_palm_data
+
+    def test_voice_biometric_roundtrip(self):
+        """Test encoding and decoding voice biometric."""
+        voice_data = b"VOICE_SAMPLE_DATA"
+
+        claim = claim169.Claim169Input(
+            id="BIO-VOICE-001",
+            full_name="Voice Person",
+            voice=[claim169.Biometric(data=voice_data, format=2, sub_format=0)],
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.voice is not None
+        assert result.claim169.voice[0].data == voice_data
+        assert result.claim169.voice[0].format == 2
+
+    def test_multiple_biometrics_per_field(self):
+        """Test encoding multiple biometric entries per field."""
+        bio_1 = claim169.Biometric(
+            data=b"FACE_IMAGE_1",
+            format=0,
+            sub_format=1,
+            issuer="Vendor1",
+        )
+        bio_2 = claim169.Biometric(
+            data=b"FACE_IMAGE_2",
+            format=0,
+            sub_format=3,
+            issuer="Vendor2",
+        )
+
+        claim = claim169.Claim169Input(
+            id="BIO-MULTI-001",
+            full_name="Multi Face Person",
+            face=[bio_1, bio_2],
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.face is not None
+        assert len(result.claim169.face) == 2
+        assert result.claim169.face[0].data == b"FACE_IMAGE_1"
+        assert result.claim169.face[0].issuer == "Vendor1"
+        assert result.claim169.face[1].data == b"FACE_IMAGE_2"
+        assert result.claim169.face[1].issuer == "Vendor2"
+
+    def test_all_16_biometric_fields_roundtrip(self):
+        """Test encoding and decoding all 16 biometric fields."""
+        fields = [
+            "right_thumb", "right_pointer_finger", "right_middle_finger",
+            "right_ring_finger", "right_little_finger",
+            "left_thumb", "left_pointer_finger", "left_middle_finger",
+            "left_ring_finger", "left_little_finger",
+            "right_iris", "left_iris",
+            "face",
+            "right_palm", "left_palm",
+            "voice",
+        ]
+
+        biometric_kwargs = {}
+        for field in fields:
+            bio = claim169.Biometric(
+                data=field.upper().encode("utf-8"),
+                format=0,
+                issuer=f"{field}_issuer",
+            )
+            biometric_kwargs[field] = [bio]
+
+        claim = claim169.Claim169Input(
+            id="BIO-ALL-001",
+            full_name="All Biometrics Person",
+            **biometric_kwargs,
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        for field in fields:
+            biometric_list = getattr(result.claim169, field)
+            assert biometric_list is not None, f"{field} should not be None"
+            assert len(biometric_list) == 1, f"{field} should have 1 entry"
+            assert biometric_list[0].data == field.upper().encode("utf-8"), (
+                f"{field} data mismatch"
+            )
+            assert biometric_list[0].issuer == f"{field}_issuer", (
+                f"{field} issuer mismatch"
+            )
+
+    def test_biometrics_with_demographics_roundtrip(self):
+        """Test that biometrics and demographics coexist in roundtrip."""
+        face_bio = claim169.Biometric(data=b"FACE_DATA", format=0)
+
+        claim = claim169.Claim169Input(
+            id="BIO-DEMO-001",
+            full_name="Bio Demo Person",
+            email="bio@demo.org",
+            gender=2,
+            face=[face_bio],
+        )
+        meta = claim169.CwtMetaInput(
+            issuer="https://bio-demo.example.org",
+            expires_at=1900000000,
+        )
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.id == "BIO-DEMO-001"
+        assert result.claim169.full_name == "Bio Demo Person"
+        assert result.claim169.email == "bio@demo.org"
+        assert result.claim169.gender == 2
+        assert result.claim169.face is not None
+        assert result.claim169.face[0].data == b"FACE_DATA"
+        assert result.cwt_meta.issuer == "https://bio-demo.example.org"
+
+    def test_biometric_set_via_attribute(self):
+        """Test setting biometric fields via attribute assignment."""
+        claim = claim169.Claim169Input(id="BIO-ATTR-001", full_name="Attr Test")
+        bio = claim169.Biometric(data=b"FACE_VIA_ATTR", format=0)
+        claim.face = [bio]
+
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_unsigned(claim, meta)
+        result = claim169.decode_unverified(qr_data)
+
+        assert result.claim169.face is not None
+        assert result.claim169.face[0].data == b"FACE_VIA_ATTR"
+
+    def test_biometric_encode_with_ed25519_signature(self, ed25519_signed_vector):
+        """Test biometric encoding with Ed25519 signature and verification."""
+        private_key = bytes.fromhex(
+            ed25519_signed_vector["signing_key"]["private_key_hex"]
+        )
+        public_key = bytes.fromhex(
+            ed25519_signed_vector["signing_key"]["public_key_hex"]
+        )
+
+        claim = claim169.Claim169Input(
+            id="BIO-SIGNED-001",
+            full_name="Signed Bio Person",
+            face=[claim169.Biometric(data=b"SIGNED_FACE", format=0)],
+            right_thumb=[claim169.Biometric(data=b"SIGNED_THUMB")],
+        )
+        meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+        qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+        result = claim169.decode_with_ed25519(qr_data, public_key)
+
+        assert result.verification_status == "verified"
+        assert result.claim169.face is not None
+        assert result.claim169.face[0].data == b"SIGNED_FACE"
+        assert result.claim169.right_thumb is not None
+        assert result.claim169.right_thumb[0].data == b"SIGNED_THUMB"
+
+    def test_all_finger_fields_roundtrip(self):
+        """Test all 10 finger biometric fields individually."""
+        finger_fields = [
+            "right_thumb", "right_pointer_finger", "right_middle_finger",
+            "right_ring_finger", "right_little_finger",
+            "left_thumb", "left_pointer_finger", "left_middle_finger",
+            "left_ring_finger", "left_little_finger",
+        ]
+
+        for field in finger_fields:
+            data = f"{field}_data".encode("utf-8")
+            bio = claim169.Biometric(data=data, format=0, sub_format=1)
+
+            claim = claim169.Claim169Input(
+                id=f"FINGER-{field}",
+                full_name="Finger Test",
+                **{field: [bio]},
+            )
+            meta = claim169.CwtMetaInput(expires_at=1900000000)
+
+            qr_data = claim169.encode_unsigned(claim, meta)
+            result = claim169.decode_unverified(qr_data)
+
+            biometric_list = getattr(result.claim169, field)
+            assert biometric_list is not None, f"{field} should not be None"
+            assert biometric_list[0].data == data, f"{field} data mismatch"
