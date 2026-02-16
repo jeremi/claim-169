@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/claim169-core.svg)](https://crates.io/crates/claim169-core)
 [![Documentation](https://docs.rs/claim169-core/badge.svg)](https://docs.rs/claim169-core)
-[![License](https://img.shields.io/crates/l/claim169-core.svg)](https://github.com/mosip/id-claim-169)
+[![License](https://img.shields.io/crates/l/claim169-core.svg)](https://github.com/jeremi/claim-169)
 
 A Rust library for encoding and decoding MOSIP Claim 169 QR codes, designed for offline verification of digital identity credentials.
 

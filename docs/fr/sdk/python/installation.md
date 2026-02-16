@@ -5,6 +5,9 @@
 - **Python 3.8+** — le SDK supporte Python 3.8, 3.9, 3.10, 3.11 et 3.12
 - **Aucune dépendance runtime** — la bibliothèque cœur est auto-contenue
 
+!!! warning "Fin de vie de Python 3.8"
+    Python 3.8 a atteint sa fin de vie en octobre 2024 et ne reçoit plus de mises à jour de sécurité. Bien que le SDK produise encore des wheels pour 3.8, nous recommandons **Python 3.10+** pour un usage en production.
+
 ## Installation avec pip
 
 ```bash
@@ -56,7 +59,7 @@ Des wheels précompilés sont disponibles pour :
 
 Si aucun wheel n’est disponible pour votre plateforme, pip tentera de construire depuis les sources, ce qui nécessite :
 
-- Toolchain Rust 1.70+
+- Toolchain Rust 1.75+
 - maturin (`pip install maturin`)
 
 ## Vérifier l’installation

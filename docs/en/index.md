@@ -54,6 +54,13 @@ flowchart LR
 <code>implementation(&quot;fr.acn.claim169:claim169-core:&lt;version&gt;&quot;)</code>
 </div>
 
+<div class="sdk-card" markdown>
+<h3>Java</h3>
+<p>JDK 17+ with lambda API</p>
+<a href="sdk/java/" class="md-button">Get Started</a>
+<code>implementation(&quot;fr.acn.claim169:claim169-core:&lt;version&gt;&quot;)</code>
+</div>
+
 </div>
 
 ## Key Features
@@ -87,16 +94,12 @@ Bring your own crypto provider for hardware security modules or cloud KMS.
 === "Python"
 
     ```python
-    from claim169 import Decoder
+    from claim169 import decode
 
     qr_data = "..."  # Base45 from QR code
     public_key = bytes.fromhex("...")  # Issuer's Ed25519 public key
 
-    result = (
-        Decoder(qr_data)
-        .verify_with_ed25519(public_key)
-        .decode()
-    )
+    result = decode(qr_data, verify_with_ed25519=public_key)
 
     print(f"Name: {result.claim169.full_name}")
     print(f"ID: {result.claim169.id}")

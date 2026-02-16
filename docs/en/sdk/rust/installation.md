@@ -57,7 +57,7 @@ See [Custom Crypto](./custom-crypto.md) for implementation details.
 
 ## Minimum Supported Rust Version
 
-The crate supports Rust 1.70 and later.
+The crate supports Rust 1.75 and later.
 
 ## Dependencies
 
