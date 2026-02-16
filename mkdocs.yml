@@ -9,6 +9,7 @@ docs_dir: docs
 
 theme:
   name: material
+  custom_dir: overrides
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -77,6 +78,7 @@ plugins:
             Kotlin SDK: SDK Kotlin
             Rust SDK: SDK Rust
             Contributing: Contribuer
+            Changelog: Journal des modifications
   - mkdocstrings:
       handlers:
         python:
@@ -118,6 +120,10 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/jeremi/claim-169
   homepage: https://jeremi.github.io/claim-169/
+  status:
+    new: Recently added
+
+copyright: Copyright &copy; 2026 Claim 169 Contributors. MIT License.
 
 extra_css:
   - assets/css/extra.css
@@ -194,3 +200,4 @@ nav:
       - API Reference: sdk/rust/api.md
       - Troubleshooting: sdk/rust/troubleshooting.md
   - Contributing: contributing.md
+  - Changelog: changelog.md

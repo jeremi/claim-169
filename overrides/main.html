@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+
+{% block announce %}
+  This library is in <strong>alpha</strong> ({{ config.extra.version | default("0.2.0-alpha") }}). API may change before 1.0 &mdash;
+  <a href="{{ config.site_url }}changelog/">see the changelog</a>.
+{% endblock %}
