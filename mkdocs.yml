@@ -62,7 +62,6 @@ plugins:
             Encryption: Chiffrement
             Key Management: Gestion des clés
             Security: Sécurité
-            Photo Compression Guide: Guide de compression photo
             Glossary: Glossaire
             Test Vectors: Vecteurs de test
             Python SDK: SDK Python
@@ -145,7 +144,6 @@ nav:
       - Encryption: core/concepts/encryption.md
       - Key Management: core/concepts/keys.md
       - Security: core/security.md
-      - Photo Compression Guide: photo-compression-guide.md
       - Glossary: core/glossary.md
       - Test Vectors: core/test-vectors.md
   - Python SDK:
