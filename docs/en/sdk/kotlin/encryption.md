@@ -38,16 +38,16 @@ QR Code -> Base45 -> Decompress -> Decrypt -> Verify -> Identity Data
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
 // Identity data
-val data = claim169 {
+val data = claim169Data {
     id = "ENC-001"
     fullName = "Jane Doe"
 }
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.example.org"
     expiresAt = 1900000000L
 }
@@ -72,15 +72,15 @@ println("Encrypted credential: ${qrData.length} characters")
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
-val data = claim169 {
+val data = claim169Data {
     id = "ENC128-001"
     fullName = "Jane Doe"
 }
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.example.org"
     expiresAt = 1900000000L
 }
@@ -218,8 +218,8 @@ import fr.acn.claim169.Signer
 import fr.acn.claim169.Encryptor
 import fr.acn.claim169.SignatureVerifier
 import fr.acn.claim169.Decryptor
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
 // Custom signer
 val signer = object : Signer {
@@ -242,12 +242,12 @@ val encryptor = object : Encryptor {
 }
 
 // Encode with both custom callbacks
-val data = claim169 {
+val data = claim169Data {
     id = "CUSTOM-001"
     fullName = "Jane Doe"
 }
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.example.org"
 }
 

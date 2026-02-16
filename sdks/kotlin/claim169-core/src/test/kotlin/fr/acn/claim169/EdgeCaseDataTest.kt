@@ -10,7 +10,7 @@ class EdgeCaseDataTest {
 
     @Test
     fun `roundtrip with unicode characters in fields`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "UNICODE-001"
             fullName = "\u0416\u0430\u043d\u0430\u0440\u0434\u0430\u043d \u0411\u0421" // Cyrillic
             firstName = "\u5f20" // Chinese
@@ -19,7 +19,7 @@ class EdgeCaseDataTest {
             secondaryFullName = "\u099c\u09a8\u09be\u09b0\u09cd\u09a6\u09a8" // Bengali
             secondaryLanguage = "bn"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -43,14 +43,14 @@ class EdgeCaseDataTest {
 
     @Test
     fun `roundtrip with special characters in fields`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "SPECIAL-001"
             fullName = "O'Brien-Smith & Co. <test>"
             address = "123 Main St.\nApt #4\n\"Penthouse\""
             email = "test+special@example.co.uk"
             phone = "+1 (555) 123-4567"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -73,12 +73,12 @@ class EdgeCaseDataTest {
 
     @Test
     fun `roundtrip with all optional fields null`() {
-        val data = claim169 {
+        val data = claim169Data {
             // Only set required fields
             id = "NULL-001"
             fullName = "Null Fields Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -119,13 +119,13 @@ class EdgeCaseDataTest {
     @Test
     fun `roundtrip with photo and photoFormat`() {
         val photoData = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte()) // JPEG magic
-        val data = claim169 {
+        val data = claim169Data {
             id = "PHOTO-001"
             fullName = "Photo Test"
             photo = photoData
             photoFormatEnum = PhotoFormat.Jpeg
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -147,12 +147,12 @@ class EdgeCaseDataTest {
 
     @Test
     fun `roundtrip with bestQualityFingers`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "BQF-001"
             fullName = "Best Quality Fingers Test"
             bestQualityFingers = byteArrayOf(1, 2, 6)
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -177,11 +177,11 @@ class EdgeCaseDataTest {
 
     @Test
     fun `roundtrip preserves CWT meta subject and notBefore`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "META-001"
             fullName = "Meta Fields Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             subject = "subject-id-123"
             expiresAt = 2000000000L

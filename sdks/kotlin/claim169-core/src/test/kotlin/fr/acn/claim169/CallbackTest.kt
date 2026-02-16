@@ -18,11 +18,11 @@ class CallbackTest {
         val publicKeyHex = signingKey.get("public_key_hex").asString
         val publicKey = TestVectorLoader.hexToByteArray(publicKeyHex)
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "SIGNER-KEYID-001"
             fullName = "Signer Key ID Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -46,11 +46,11 @@ class CallbackTest {
 
         // We can't implement real encryption in the callback, but we can verify it's invoked
         // by encoding with a custom encryptor that throws
-        val data = claim169 {
+        val data = claim169Data {
             id = "ENC-CB-001"
             fullName = "Encryptor Callback Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -88,11 +88,11 @@ class CallbackTest {
 
         var verifyCalled = false
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "CALLBACK-001"
             fullName = "Callback Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -162,11 +162,11 @@ class CallbackTest {
 
         var receivedAlgorithm: String? = null
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "ALG-EDDSA-001"
             fullName = "EdDSA Algorithm Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -221,11 +221,11 @@ class CallbackTest {
 
     @Test
     fun `custom signer error propagation`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "ERR-PROP-001"
             fullName = "Error Propagation Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -252,11 +252,11 @@ class CallbackTest {
         val privateKeyHex = signingKey.get("private_key_hex").asString
         val privateKey = TestVectorLoader.hexToByteArray(privateKeyHex)
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "INVALID-RESULT-001"
             fullName = "Invalid Result Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }

@@ -67,12 +67,12 @@ Create a signed credential that can be encoded in a QR code.
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 import fr.acn.claim169.Gender
 
 // Create identity data using DSL builder
-val data = claim169 {
+val data = claim169Data {
     id = "MOSIP-2024-001"
     fullName = "Jane Doe"
     dateOfBirth = "1990-05-15"
@@ -82,7 +82,7 @@ val data = claim169 {
 }
 
 // Create CWT metadata using DSL builder
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.example.org"
     expiresAt = 1900000000L
     issuedAt = 1700000000L
@@ -107,8 +107,8 @@ Encode a credential and immediately decode it to verify:
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
 // Keys
 val privateKey = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
@@ -117,12 +117,12 @@ val publicKey = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511
     .hexToByteArray()
 
 // Create and encode
-val data = claim169 {
+val data = claim169Data {
     id = "TEST-001"
     fullName = "Test User"
 }
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://test.example.org"
     expiresAt = 1900000000L
 }

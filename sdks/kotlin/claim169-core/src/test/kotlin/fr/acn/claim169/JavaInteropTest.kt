@@ -102,11 +102,11 @@ class JavaInteropTest {
 
     @Test
     fun `verificationStatus static helper returns correct enum`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "STATIC-STATUS-001"
             fullName = "Static Status Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -123,11 +123,11 @@ class JavaInteropTest {
 
     @Test
     fun `verificationStatus static helper matches extension function`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "MATCH-STATUS-001"
             fullName = "Match Status Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }

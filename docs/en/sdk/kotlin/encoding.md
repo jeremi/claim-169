@@ -6,25 +6,25 @@ This guide covers creating signed identity credentials that can be encoded in QR
 
 Encoding follows these steps:
 
-1. Create a `Claim169Data` with the `claim169 {}` DSL builder
-2. Create a `CwtMetaData` with the `cwtMeta {}` DSL builder
+1. Create a `Claim169Data` with the `claim169Data {}` DSL builder
+2. Create a `CwtMetaData` with the `cwtMetaData {}` DSL builder
 3. Sign with a private key
 4. Optionally encrypt with a symmetric key
 5. Receive a Base45-encoded string for QR code generation
 
 ## Creating Identity Data
 
-### claim169 {} Builder
+### claim169Data {} Builder
 
-The `claim169 {}` builder provides a type-safe DSL for creating identity data:
+The `claim169Data {}` builder provides a type-safe DSL for creating identity data:
 
 ```kotlin
-import fr.acn.claim169.claim169
+import fr.acn.claim169.claim169Data
 import fr.acn.claim169.Gender
 import fr.acn.claim169.MaritalStatus
 
 // Create with all demographics
-val data = claim169 {
+val data = claim169Data {
     id = "MOSIP-2024-001"
     version = "1.0.0"
     language = "en"
@@ -85,7 +85,7 @@ import java.io.File
 
 val photoData = File("photo.jpg").readBytes()
 
-val data = claim169 {
+val data = claim169Data {
     id = "PHOTO-001"
     fullName = "Jane Doe"
     photo = photoData
@@ -95,14 +95,14 @@ val data = claim169 {
 
 ## Creating Token Metadata
 
-### cwtMeta {} Builder
+### cwtMetaData {} Builder
 
-The `cwtMeta {}` builder creates CWT (CBOR Web Token) metadata:
+The `cwtMetaData {}` builder creates CWT (CBOR Web Token) metadata:
 
 ```kotlin
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.cwtMetaData
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.example.org"
     subject = "user-12345"
     expiresAt = System.currentTimeMillis() / 1000 + (365 * 24 * 60 * 60)  // 1 year from now
@@ -127,18 +127,18 @@ Ed25519 is recommended for its small signatures and fast verification.
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
 // Identity data
-val data = claim169 {
+val data = claim169Data {
     id = "ED25519-001"
     fullName = "Jane Doe"
     dateOfBirth = "1990-05-15"
 }
 
 // Token metadata
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.example.org"
     expiresAt = 1900000000L
     issuedAt = 1700000000L
@@ -162,15 +162,15 @@ ECDSA P-256 is widely supported in enterprise environments.
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
-val data = claim169 {
+val data = claim169Data {
     id = "ECDSA-001"
     fullName = "Jane Doe"
 }
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.example.org"
     expiresAt = 1900000000L
 }
@@ -189,15 +189,15 @@ For testing and development only. Never use in production.
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
-val data = claim169 {
+val data = claim169Data {
     id = "TEST-001"
     fullName = "Test User"
 }
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
     expiresAt = 1900000000L
 }
 
@@ -251,11 +251,11 @@ Complete example with all demographics:
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
 // Create comprehensive identity data
-val data = claim169 {
+val data = claim169Data {
     id = "FULL-DEMO-2024-001"
     version = "1.0.0"
     language = "en"
@@ -279,7 +279,7 @@ val data = claim169 {
 
 // Create token metadata
 val now = System.currentTimeMillis() / 1000
-val meta = cwtMeta {
+val meta = cwtMetaData {
     issuer = "https://id.state.il.us"
     subject = "IL-DL-2024-001"
     expiresAt = now + (5 * 365 * 24 * 60 * 60)  // 5 years

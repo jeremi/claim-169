@@ -62,14 +62,14 @@ class EnumAndJavaInteropTest {
 
     @Test
     fun `genderEnum builder property sets and gets correctly`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "ENUM-GENDER-001"
             fullName = "Gender Enum Test"
             genderEnum = Gender.Female
         }
         assertEquals(Gender.Female.value, data.gender)
 
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -85,14 +85,14 @@ class EnumAndJavaInteropTest {
 
     @Test
     fun `maritalStatusEnum builder property sets and gets correctly`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "ENUM-MARITAL-001"
             fullName = "Marital Enum Test"
             maritalStatusEnum = MaritalStatus.Divorced
         }
         assertEquals(MaritalStatus.Divorced.value, data.maritalStatus)
 
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -109,7 +109,7 @@ class EnumAndJavaInteropTest {
     @Test
     fun `photoFormatEnum builder property sets and gets correctly`() {
         val photoData = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
-        val data = claim169 {
+        val data = claim169Data {
             id = "ENUM-PHOTO-001"
             fullName = "Photo Enum Test"
             photo = photoData
@@ -117,7 +117,7 @@ class EnumAndJavaInteropTest {
         }
         assertEquals(PhotoFormat.Webp.value, data.photoFormat)
 
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -135,11 +135,11 @@ class EnumAndJavaInteropTest {
 
     @Test
     fun `verificationStatusEnum returns Skipped for unverified decode`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "STATUS-001"
             fullName = "Status Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -173,12 +173,12 @@ class EnumAndJavaInteropTest {
 
     @Test
     fun `decodeCloseable returns CloseableDecodeResult that works with use block`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "CLOSEABLE-001"
             fullName = "Closeable Test"
             photo = byteArrayOf(0x01, 0x02, 0x03)
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -207,11 +207,11 @@ class EnumAndJavaInteropTest {
 
     @Test
     fun `decodeWith using DecoderConfigurer functional interface`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "CONFIGURER-001"
             fullName = "Configurer Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -234,11 +234,11 @@ class EnumAndJavaInteropTest {
 
     @Test
     fun `encodeWith using EncoderConfigurer functional interface`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "ENC-CONFIGURER-001"
             fullName = "Encoder Configurer Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -274,11 +274,11 @@ class EnumAndJavaInteropTest {
             override fun keyId(): ByteArray? = null
         }
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "ALGO-ENUM-001"
             fullName = "CoseAlgorithm Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -312,11 +312,11 @@ class EnumAndJavaInteropTest {
             }
         }
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "ENC-ALGO-001"
             fullName = "Encrypt CoseAlgorithm Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }

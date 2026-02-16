@@ -37,15 +37,15 @@ check(result.verificationStatus == "skipped")
 
 ```kotlin
 import fr.acn.claim169.Claim169
-import fr.acn.claim169.claim169
-import fr.acn.claim169.cwtMeta
+import fr.acn.claim169.claim169Data
+import fr.acn.claim169.cwtMetaData
 
-val claim = claim169 {
+val claim = claim169Data {
   id = "ID-12345"
   fullName = "Jane Doe"
 }
 
-val meta = cwtMeta {
+val meta = cwtMetaData {
   issuer = "https://issuer.example.org"
   issuedAt = 1700000000L
   expiresAt = 1800000000L

@@ -9,11 +9,11 @@ import fr.acn.claim169.Claim169Exception
  */
 class EncodeErrorTest {
 
-    private val validData = claim169 {
+    private val validData = claim169Data {
         id = "ERR-001"
         fullName = "Error Test"
     }
-    private val validMeta = cwtMeta {
+    private val validMeta = cwtMetaData {
         issuer = "https://test.example.com"
         expiresAt = 2000000000L
     }

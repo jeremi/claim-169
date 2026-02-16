@@ -27,11 +27,11 @@ fun interface EncoderConfigurer {
  * ## Encoding
  * ```kotlin
  * val qrData = Claim169.encode(
- *     claim169 {
+ *     claim169Data {
  *         id = "ID-12345"
  *         fullName = "Jane Doe"
  *     },
- *     cwtMeta {
+ *     cwtMetaData {
  *         issuer = "https://issuer.example.com"
  *     }
  * ) {
@@ -162,7 +162,7 @@ object Claim169 {
     /**
      * Create a [Claim169Data] using a [Claim169DataConfigurer].
      *
-     * Java-friendly alternative to the `claim169 {}` DSL function.
+     * Java-friendly alternative to the `claim169Data {}` DSL function.
      *
      * From Java: `Claim169.claim169(b -> { b.setId("X"); })`
      */
@@ -177,7 +177,7 @@ object Claim169 {
     /**
      * Create a [CwtMetaData] using a [CwtMetaDataConfigurer].
      *
-     * Java-friendly alternative to the `cwtMeta {}` DSL function.
+     * Java-friendly alternative to the `cwtMetaData {}` DSL function.
      *
      * From Java: `Claim169.cwtMeta(b -> { b.setIssuer("https://..."); })`
      */

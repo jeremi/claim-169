@@ -154,7 +154,7 @@ class DecodeBiometricTest {
     @Test
     fun `biometric roundtrip with face data`() {
         val faceData = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47) // PNG magic bytes
-        val data = claim169 {
+        val data = claim169Data {
             id = "BIO-FACE-RT-001"
             fullName = "Bio Face Roundtrip"
             face = listOf(
@@ -166,7 +166,7 @@ class DecodeBiometricTest {
                 )
             )
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -193,7 +193,7 @@ class DecodeBiometricTest {
     @Test
     fun `biometric roundtrip with fingerprint data`() {
         val fingerData = byteArrayOf(0x46, 0x49, 0x52, 0x00) // "FIR\0"
-        val data = claim169 {
+        val data = claim169Data {
             id = "BIO-FINGER-RT-001"
             fullName = "Bio Finger Roundtrip"
             rightThumb = listOf(
@@ -213,7 +213,7 @@ class DecodeBiometricTest {
                 )
             )
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }

@@ -10,7 +10,7 @@ The Kotlin SDK provides native bindings for encoding and decoding MOSIP Claim 16
 
 ## Why Kotlin?
 
-- **DSL API** — Idiomatic Kotlin builders with `claim169 {}` and `cwtMeta {}` syntax
+- **DSL API** — Idiomatic Kotlin builders with `claim169Data {}` and `cwtMetaData {}` syntax
 - **Android Ready** — Supports Android API 24+ with native library loading
 - **JVM Server-Side** — Runs on any JDK 17+ backend (Spring Boot, Ktor, Micronaut)
 - **HSM/KMS Ready** — Interface-based crypto hooks for Android Keystore, HSMs, and cloud KMS

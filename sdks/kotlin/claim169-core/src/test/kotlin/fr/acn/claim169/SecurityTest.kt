@@ -32,11 +32,11 @@ class SecurityTest {
         val privateKey = TestVectorLoader.hexToByteArray(privateKeyHex)
         val publicKey = TestVectorLoader.hexToByteArray(publicKeyHex)
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "SEC-EXPIRED-001"
             fullName = "Expired Security Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 1L // epoch + 1 second, definitely expired
         }

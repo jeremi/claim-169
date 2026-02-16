@@ -27,7 +27,7 @@ fun interface CwtMetaDataConfigurer {
  *
  * ## Usage
  * ```kotlin
- * val data = claim169 {
+ * val data = claim169Data {
  *     id = "ID-12345"
  *     fullName = "Jane Doe"
  *     dateOfBirth = "19900115"
@@ -152,7 +152,7 @@ class Claim169DataBuilder {
  *
  * ## Usage
  * ```kotlin
- * val meta = cwtMeta {
+ * val meta = cwtMetaData {
  *     issuer = "https://issuer.example.com"
  *     expiresAt = 1800000000L
  * }
@@ -177,7 +177,7 @@ class CwtMetaDataBuilder {
 /**
  * Create a [Claim169Data] using DSL syntax.
  */
-fun claim169(configure: Claim169DataBuilder.() -> Unit): Claim169Data {
+fun claim169Data(configure: Claim169DataBuilder.() -> Unit): Claim169Data {
     val builder = Claim169DataBuilder()
     builder.configure()
     return builder.build()
@@ -186,7 +186,7 @@ fun claim169(configure: Claim169DataBuilder.() -> Unit): Claim169Data {
 /**
  * Create a [CwtMetaData] using DSL syntax.
  */
-fun cwtMeta(configure: CwtMetaDataBuilder.() -> Unit): CwtMetaData {
+fun cwtMetaData(configure: CwtMetaDataBuilder.() -> Unit): CwtMetaData {
     val builder = CwtMetaDataBuilder()
     builder.configure()
     return builder.build()

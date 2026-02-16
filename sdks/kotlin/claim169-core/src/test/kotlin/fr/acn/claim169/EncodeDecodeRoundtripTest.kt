@@ -18,13 +18,13 @@ class EncodeDecodeRoundtripTest {
         val privateKey = TestVectorLoader.hexToByteArray(privateKeyHex)
         val publicKey = TestVectorLoader.hexToByteArray(publicKeyHex)
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "ROUNDTRIP-001"
             fullName = "Roundtrip Test"
             dateOfBirth = "20000101"
             genderEnum = Gender.Male
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
             issuedAt = 1700000000L
@@ -53,11 +53,11 @@ class EncodeDecodeRoundtripTest {
 
     @Test
     fun `roundtrip unsigned`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "UNSIGNED-001"
             fullName = "Unsigned Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -83,11 +83,11 @@ class EncodeDecodeRoundtripTest {
         val keyHex = encKey.get("symmetric_key_hex").asString
         val key = TestVectorLoader.hexToByteArray(keyHex)
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "ENC-ROUNDTRIP-001"
             fullName = "Encrypted Roundtrip"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -112,11 +112,11 @@ class EncodeDecodeRoundtripTest {
         // AES-128-GCM uses a 16-byte key
         val key = ByteArray(16) { (it + 1).toByte() }
 
-        val data = claim169 {
+        val data = claim169Data {
             id = "AES128-001"
             fullName = "AES-128 Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -138,11 +138,11 @@ class EncodeDecodeRoundtripTest {
 
     @Test
     fun `roundtrip with skipBiometrics on encode`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "SKIP-BIO-001"
             fullName = "Skip Bio Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -163,11 +163,11 @@ class EncodeDecodeRoundtripTest {
 
     @Test
     fun `roundtrip with skipBiometrics on decode`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "SKIP-BIO-DEC-001"
             fullName = "Skip Bio Decode Test"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             expiresAt = 2000000000L
         }
@@ -188,7 +188,7 @@ class EncodeDecodeRoundtripTest {
 
     @Test
     fun `roundtrip with all demographic fields`() {
-        val data = claim169 {
+        val data = claim169Data {
             id = "FULL-001"
             version = "1.0"
             language = "eng"
@@ -210,7 +210,7 @@ class EncodeDecodeRoundtripTest {
             legalStatus = "resident"
             countryOfIssuance = "GBR"
         }
-        val meta = cwtMeta {
+        val meta = cwtMetaData {
             issuer = "https://test.example.com"
             subject = "FULL-001"
             expiresAt = 2000000000L
