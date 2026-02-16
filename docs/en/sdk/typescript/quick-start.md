@@ -49,14 +49,14 @@ console.log('Verified:', result.verificationStatus); // "verified"
 Create a signed credential QR code:
 
 ```typescript
-import { Encoder, type Claim169Input, type CwtMetaInput } from 'claim169';
+import { Encoder, Gender, type Claim169Input, type CwtMetaInput } from 'claim169';
 
 // Identity data to encode
 const claim169: Claim169Input = {
   id: "123456789",
   fullName: "Jane Smith",
   dateOfBirth: "1990-05-20",
-  gender: 2,  // Female
+  gender: Gender.Female,
   email: "jane@example.com",
 };
 
@@ -97,7 +97,7 @@ try {
 } catch (error) {
   if (error instanceof Claim169Error) {
     console.error('Decode failed:', error.message);
-    // Handle specific errors based on message content
+    console.error('Error code:', error.code); // e.g., "BASE45_DECODE", "SIGNATURE_INVALID"
   } else {
     throw error;
   }

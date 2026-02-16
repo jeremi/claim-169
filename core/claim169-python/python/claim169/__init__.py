@@ -1,9 +1,35 @@
 """MOSIP Claim 169 QR Code encoder/decoder library."""
 
+from enum import IntEnum
 from typing import Optional
 
 import re
 from datetime import datetime
+
+
+class Gender(IntEnum):
+    """Gender codes per Claim 169 specification (1-indexed)."""
+
+    MALE = 1
+    FEMALE = 2
+    OTHER = 3
+
+
+class MaritalStatus(IntEnum):
+    """Marital status codes per Claim 169 specification (1-indexed)."""
+
+    UNMARRIED = 1
+    MARRIED = 2
+    DIVORCED = 3
+
+
+class PhotoFormat(IntEnum):
+    """Photo format codes per Claim 169 specification (1-indexed)."""
+
+    JPEG = 1
+    JPEG2000 = 2
+    AVIF = 3
+    WEBP = 4
 
 from .claim169 import (
     # Exceptions
@@ -25,10 +51,10 @@ from .claim169 import (
     Claim169Input,
     CwtMetaInput,
     # Custom crypto provider wrappers
-    PySignatureVerifier,
-    PyDecryptor,
-    PySigner,
-    PyEncryptor,
+    SignatureVerifier,
+    Decryptor,
+    Signer,
+    Encryptor,
     # Decode functions
     decode_unverified,
     decode_with_ed25519,
@@ -53,6 +79,12 @@ from .claim169 import (
     # Utilities
     version,
 )
+
+# Backward-compatible aliases for renamed crypto wrapper classes
+PySignatureVerifier = SignatureVerifier
+PyDecryptor = Decryptor
+PySigner = Signer
+PyEncryptor = Encryptor
 
 
 def _validate_date_format(date: str | None, field_name: str) -> None:
@@ -174,9 +206,114 @@ def decode(
     return result
 
 
+def encode(
+    claim169_data: Claim169Input,
+    cwt_meta: CwtMetaInput,
+    sign_with_ed25519: Optional[bytes] = None,
+    sign_with_ecdsa_p256: Optional[bytes] = None,
+    encrypt_with_aes256: Optional[bytes] = None,
+    encrypt_with_aes128: Optional[bytes] = None,
+    allow_unsigned: bool = False,
+    skip_biometrics: bool = False,
+) -> str:
+    """
+    Encode a Claim 169 credential into a Base45-encoded QR code string.
+
+    Security:
+    - By default, requires a signing key via one of:
+      - ``sign_with_ed25519`` (32-byte private key)
+      - ``sign_with_ecdsa_p256`` (32-byte private key)
+    - Optionally encrypt with:
+      - ``encrypt_with_aes256`` (32-byte AES key)
+      - ``encrypt_with_aes128`` (16-byte AES key)
+    - To encode without signing (testing only), set ``allow_unsigned=True``.
+
+    Args:
+        claim169_data: Identity data to encode.
+        cwt_meta: CWT metadata (issuer, expiration, etc.).
+        sign_with_ed25519: Ed25519 private key bytes (32 bytes).
+        sign_with_ecdsa_p256: ECDSA P-256 private key bytes (32 bytes).
+        encrypt_with_aes256: AES-256 key bytes (32 bytes) for encryption.
+        encrypt_with_aes128: AES-128 key bytes (16 bytes) for encryption.
+        allow_unsigned: If True, encode without signing (INSECURE).
+        skip_biometrics: If True, exclude biometric data to reduce QR size.
+
+    Returns:
+        Base45-encoded string suitable for QR code generation.
+
+    Raises:
+        ValueError: If key combination is invalid.
+        Claim169Exception: If encoding fails.
+    """
+    # Validate signing options
+    signers = [
+        sign_with_ed25519 is not None,
+        sign_with_ecdsa_p256 is not None,
+    ]
+    if sum(signers) > 1:
+        raise ValueError("Provide only one signing key")
+
+    encryptions = [
+        encrypt_with_aes256 is not None,
+        encrypt_with_aes128 is not None,
+    ]
+    if sum(encryptions) > 1:
+        raise ValueError("Provide only one encryption key")
+
+    has_signer = any(signers)
+    has_encryption = any(encryptions)
+
+    if not has_signer and not allow_unsigned:
+        raise ValueError(
+            "encode() requires a signing key (sign_with_ed25519 / sign_with_ecdsa_p256) "
+            "or allow_unsigned=True"
+        )
+
+    if has_encryption and not has_signer:
+        raise ValueError("Encryption requires a signing key")
+
+    # Dispatch to the appropriate encode function
+    if allow_unsigned and not has_signer:
+        return encode_unsigned(claim169_data, cwt_meta, skip_biometrics=skip_biometrics)
+
+    if sign_with_ed25519 is not None:
+        if encrypt_with_aes256 is not None:
+            return encode_signed_encrypted(
+                claim169_data, cwt_meta, sign_with_ed25519, encrypt_with_aes256,
+                skip_biometrics=skip_biometrics,
+            )
+        elif encrypt_with_aes128 is not None:
+            return encode_signed_encrypted_aes128(
+                claim169_data, cwt_meta, sign_with_ed25519, encrypt_with_aes128,
+                skip_biometrics=skip_biometrics,
+            )
+        else:
+            return encode_with_ed25519(
+                claim169_data, cwt_meta, sign_with_ed25519,
+                skip_biometrics=skip_biometrics,
+            )
+
+    if sign_with_ecdsa_p256 is not None:
+        if has_encryption:
+            raise ValueError(
+                "Built-in encryption is only supported with Ed25519 signing. "
+                "Use encode_with_signer_and_encryptor() for ECDSA + encryption."
+            )
+        return encode_with_ecdsa_p256(
+            claim169_data, cwt_meta, sign_with_ecdsa_p256,
+            skip_biometrics=skip_biometrics,
+        )
+
+    raise ValueError("Invalid encode() parameter combination")
+
+
 __version__ = version()
 
 __all__ = [
+    # Enums
+    "Gender",
+    "MaritalStatus",
+    "PhotoFormat",
     # Exceptions
     "Claim169Exception",
     "Base45DecodeError",
@@ -196,6 +333,11 @@ __all__ = [
     "Claim169Input",
     "CwtMetaInput",
     # Custom crypto provider wrappers
+    "SignatureVerifier",
+    "Decryptor",
+    "Signer",
+    "Encryptor",
+    # Backward-compatible aliases
     "PySignatureVerifier",
     "PyDecryptor",
     "PySigner",
@@ -213,6 +355,7 @@ __all__ = [
     "decode_encrypted_aes128",
     "decode_with_decryptor",
     # Encode functions
+    "encode",
     "encode_with_ed25519",
     "encode_with_ecdsa_p256",
     "encode_signed_encrypted",

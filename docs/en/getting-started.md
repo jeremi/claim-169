@@ -100,7 +100,7 @@ d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
     println("ID: ${result.claim169.id}")
     println("Name: ${result.claim169.fullName}")
     println("Issuer: ${result.cwtMeta.issuer}")
-    println("Verified: ${result.isVerified}")
+    println("Status: ${result.verificationStatus}")  // VerificationStatus.Verified
     ```
 
 === "Java"

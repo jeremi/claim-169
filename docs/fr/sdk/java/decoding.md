@@ -16,7 +16,7 @@ DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) b -> {
 });
 
 System.out.println(result.getClaim169().getFullName());
-System.out.println(result.getVerificationStatus()); // "verified"
+System.out.println(result.getVerificationStatus()); // VerificationStatus.Verified
 ```
 
 ## Identifiants chiffrés
@@ -72,20 +72,17 @@ var claim = result.getClaim169();
 // Métadonnées CWT (issuer, timestamps)
 var meta = result.getCwtMeta();
 
-// Statut de vérification
-String status = result.getVerificationStatus();
+// Statut de vérification (enum VerificationStatus)
+VerificationStatus status = result.getVerificationStatus();
 
 // Format de compression détecté pendant le décodage
 String compression = result.getDetectedCompression();  // "zlib", "brotli", or "none"
-
-// Enum type-safe du statut de vérification
-var statusEnum = Claim169.verificationStatus(result);
 ```
 
 ## Statut vs erreurs
 
-- `verificationStatus == "verified"` : signature valide
-- `verificationStatus == "skipped"` : vérification explicitement ignorée (tests uniquement)
+- `verificationStatus == VerificationStatus.Verified` : signature valide
+- `verificationStatus == VerificationStatus.Skipped` : vérification explicitement ignorée (tests uniquement)
 - Erreur/exception : structure invalide, signature invalide, chiffrement invalide, expiré, etc.
 
 !!! note "Détails"

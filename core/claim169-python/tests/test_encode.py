@@ -100,18 +100,14 @@ class TestGenerateNonce:
     """Tests for nonce generation."""
 
     def test_generate_nonce_returns_bytes(self):
-        """Test that generate_nonce returns bytes or list."""
+        """Test that generate_nonce returns bytes."""
         nonce = claim169.generate_nonce()
-        # PyO3 returns list, convert if needed
-        if isinstance(nonce, list):
-            nonce = bytes(nonce)
         assert isinstance(nonce, bytes)
 
     def test_generate_nonce_length(self):
         """Test that generate_nonce returns 12 bytes (AES-GCM standard)."""
         nonce = claim169.generate_nonce()
-        if isinstance(nonce, list):
-            nonce = bytes(nonce)
+        assert isinstance(nonce, bytes)
         assert len(nonce) == 12
 
     def test_generate_nonce_unique(self):
@@ -119,8 +115,7 @@ class TestGenerateNonce:
         nonces = []
         for _ in range(100):
             n = claim169.generate_nonce()
-            if isinstance(n, list):
-                n = bytes(n)
+            assert isinstance(n, bytes)
             nonces.append(n)
         # All nonces should be unique
         assert len(set(nonces)) == 100
@@ -601,3 +596,176 @@ class TestEncoderEdgeCases:
         assert result.claim169.full_name == "O'Brien-Smith"
         assert result.claim169.email == special_email
         assert result.claim169.phone == special_phone
+
+
+class TestUnifiedEncode:
+    """Tests for the unified encode() function."""
+
+    def test_encode_requires_signing_by_default(self):
+        """Test that encode() requires a signing key unless allow_unsigned=True."""
+        claim = claim169.Claim169Input(id="TEST", full_name="Test")
+        meta = claim169.CwtMetaInput()
+
+        with pytest.raises(ValueError):
+            claim169.encode(claim, meta)
+
+    def test_encode_unsigned(self):
+        """Test encode() with allow_unsigned=True."""
+        claim = create_claim(id="UNIFIED-UNSIGNED", full_name="Unsigned User")
+        meta = create_meta(expires_at=1900000000)
+
+        qr_data = claim169.encode(claim, meta, allow_unsigned=True)
+        assert isinstance(qr_data, str)
+        assert len(qr_data) > 0
+
+        result = claim169.decode_unverified(qr_data)
+        assert result.claim169.id == "UNIFIED-UNSIGNED"
+
+    def test_encode_with_ed25519(self, ed25519_signed_vector):
+        """Test encode() with Ed25519 signing."""
+        private_key = bytes.fromhex(
+            ed25519_signed_vector["signing_key"]["private_key_hex"]
+        )
+        public_key = bytes.fromhex(
+            ed25519_signed_vector["signing_key"]["public_key_hex"]
+        )
+
+        claim = create_claim(id="UNIFIED-ED25519", full_name="Ed25519 User")
+        meta = create_meta(expires_at=1900000000)
+
+        qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
+        result = claim169.decode_with_ed25519(qr_data, public_key)
+
+        assert result.claim169.id == "UNIFIED-ED25519"
+        assert result.verification_status == "verified"
+
+    def test_encode_with_ecdsa_p256(self):
+        """Test encode() with ECDSA P-256 signing."""
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.backends import default_backend
+
+        private_key_obj = ec.generate_private_key(ec.SECP256R1(), default_backend())
+        private_key_bytes = private_key_obj.private_numbers().private_value.to_bytes(32, "big")
+        public_key_obj = private_key_obj.public_key()
+        public_numbers = public_key_obj.public_numbers()
+        public_key_bytes = (
+            b"\x04"
+            + public_numbers.x.to_bytes(32, "big")
+            + public_numbers.y.to_bytes(32, "big")
+        )
+
+        claim = create_claim(id="UNIFIED-ECDSA", full_name="ECDSA User")
+        meta = create_meta(expires_at=1900000000)
+
+        qr_data = claim169.encode(claim, meta, sign_with_ecdsa_p256=private_key_bytes)
+        result = claim169.decode_with_ecdsa_p256(qr_data, public_key_bytes)
+
+        assert result.claim169.id == "UNIFIED-ECDSA"
+        assert result.verification_status == "verified"
+
+    def test_encode_signed_encrypted_aes256(self, ed25519_signed_vector, encrypted_signed_vector):
+        """Test encode() with Ed25519 + AES-256 encryption."""
+        sign_key = bytes.fromhex(
+            ed25519_signed_vector["signing_key"]["private_key_hex"]
+        )
+        encrypt_key = bytes.fromhex(
+            encrypted_signed_vector["encryption_key"]["symmetric_key_hex"]
+        )
+
+        claim = create_claim(id="UNIFIED-ENC256", full_name="Encrypted User")
+        meta = create_meta(expires_at=1900000000)
+
+        qr_data = claim169.encode(
+            claim, meta,
+            sign_with_ed25519=sign_key,
+            encrypt_with_aes256=encrypt_key,
+        )
+        assert isinstance(qr_data, str)
+
+        result = claim169.decode_encrypted_aes(qr_data, encrypt_key, allow_unverified=True)
+        assert result.claim169.id == "UNIFIED-ENC256"
+
+    def test_encode_signed_encrypted_aes128(self, ed25519_signed_vector):
+        """Test encode() with Ed25519 + AES-128 encryption."""
+        import secrets
+
+        sign_key = bytes.fromhex(
+            ed25519_signed_vector["signing_key"]["private_key_hex"]
+        )
+        encrypt_key = secrets.token_bytes(16)
+
+        claim = create_claim(id="UNIFIED-ENC128", full_name="AES128 User")
+        meta = create_meta(expires_at=1900000000)
+
+        qr_data = claim169.encode(
+            claim, meta,
+            sign_with_ed25519=sign_key,
+            encrypt_with_aes128=encrypt_key,
+        )
+        assert isinstance(qr_data, str)
+
+        result = claim169.decode_encrypted_aes128(qr_data, encrypt_key, allow_unverified=True)
+        assert result.claim169.id == "UNIFIED-ENC128"
+
+    def test_encode_rejects_multiple_signers(self, ed25519_signed_vector):
+        """Test that encode() rejects multiple signing keys."""
+        import secrets
+
+        key = bytes.fromhex(ed25519_signed_vector["signing_key"]["private_key_hex"])
+
+        claim = claim169.Claim169Input(id="TEST", full_name="Test")
+        meta = claim169.CwtMetaInput()
+
+        with pytest.raises(ValueError, match="only one signing key"):
+            claim169.encode(
+                claim, meta,
+                sign_with_ed25519=key,
+                sign_with_ecdsa_p256=secrets.token_bytes(32),
+            )
+
+    def test_encode_rejects_multiple_encryptions(self, ed25519_signed_vector):
+        """Test that encode() rejects multiple encryption keys."""
+        import secrets
+
+        sign_key = bytes.fromhex(ed25519_signed_vector["signing_key"]["private_key_hex"])
+
+        claim = claim169.Claim169Input(id="TEST", full_name="Test")
+        meta = claim169.CwtMetaInput()
+
+        with pytest.raises(ValueError, match="only one encryption key"):
+            claim169.encode(
+                claim, meta,
+                sign_with_ed25519=sign_key,
+                encrypt_with_aes256=secrets.token_bytes(32),
+                encrypt_with_aes128=secrets.token_bytes(16),
+            )
+
+    def test_encode_rejects_encryption_without_signing(self):
+        """Test that encode() rejects encryption without a signing key."""
+        import secrets
+
+        claim = claim169.Claim169Input(id="TEST", full_name="Test")
+        meta = claim169.CwtMetaInput()
+
+        with pytest.raises(ValueError, match="requires a signing key"):
+            claim169.encode(
+                claim, meta,
+                encrypt_with_aes256=secrets.token_bytes(32),
+                allow_unsigned=True,
+            )
+
+    def test_encode_skip_biometrics(self, ed25519_signed_vector):
+        """Test encode() with skip_biometrics."""
+        private_key = bytes.fromhex(
+            ed25519_signed_vector["signing_key"]["private_key_hex"]
+        )
+
+        claim = create_claim(id="SKIP-BIO", full_name="Skip Bio")
+        meta = create_meta(expires_at=1900000000)
+
+        qr_data = claim169.encode(
+            claim, meta,
+            sign_with_ed25519=private_key,
+            skip_biometrics=True,
+        )
+        assert isinstance(qr_data, str)

@@ -7,13 +7,13 @@ La classe `Encoder` crée des données QR code MOSIP Claim 169 à partir d’inf
 ### Identifiant signé (recommandé)
 
 ```typescript
-import { Encoder, type Claim169Input, type CwtMetaInput } from 'claim169';
+import { Encoder, Gender, type Claim169Input, type CwtMetaInput } from 'claim169';
 
 const claim169: Claim169Input = {
   id: "MOSIP-123456789",
   fullName: "John Doe",
   dateOfBirth: "1985-03-15",
-  gender: 1,  // Male
+  gender: Gender.Male,
 };
 
 const cwtMeta: CwtMetaInput = {
@@ -70,7 +70,10 @@ const qrData = new Encoder(claim169, cwtMeta)
 ## Exemple complet (démographie)
 
 ```typescript
-import { Encoder, type Claim169Input, type CwtMetaInput } from 'claim169';
+import {
+  Encoder, Gender, MaritalStatus,
+  type Claim169Input, type CwtMetaInput,
+} from 'claim169';
 
 const claim169: Claim169Input = {
   // Identité
@@ -86,7 +89,7 @@ const claim169: Claim169Input = {
 
   // Démographie
   dateOfBirth: "1992-08-22",
-  gender: 2,  // Female (1=Male, 2=Female, 3=Other)
+  gender: Gender.Female,
 
   // Contact
   address: "123 Main Street, Apt 4B, Springfield, IL 62701",
@@ -95,7 +98,7 @@ const claim169: Claim169Input = {
 
   // Légal
   nationality: "US",
-  maritalStatus: 2,  // Married (1=Unmarried, 2=Married, 3=Divorced)
+  maritalStatus: MaritalStatus.Married,
   guardian: "Carlos Garcia",
   legalStatus: "citizen",
   countryOfIssuance: "US",
@@ -128,9 +131,9 @@ const claim169: Claim169Input = {
   id: "PHOTO-001",
   fullName: "Photo Test",
 
-  // Photo en JPEG (photoFormat: 1)
+  // Photo en JPEG
   photo: await readPhotoAsBytes('photo.jpg'),
-  photoFormat: 1,  // 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP
+  photoFormat: PhotoFormat.Jpeg,  // ou PhotoFormat.Jpeg2000, .Avif, .Webp
 };
 
 const qrData = new Encoder(claim169, cwtMeta)
@@ -281,32 +284,34 @@ try {
 | `expiresAt` | number | Timestamp Unix d’expiration |
 | `notBefore` | number | Timestamp Unix de début de validité |
 
-## Codes genre et état civil
+## Constantes d'énumération
+
+Le SDK exporte des constantes typées pour éviter les nombres magiques :
 
 ### Genre
 
-| Code | Valeur |
-|------|--------|
-| 1 | Male |
-| 2 | Female |
-| 3 | Other |
+| Constante | Code | Valeur |
+|-----------|------|--------|
+| `Gender.Male` | 1 | Male |
+| `Gender.Female` | 2 | Female |
+| `Gender.Other` | 3 | Other |
 
 ### État civil
 
-| Code | Valeur |
-|------|--------|
-| 1 | Unmarried |
-| 2 | Married |
-| 3 | Divorced |
+| Constante | Code | Valeur |
+|-----------|------|--------|
+| `MaritalStatus.Unmarried` | 1 | Unmarried |
+| `MaritalStatus.Married` | 2 | Married |
+| `MaritalStatus.Divorced` | 3 | Divorced |
 
 ### Format photo
 
-| Code | Format |
-|------|--------|
-| 1 | JPEG |
-| 2 | JPEG2000 |
-| 3 | AVIF |
-| 4 | WebP |
+| Constante | Code | Format |
+|-----------|------|--------|
+| `PhotoFormat.Jpeg` | 1 | JPEG |
+| `PhotoFormat.Jpeg2000` | 2 | JPEG2000 |
+| `PhotoFormat.Avif` | 3 | AVIF |
+| `PhotoFormat.Webp` | 4 | WebP |
 
 ## Génération de nonce
 

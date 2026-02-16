@@ -52,7 +52,7 @@ val result = Claim169.decode(qrData) {
 
 println("ID: ${result.claim169.id}")
 println("Name: ${result.claim169.fullName}")
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")  // VerificationStatus.Verified
 ```
 
 ## Documentation

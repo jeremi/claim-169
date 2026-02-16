@@ -59,5 +59,20 @@ enum class CoseAlgorithm(val coseName: String) {
     A256GCM("A256GCM"),
 }
 
-fun DecodeResultData.verificationStatusEnum(): VerificationStatus =
-    VerificationStatus.fromValue(verificationStatus)
+/**
+ * Extension property to get the [Gender] enum from a [Claim169Data]'s numeric gender field.
+ */
+val Claim169Data.genderEnum: Gender?
+    get() = gender?.let(Gender::fromValue)
+
+/**
+ * Extension property to get the [MaritalStatus] enum from a [Claim169Data]'s numeric marital status field.
+ */
+val Claim169Data.maritalStatusEnum: MaritalStatus?
+    get() = maritalStatus?.let(MaritalStatus::fromValue)
+
+/**
+ * Extension property to get the [PhotoFormat] enum from a [Claim169Data]'s numeric photo format field.
+ */
+val Claim169Data.photoFormatEnum: PhotoFormat?
+    get() = photoFormat?.let(PhotoFormat::fromValue)

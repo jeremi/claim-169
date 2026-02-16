@@ -33,6 +33,8 @@ A TypeScript/JavaScript library for encoding and decoding MOSIP Claim 169 QR cod
 - **Encryption**: AES-128-GCM and AES-256-GCM for encrypted credentials
 - **Custom Crypto Providers**: Integrate with HSMs, cloud KMS, and smart cards
 - **Biometric Data**: Parse fingerprint, iris, face, palm, and voice biometrics
+- **Typed Enums**: `Gender`, `MaritalStatus`, `PhotoFormat`, `BiometricFormat` constants
+- **Error Codes**: Programmatic `error.code` property on all errors
 - **Security Features**: Decompression bomb protection, timestamp validation
 
 ## Getting Started

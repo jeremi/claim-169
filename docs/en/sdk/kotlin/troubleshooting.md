@@ -219,6 +219,15 @@ fr.acn.claim169.Claim169Exception$Expired: Token expired at 1700000000
        clockSkewTolerance(seconds = 300)  // 5 minutes
    }
    ```
+   Or using Kotlin's `Duration` type:
+   ```kotlin
+   import kotlin.time.Duration.Companion.minutes
+
+   val result = Claim169.decode(qrData) {
+       verifyWithEd25519(publicKey)
+       clockSkewTolerance(5.minutes)
+   }
+   ```
 
 ### DecryptionError
 

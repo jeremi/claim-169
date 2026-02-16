@@ -1,6 +1,30 @@
 """Type stubs for claim169 Python bindings."""
 
+from enum import IntEnum
 from typing import Callable, Literal, Optional
+
+
+class Gender(IntEnum):
+    """Gender codes per Claim 169 specification (1-indexed)."""
+    MALE = 1
+    FEMALE = 2
+    OTHER = 3
+
+
+class MaritalStatus(IntEnum):
+    """Marital status codes per Claim 169 specification (1-indexed)."""
+    UNMARRIED = 1
+    MARRIED = 2
+    DIVORCED = 3
+
+
+class PhotoFormat(IntEnum):
+    """Photo format codes per Claim 169 specification (1-indexed)."""
+    JPEG = 1
+    JPEG2000 = 2
+    AVIF = 3
+    WEBP = 4
+
 
 class Claim169Exception(Exception):
     """Base exception for Claim 169 errors."""
@@ -142,6 +166,8 @@ class DecodeResult:
     verification_status: str
     x509_headers: X509Headers
     """X.509 headers from COSE protected/unprotected headers."""
+    detected_compression: str
+    """Detected compression format ("zlib", "brotli", or "none")."""
 
     def is_verified(self) -> bool:
         """Check if signature was verified."""
@@ -187,15 +213,15 @@ EncryptAlgorithm = Literal["A256GCM", "A128GCM"]
 # Crypto Hook Wrapper Classes
 # ============================================================================
 
-class PySignatureVerifier:
+class SignatureVerifier:
     """Wrapper for custom signature verifier callback."""
     def __init__(self, callback: VerifierCallback) -> None: ...
 
-class PyDecryptor:
+class Decryptor:
     """Wrapper for custom decryptor callback."""
     def __init__(self, callback: DecryptorCallback) -> None: ...
 
-class PySigner:
+class Signer:
     """Wrapper for custom signer callback.
 
     Use this for external crypto providers such as:
@@ -210,7 +236,7 @@ class PySigner:
         key_id: Optional[bytes] = None,
     ) -> None: ...
 
-class PyEncryptor:
+class Encryptor:
     """Wrapper for custom encryptor callback.
 
     Use this for external crypto providers such as:
@@ -219,6 +245,12 @@ class PyEncryptor:
     - Custom software keystores
     """
     def __init__(self, callback: EncryptorCallback) -> None: ...
+
+# Backward-compatible aliases
+PySignatureVerifier = SignatureVerifier
+PyDecryptor = Decryptor
+PySigner = Signer
+PyEncryptor = Encryptor
 
 # ============================================================================
 # Decode Functions
@@ -347,7 +379,14 @@ def decode_with_ecdsa_p256_pem(
     """
     ...
 
-def decode_with_verifier(qr_text: str, verifier: VerifierCallback) -> DecodeResult:
+def decode_with_verifier(
+    qr_text: str,
+    verifier: VerifierCallback,
+    skip_biometrics: bool = False,
+    max_decompressed_bytes: int = 65536,
+    validate_timestamps: bool = True,
+    clock_skew_tolerance_seconds: int = 0,
+) -> DecodeResult:
     """
     Decode with a custom verifier callback.
 
@@ -360,6 +399,10 @@ def decode_with_verifier(qr_text: str, verifier: VerifierCallback) -> DecodeResu
     Args:
         qr_text: The QR code text content
         verifier: Callable that verifies signatures
+        skip_biometrics: If True, skip decoding biometric data
+        max_decompressed_bytes: Maximum decompressed size
+        validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+        clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
 
     Example:
         def my_verify(algorithm, key_id, data, signature):
@@ -461,8 +504,7 @@ def version() -> str:
 class Claim169Input:
     """Input data for encoding a Claim 169 credential.
 
-    Only `id` and `full_name` can be set in the constructor.
-    Other fields must be set as attributes after construction.
+    All fields can be set in the constructor or as attributes after construction.
     """
 
     # Settable attributes
@@ -492,7 +534,27 @@ class Claim169Input:
     def __init__(
         self,
         id: Optional[str] = None,
+        version: Optional[str] = None,
+        language: Optional[str] = None,
         full_name: Optional[str] = None,
+        first_name: Optional[str] = None,
+        middle_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        date_of_birth: Optional[str] = None,
+        gender: Optional[int] = None,
+        address: Optional[str] = None,
+        email: Optional[str] = None,
+        phone: Optional[str] = None,
+        nationality: Optional[str] = None,
+        marital_status: Optional[int] = None,
+        guardian: Optional[str] = None,
+        photo: Optional[bytes] = None,
+        photo_format: Optional[int] = None,
+        secondary_full_name: Optional[str] = None,
+        secondary_language: Optional[str] = None,
+        location_code: Optional[str] = None,
+        legal_status: Optional[str] = None,
+        country_of_issuance: Optional[str] = None,
     ) -> None: ...
 
 class CwtMetaInput:
@@ -517,6 +579,30 @@ class CwtMetaInput:
 # ============================================================================
 # Encoder Functions
 # ============================================================================
+
+def encode(
+    claim169_data: Claim169Input,
+    cwt_meta: CwtMetaInput,
+    sign_with_ed25519: Optional[bytes] = None,
+    sign_with_ecdsa_p256: Optional[bytes] = None,
+    encrypt_with_aes256: Optional[bytes] = None,
+    encrypt_with_aes128: Optional[bytes] = None,
+    allow_unsigned: bool = False,
+    skip_biometrics: bool = False,
+) -> str:
+    """
+    Encode a Claim 169 credential into a Base45-encoded QR code string.
+
+    Security:
+    - By default, requires a signing key via one of:
+      - ``sign_with_ed25519`` (32-byte private key)
+      - ``sign_with_ecdsa_p256`` (32-byte private key)
+    - Optionally encrypt with:
+      - ``encrypt_with_aes256`` (32-byte AES key)
+      - ``encrypt_with_aes128`` (16-byte AES key)
+    - To encode without signing (testing only), set ``allow_unsigned=True``.
+    """
+    ...
 
 def encode_with_ed25519(
     claim169: Claim169Input,

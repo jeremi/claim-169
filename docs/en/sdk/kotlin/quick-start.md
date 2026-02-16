@@ -13,6 +13,7 @@ The most common operation is decoding a QR code that was scanned from an identit
 
 ```kotlin
 import fr.acn.claim169.Claim169
+import fr.acn.claim169.VerificationStatus
 
 // QR code content (Base45 encoded string from scanner)
 val qrData = "NCFOXN..."
@@ -32,10 +33,9 @@ println("Name: ${result.claim169.fullName}")
 println("Date of Birth: ${result.claim169.dateOfBirth}")
 
 // Check verification status
-if (result.isVerified) {
-    println("Signature verified successfully")
-} else {
-    println("Verification status: ${result.verificationStatus}")
+when (result.verificationStatus) {
+    VerificationStatus.Verified -> println("Signature verified successfully")
+    else -> println("Verification status: ${result.verificationStatus}")
 }
 
 // Access CWT metadata
@@ -56,7 +56,7 @@ val result = Claim169.decode(qrData) {
 }
 
 println("ID: ${result.claim169.id}")
-println("Status: ${result.verificationStatus}")  // "skipped"
+println("Status: ${result.verificationStatus}")  // VerificationStatus.Skipped
 ```
 
 ## Encoding a Credential
@@ -138,7 +138,7 @@ val result = Claim169.decode(qrData) {
 
 check(result.claim169.id == "TEST-001")
 check(result.claim169.fullName == "Test User")
-check(result.isVerified)
+check(result.verificationStatus == VerificationStatus.Verified)
 println("Roundtrip successful!")
 ```
 

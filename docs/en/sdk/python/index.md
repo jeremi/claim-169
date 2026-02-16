@@ -108,6 +108,7 @@ Common errors and solutions.
 
 | Function | Description |
 |----------|-------------|
+| `encode()` | Unified encode function with keyword arguments |
 | `encode_with_ed25519()` | Encode with Ed25519 signature |
 | `encode_with_ecdsa_p256()` | Encode with ECDSA P-256 signature |
 | `encode_with_signer()` | Encode with custom signer callback (HSM/KMS) |

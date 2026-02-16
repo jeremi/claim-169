@@ -122,7 +122,7 @@ class JavaInteropTest {
     }
 
     @Test
-    fun `verificationStatus static helper matches extension function`() {
+    fun `verificationStatus static helper matches property`() {
         val data = claim169Data {
             id = "MATCH-STATUS-001"
             fullName = "Match Status Test"
@@ -140,7 +140,7 @@ class JavaInteropTest {
 
         // Both approaches should return the same value
         assertEquals(
-            result.verificationStatusEnum(),
+            result.verificationStatus,
             Claim169.verificationStatus(result)
         )
     }

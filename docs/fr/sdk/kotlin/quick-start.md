@@ -20,7 +20,7 @@ val result = Claim169.decode(qrData) {
 
 println("ID: ${result.claim169.id}")
 println("Nom: ${result.claim169.fullName}")
-println("Statut: ${result.verificationStatus}") // "verified" / "skipped"
+println("Statut: ${result.verificationStatus}") // VerificationStatus.Verified / .Skipped
 ```
 
 ## Décoder (sans vérification - tests uniquement)
@@ -30,7 +30,7 @@ val result = Claim169.decode(qrData) {
   allowUnverified()
 }
 
-check(result.verificationStatus == "skipped")
+check(result.verificationStatus == VerificationStatus.Skipped)
 ```
 
 ## Encoder (signer Ed25519)

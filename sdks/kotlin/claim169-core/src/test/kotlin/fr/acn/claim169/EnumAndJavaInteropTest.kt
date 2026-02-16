@@ -131,10 +131,10 @@ class EnumAndJavaInteropTest {
         assertEquals(PhotoFormat.Webp.value, result.claim169.photoFormat)
     }
 
-    // -- verificationStatusEnum() --
+    // -- verificationStatus is now VerificationStatus enum directly --
 
     @Test
-    fun `verificationStatusEnum returns Skipped for unverified decode`() {
+    fun `verificationStatus returns Skipped for unverified decode`() {
         val data = claim169Data {
             id = "STATUS-001"
             fullName = "Status Test"
@@ -150,11 +150,11 @@ class EnumAndJavaInteropTest {
             withoutTimestampValidation()
         }
 
-        assertEquals(VerificationStatus.Skipped, result.verificationStatusEnum())
+        assertEquals(VerificationStatus.Skipped, result.verificationStatus)
     }
 
     @Test
-    fun `verificationStatusEnum returns Verified for signed decode`() {
+    fun `verificationStatus returns Verified for signed decode`() {
         val vector = TestVectorLoader.loadVector("valid", "ed25519-signed")
         val qrData = vector.get("qr_data").asString
         val signingKey = vector.getAsJsonObject("signing_key")
@@ -166,7 +166,7 @@ class EnumAndJavaInteropTest {
             withoutTimestampValidation()
         }
 
-        assertEquals(VerificationStatus.Verified, result.verificationStatusEnum())
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     // -- decodeCloseable --
@@ -227,7 +227,7 @@ class EnumAndJavaInteropTest {
 
         assertEquals("CONFIGURER-001", result.claim169.id)
         assertEquals("Configurer Test", result.claim169.fullName)
-        assertEquals("skipped", result.verificationStatus)
+        assertEquals(VerificationStatus.Skipped, result.verificationStatus)
     }
 
     // -- EncoderConfigurer (Java interop) --

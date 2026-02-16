@@ -1,5 +1,6 @@
 package fr.acn.claim169
 
+import java.security.SecureRandom
 import uniffi.claim169_jni.Claim169Exception as NativeClaim169Exception
 import uniffi.claim169_jni.version as nativeVersion
 
@@ -151,13 +152,39 @@ object Claim169 {
     /**
      * Get the [VerificationStatus] enum from a decode result.
      *
-     * Java-friendly alternative to the [DecodeResultData.verificationStatusEnum] extension function.
+     * Java-friendly alternative to `result.getVerificationStatus()`.
      *
      * From Java: `Claim169.verificationStatus(result)`
      */
     @JvmStatic
     fun verificationStatus(result: DecodeResultData): VerificationStatus =
-        VerificationStatus.fromValue(result.verificationStatus)
+        result.verificationStatus
+
+    /**
+     * Generate a cryptographically secure random 12-byte nonce suitable for AES-GCM encryption.
+     *
+     * @return 12 random bytes from [SecureRandom].
+     */
+    @JvmStatic
+    fun generateNonce(): ByteArray {
+        val nonce = ByteArray(12)
+        SecureRandom().nextBytes(nonce)
+        return nonce
+    }
+
+    /**
+     * Decode a Claim 169 QR code string, wrapping the result in [kotlin.Result].
+     *
+     * ```kotlin
+     * val result = Claim169.decodeCatching(qrText) { allowUnverified() }
+     * result.onSuccess { data -> println(data.claim169.fullName) }
+     * result.onFailure { error -> println("Decode failed: $error") }
+     * ```
+     */
+    fun decodeCatching(
+        qrText: String,
+        configure: DecoderBuilder.() -> Unit
+    ): Result<DecodeResultData> = runCatching { decode(qrText, configure) }
 
     /**
      * Create a [Claim169Data] using a [Claim169DataConfigurer].

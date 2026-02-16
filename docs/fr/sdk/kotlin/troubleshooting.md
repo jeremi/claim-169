@@ -5,7 +5,7 @@
 ### Signature invalide
 
 - Verifiez que vous utilisez la bonne cle publique (et le bon algorithme : Ed25519 vs ECDSA P-256).
-- Si `verificationStatus == "skipped"`, la verification a ete ignoree (tests uniquement).
+- Si `verificationStatus == VerificationStatus.Skipped`, la verification a ete ignoree (tests uniquement).
 
 ### Expire / NotYetValid
 

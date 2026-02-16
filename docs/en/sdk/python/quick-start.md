@@ -67,19 +67,19 @@ import claim169
 # Create identity data
 claim = claim169.Claim169Input(
     id="MOSIP-2024-001",
-    full_name="Jane Doe"
+    full_name="Jane Doe",
+    date_of_birth="1990-05-15",
+    gender=claim169.Gender.FEMALE,
+    email="jane.doe@example.org",
+    nationality="US",
 )
-claim.date_of_birth = "1990-05-15"
-claim.gender = 2  # Female
-claim.email = "jane.doe@example.org"
-claim.nationality = "US"
 
 # Create CWT metadata
 meta = claim169.CwtMetaInput(
     issuer="https://id.example.org",
-    expires_at=1900000000  # Unix timestamp
+    expires_at=1900000000,  # Unix timestamp
+    issued_at=1700000000,
 )
-meta.issued_at = 1700000000
 
 # Ed25519 private key (32 bytes) - keep this secret!
 private_key = bytes.fromhex(
@@ -87,7 +87,7 @@ private_key = bytes.fromhex(
 )
 
 # Encode the credential
-qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
 
 print(f"QR Code content ({len(qr_data)} chars):")
 print(qr_data)
@@ -115,7 +115,7 @@ meta = claim169.CwtMetaInput(
     expires_at=1900000000
 )
 
-qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
 
 # Decode and verify
 result = claim169.decode_with_ed25519(qr_data, public_key)

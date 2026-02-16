@@ -33,7 +33,7 @@ println("DOB: ${result.claim169.dateOfBirth}")
 println("Gender: ${result.claim169.gender}")
 
 // Verification status
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")
 println("Status: ${result.verificationStatus}")
 ```
 
@@ -53,7 +53,7 @@ val result = Claim169.decode(qrData) {
 }
 
 println("ID: ${result.claim169.id}")
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")
 ```
 
 ## Decoding with PEM Public Keys
@@ -76,7 +76,7 @@ val result = Claim169.decode(qrData) {
     verifyWithEd25519Pem(pemKey)
 }
 
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")
 ```
 
 ### ECDSA P-256 with PEM
@@ -95,7 +95,7 @@ val result = Claim169.decode(qrData) {
     verifyWithEcdsaP256Pem(pemKey)
 }
 
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")
 ```
 
 ## Decoding with Custom Verifier
@@ -123,7 +123,7 @@ val result = Claim169.decode(qrData) {
     verifyWith(customVerifier)
 }
 
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")
 ```
 
 ## Decoding Without Verification
@@ -139,7 +139,7 @@ val result = Claim169.decode(qrData) {
 }
 
 println("ID: ${result.claim169.id}")
-println("Status: ${result.verificationStatus}")  // "skipped"
+println("Status: ${result.verificationStatus}")  // VerificationStatus.Skipped
 ```
 
 ## Handling Timestamps
@@ -173,6 +173,17 @@ For distributed systems with clock differences:
 val result = Claim169.decode(qrData) {
     verifyWithEd25519(publicKey)
     clockSkewTolerance(seconds = 60)  // Allow 60 seconds of drift
+}
+```
+
+You can also use Kotlin's `Duration` type:
+
+```kotlin
+import kotlin.time.Duration.Companion.seconds
+
+val result = Claim169.decode(qrData) {
+    verifyWithEd25519(publicKey)
+    clockSkewTolerance(60.seconds)
 }
 ```
 
@@ -240,17 +251,11 @@ val claim = result.claim169
 // CWT metadata (issuer, timestamps)
 val meta = result.cwtMeta
 
-// Verification status string
-val status = result.verificationStatus  // "verified", "skipped", etc.
+// Verification status (VerificationStatus enum)
+val status = result.verificationStatus  // VerificationStatus.Verified, .Skipped, etc.
 
 // Compression format detected during decoding
 val compression = result.detectedCompression  // "zlib", "brotli", or "none"
-
-// Helper property
-val isVerified = result.isVerified  // true/false
-
-// Type-safe verification status enum
-val statusEnum = result.verificationStatusEnum()  // VerificationStatus.Verified, etc.
 ```
 
 ### Claim169Data Fields
@@ -268,17 +273,17 @@ claim.middleName            // String?
 claim.lastName              // String?
 claim.dateOfBirth           // String?
 claim.gender                // Long? (1=Male, 2=Female, 3=Other)
-// Use Gender.fromValue(claim.gender!!) for type-safe enum
+claim.genderEnum            // Gender? — type-safe extension property
 claim.address               // String?
 claim.email                 // String?
 claim.phone                 // String?
 claim.nationality           // String?
 claim.maritalStatus         // Long? (1=Unmarried, 2=Married, 3=Divorced)
-// Use MaritalStatus.fromValue(claim.maritalStatus!!) for type-safe enum
+claim.maritalStatusEnum     // MaritalStatus? — type-safe extension property
 claim.guardian              // String?
 claim.photo                 // ByteArray?
 claim.photoFormat           // Long? (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP)
-// Use PhotoFormat.fromValue(claim.photoFormat!!) for type-safe enum
+claim.photoFormatEnum       // PhotoFormat? — type-safe extension property
 claim.secondaryFullName     // String?
 claim.secondaryLanguage     // String?
 claim.locationCode          // String?
@@ -364,11 +369,33 @@ try {
 }
 ```
 
+### Using decodeCatching
+
+For a more idiomatic Kotlin approach, use `decodeCatching` which wraps the result in `kotlin.Result`:
+
+```kotlin
+import fr.acn.claim169.Claim169
+
+val result = Claim169.decodeCatching(qrData) {
+    verifyWithEd25519(publicKey)
+}
+
+result.onSuccess { data ->
+    println("ID: ${data.claim169.id}")
+    println("Status: ${data.verificationStatus}")
+}
+
+result.onFailure { error ->
+    println("Decode failed: $error")
+}
+```
+
 ## Complete Example
 
 ```kotlin
 import fr.acn.claim169.Claim169
 import fr.acn.claim169.Claim169Exception
+import fr.acn.claim169.VerificationStatus
 
 fun verifyCredential(qrData: String, publicKey: ByteArray): Map<String, Any?>? {
     return try {
@@ -377,7 +404,7 @@ fun verifyCredential(qrData: String, publicKey: ByteArray): Map<String, Any?>? {
             clockSkewTolerance(seconds = 60)
         }
 
-        if (!result.isVerified) {
+        if (result.verificationStatus != VerificationStatus.Verified) {
             println("Warning: ${result.verificationStatus}")
             return null
         }

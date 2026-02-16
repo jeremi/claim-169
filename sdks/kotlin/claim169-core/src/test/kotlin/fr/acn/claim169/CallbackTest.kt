@@ -37,7 +37,7 @@ class CallbackTest {
         }
 
         assertEquals("SIGNER-KEYID-001", result.claim169.id)
-        assertEquals("verified", result.verificationStatus)
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     @Test

@@ -44,8 +44,9 @@ class CloseableDecodeResult(
  * Zeroizes all sensitive byte arrays within a [Claim169Data] instance.
  *
  * Fills photo, bestQualityFingers, and every biometric data byte array with zeros.
+ * Use [CloseableDecodeResult] for automatic zeroization via try-with-resources or `.use {}`.
  */
-fun zeroizeClaim169Data(claim: Claim169Data) {
+internal fun zeroizeClaim169Data(claim: Claim169Data) {
     claim.photo?.fill(0)
     claim.bestQualityFingers?.fill(0)
 

@@ -64,30 +64,30 @@ Créer un identifiant signé qui peut être encodé dans un QR code.
 ```python
 import claim169
 
-# Créer les données d’identité
+# Créer les données d'identité
 claim = claim169.Claim169Input(
     id="MOSIP-2024-001",
-    full_name="Jane Doe"
+    full_name="Jane Doe",
+    date_of_birth="1990-05-15",
+    gender=claim169.Gender.FEMALE,
+    email="jane.doe@example.org",
+    nationality="US",
 )
-claim.date_of_birth = "1990-05-15"
-claim.gender = 2  # Female
-claim.email = "jane.doe@example.org"
-claim.nationality = "US"
 
 # Créer les métadonnées CWT
 meta = claim169.CwtMetaInput(
     issuer="https://id.example.org",
-    expires_at=1900000000  # Timestamp Unix
+    expires_at=1900000000,  # Timestamp Unix
+    issued_at=1700000000,
 )
-meta.issued_at = 1700000000
 
 # Clé privée Ed25519 (32 octets) - gardez-la secrète !
 private_key = bytes.fromhex(
     "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
 )
 
-# Encoder l’identifiant
-qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+# Encoder l'identifiant
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
 
 print(f"QR Code content ({len(qr_data)} chars):")
 print(qr_data)
@@ -115,7 +115,7 @@ meta = claim169.CwtMetaInput(
     expires_at=1900000000
 )
 
-qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
 
 # Décoder et vérifier
 result = claim169.decode_with_ed25519(qr_data, public_key)

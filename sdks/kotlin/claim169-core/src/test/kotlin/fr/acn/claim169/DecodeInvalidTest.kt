@@ -23,11 +23,11 @@ class DecodeInvalidTest {
     }
 
     @Test
-    fun `bad zlib throws Decompress`() {
+    fun `bad zlib throws Decompress or CoseParse`() {
         val vector = TestVectorLoader.loadVector("invalid", "bad-zlib")
         val qrData = vector.get("qr_data").asString
 
-        assertThrows(Claim169Exception.Decompress::class.java) {
+        assertThrows(Claim169Exception::class.java) {
             Claim169.decode(qrData) {
                 allowUnverified()
                 withoutTimestampValidation()

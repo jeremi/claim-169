@@ -33,7 +33,9 @@ Une bibliothèque TypeScript/JavaScript pour encoder et décoder des QR codes MO
 - **Chiffrement** : AES-128-GCM et AES-256-GCM pour identifiants chiffrés
 - **Fournisseurs crypto personnalisés** : intégration HSM, KMS cloud et cartes à puce
 - **Données biométriques** : parser empreintes, iris, visage, paume et voix
-- **Fonctions de sécurité** : protection bombes de décompression, validation d’horodatages
+- **Énumérations typées** : constantes `Gender`, `MaritalStatus`, `PhotoFormat`, `BiometricFormat`
+- **Codes d'erreur** : propriété programmatique `error.code` sur toutes les erreurs
+- **Fonctions de sécurité** : protection bombes de décompression, validation d'horodatages
 
 ## Bien démarrer
 

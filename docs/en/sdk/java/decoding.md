@@ -244,14 +244,11 @@ var claim = result.getClaim169();
 // CWT metadata (issuer, timestamps)
 var meta = result.getCwtMeta();
 
-// Raw verification status string from decoded payload
-String status = result.getVerificationStatus();
+// Verification status (VerificationStatus enum)
+VerificationStatus status = result.getVerificationStatus();
 
 // Compression format detected during decoding
 String compression = result.getDetectedCompression();  // "zlib", "brotli", or "none"
-
-// Type-safe verification status enum
-var statusEnum = Claim169.verificationStatus(result);
 ```
 
 ### Claim169Data Fields
@@ -269,17 +266,17 @@ claim.getMiddleName();            // String (nullable)
 claim.getLastName();              // String (nullable)
 claim.getDateOfBirth();           // String (nullable)
 claim.getGender();                // Long (nullable, 1=Male, 2=Female, 3=Other)
-// Use Gender.fromValue(claim.getGender()) for type-safe enum
+// Use Gender.fromValue(claim.getGender()) for type-safe access
 claim.getAddress();               // String (nullable)
 claim.getEmail();                 // String (nullable)
 claim.getPhone();                 // String (nullable)
 claim.getNationality();           // String (nullable)
 claim.getMaritalStatus();         // Long (nullable, 1=Unmarried, 2=Married, 3=Divorced)
-// Use MaritalStatus.fromValue(claim.getMaritalStatus()) for type-safe enum
+// Use MaritalStatus.fromValue(claim.getMaritalStatus()) for type-safe access
 claim.getGuardian();              // String (nullable)
 claim.getPhoto();                 // byte[] (nullable)
 claim.getPhotoFormat();           // Long (nullable, 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP)
-// Use PhotoFormat.fromValue(claim.getPhotoFormat()) for type-safe enum
+// Use PhotoFormat.fromValue(claim.getPhotoFormat()) for type-safe access
 claim.getSecondaryFullName();     // String (nullable)
 claim.getSecondaryLanguage();     // String (nullable)
 claim.getLocationCode();          // String (nullable)

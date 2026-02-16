@@ -875,70 +875,70 @@ internal interface UniffiLib : Library {
                 uniffiCallbackInterfaceSignerCallback.register(lib)
                 }
         }
-
+        
         // The Cleaner for the whole library
         internal val CLEANER: UniffiCleaner by lazy {
             UniffiCleaner.create()
         }
     }
 
-    fun uniffi_claim169_jni_fn_clone_claim169decoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_clone_claim169decoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
-    fun uniffi_claim169_jni_fn_free_claim169decoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_free_claim169decoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_constructor_claim169decoder_new(`qrText`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_constructor_claim169decoder_new(`qrText`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
-    fun uniffi_claim169_jni_fn_method_claim169decoder_allow_unverified(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_allow_unverified(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_clock_skew_tolerance(`ptr`: Pointer,`seconds`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_clock_skew_tolerance(`ptr`: Pointer,`seconds`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_aes128(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_aes128(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_aes256(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_aes256(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_callback(`ptr`: Pointer,`decryptor`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_callback(`ptr`: Pointer,`decryptor`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_execute(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_execute(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_claim169_jni_fn_method_claim169decoder_max_decompressed_bytes(`ptr`: Pointer,`maxBytes`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_max_decompressed_bytes(`ptr`: Pointer,`maxBytes`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_skip_biometrics(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_skip_biometrics(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_callback(`ptr`: Pointer,`verifier`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_callback(`ptr`: Pointer,`verifier`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ecdsa_p256(`ptr`: Pointer,`publicKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ecdsa_p256(`ptr`: Pointer,`publicKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ecdsa_p256_pem(`ptr`: Pointer,`pem`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ecdsa_p256_pem(`ptr`: Pointer,`pem`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ed25519(`ptr`: Pointer,`publicKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ed25519(`ptr`: Pointer,`publicKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ed25519_pem(`ptr`: Pointer,`pem`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ed25519_pem(`ptr`: Pointer,`pem`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169decoder_without_timestamp_validation(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169decoder_without_timestamp_validation(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_clone_claim169encoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_clone_claim169encoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
-    fun uniffi_claim169_jni_fn_free_claim169encoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_free_claim169encoder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_constructor_claim169encoder_new(`claim169Data`: RustBuffer.ByValue,`cwtMeta`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_constructor_claim169encoder_new(`claim169Data`: RustBuffer.ByValue,`cwtMeta`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
-    fun uniffi_claim169_jni_fn_method_claim169encoder_allow_unsigned(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_allow_unsigned(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_aes128(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_aes128(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_aes256(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_aes256(`ptr`: Pointer,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_callback(`ptr`: Pointer,`encryptor`: Long,`algorithm`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_callback(`ptr`: Pointer,`encryptor`: Long,`algorithm`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169encoder_execute(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_execute(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_claim169_jni_fn_method_claim169encoder_sign_with_callback(`ptr`: Pointer,`signer`: Long,`algorithm`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_sign_with_callback(`ptr`: Pointer,`signer`: Long,`algorithm`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169encoder_sign_with_ecdsa_p256(`ptr`: Pointer,`privateKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_sign_with_ecdsa_p256(`ptr`: Pointer,`privateKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169encoder_sign_with_ed25519(`ptr`: Pointer,`privateKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_sign_with_ed25519(`ptr`: Pointer,`privateKey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_claim169_jni_fn_method_claim169encoder_skip_biometrics(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_method_claim169encoder_skip_biometrics(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_claim169_jni_fn_init_callback_vtable_decryptorcallback(`vtable`: UniffiVTableCallbackInterfaceDecryptorCallback,
     ): Unit
@@ -948,15 +948,15 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_claim169_jni_fn_init_callback_vtable_signercallback(`vtable`: UniffiVTableCallbackInterfaceSignerCallback,
     ): Unit
-    fun uniffi_claim169_jni_fn_func_version(uniffi_out_err: UniffiRustCallStatus,
+    fun uniffi_claim169_jni_fn_func_version(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_claim169_jni_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_claim169_jni_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_claim169_jni_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun ffi_claim169_jni_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_claim169_jni_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -964,7 +964,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_u8(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
     fun ffi_claim169_jni_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -972,7 +972,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_i8(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
     fun ffi_claim169_jni_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -980,7 +980,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_u16(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Short
     fun ffi_claim169_jni_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -988,7 +988,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_i16(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Short
     fun ffi_claim169_jni_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -996,7 +996,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_u32(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
     fun ffi_claim169_jni_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1004,7 +1004,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_i32(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
     fun ffi_claim169_jni_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1012,7 +1012,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_u64(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     fun ffi_claim169_jni_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1020,7 +1020,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_i64(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     fun ffi_claim169_jni_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1028,7 +1028,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_f32(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Float
     fun ffi_claim169_jni_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1036,7 +1036,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_f64(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Double
     fun ffi_claim169_jni_rust_future_poll_pointer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1044,7 +1044,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_pointer(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_pointer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_pointer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
     fun ffi_claim169_jni_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1052,7 +1052,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_rust_buffer(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_claim169_jni_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -1060,7 +1060,7 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_free_void(`handle`: Long,
     ): Unit
-    fun ffi_claim169_jni_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    fun ffi_claim169_jni_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_claim169_jni_checksum_func_version(
     ): Short
@@ -1126,7 +1126,7 @@ internal interface UniffiLib : Library {
     ): Short
     fun ffi_claim169_jni_uniffi_contract_version(
     ): Int
-
+    
 }
 
 private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
@@ -1274,7 +1274,7 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
         }
     }
 
-/**
+/** 
  * Used to instantiate an interface without an actual pointer, for fakes in tests, mostly.
  *
  * @suppress
@@ -1569,79 +1569,79 @@ private class JavaLangRefCleanable(
  * Builder for decoding Claim 169 QR codes.
  */
 public interface Claim169DecoderInterface {
-
+    
     /**
      * Allow decoding without signature verification.
      */
     fun `allowUnverified`()
-
+    
     /**
      * Set clock skew tolerance for timestamp validation (in seconds).
      */
     fun `clockSkewTolerance`(`seconds`: kotlin.Long)
-
+    
     /**
      * Decrypt with AES-128-GCM (16-byte key).
      */
     fun `decryptWithAes128`(`key`: kotlin.ByteArray)
-
+    
     /**
      * Decrypt with AES-256-GCM (32-byte key).
      */
     fun `decryptWithAes256`(`key`: kotlin.ByteArray)
-
+    
     /**
      * Decrypt with a custom decryptor callback (for HSM/KMS integration).
      */
     fun `decryptWithCallback`(`decryptor`: DecryptorCallback)
-
+    
     /**
      * Execute the decode operation and return the result.
      *
      * This consumes the decoder — it cannot be reused after calling this method.
      */
     fun `execute`(): DecodeResultData
-
+    
     /**
      * Set maximum decompressed size in bytes (default: 65536).
      */
     fun `maxDecompressedBytes`(`maxBytes`: kotlin.ULong)
-
+    
     /**
      * Skip biometric data parsing for faster decoding.
      */
     fun `skipBiometrics`()
-
+    
     /**
      * Verify with a custom verifier callback (for HSM/KMS integration).
      */
     fun `verifyWithCallback`(`verifier`: SignatureVerifierCallback)
-
+    
     /**
      * Verify with an ECDSA P-256 public key (SEC1-encoded, 33 or 65 bytes).
      */
     fun `verifyWithEcdsaP256`(`publicKey`: kotlin.ByteArray)
-
+    
     /**
      * Verify with an ECDSA P-256 public key in PEM format.
      */
     fun `verifyWithEcdsaP256Pem`(`pem`: kotlin.String)
-
+    
     /**
      * Verify with an Ed25519 public key (32 raw bytes).
      */
     fun `verifyWithEd25519`(`publicKey`: kotlin.ByteArray)
-
+    
     /**
      * Verify with an Ed25519 public key in PEM format.
      */
     fun `verifyWithEd25519Pem`(`pem`: kotlin.String)
-
+    
     /**
      * Disable timestamp validation (expiration and not-before checks).
      */
     fun `withoutTimestampValidation`()
-
+    
     companion object
 }
 
@@ -1739,82 +1739,82 @@ open class Claim169Decoder: Disposable, AutoCloseable, Claim169DecoderInterface 
         }
     }
 
-
+    
     /**
      * Allow decoding without signature verification.
      */
     @Throws(Claim169Exception::class)override fun `allowUnverified`()
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_allow_unverified(
         it, _status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Set clock skew tolerance for timestamp validation (in seconds).
      */
     @Throws(Claim169Exception::class)override fun `clockSkewTolerance`(`seconds`: kotlin.Long)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_clock_skew_tolerance(
         it, FfiConverterLong.lower(`seconds`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Decrypt with AES-128-GCM (16-byte key).
      */
     @Throws(Claim169Exception::class)override fun `decryptWithAes128`(`key`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_aes128(
         it, FfiConverterByteArray.lower(`key`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Decrypt with AES-256-GCM (32-byte key).
      */
     @Throws(Claim169Exception::class)override fun `decryptWithAes256`(`key`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_aes256(
         it, FfiConverterByteArray.lower(`key`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Decrypt with a custom decryptor callback (for HSM/KMS integration).
      */
     @Throws(Claim169Exception::class)override fun `decryptWithCallback`(`decryptor`: DecryptorCallback)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_decrypt_with_callback(
         it, FfiConverterTypeDecryptorCallback.lower(`decryptor`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Execute the decode operation and return the result.
      *
@@ -1830,134 +1830,134 @@ open class Claim169Decoder: Disposable, AutoCloseable, Claim169DecoderInterface 
     }
     )
     }
+    
 
-
-
+    
     /**
      * Set maximum decompressed size in bytes (default: 65536).
      */
     @Throws(Claim169Exception::class)override fun `maxDecompressedBytes`(`maxBytes`: kotlin.ULong)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_max_decompressed_bytes(
         it, FfiConverterULong.lower(`maxBytes`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Skip biometric data parsing for faster decoding.
      */
     @Throws(Claim169Exception::class)override fun `skipBiometrics`()
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_skip_biometrics(
         it, _status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Verify with a custom verifier callback (for HSM/KMS integration).
      */
     @Throws(Claim169Exception::class)override fun `verifyWithCallback`(`verifier`: SignatureVerifierCallback)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_verify_with_callback(
         it, FfiConverterTypeSignatureVerifierCallback.lower(`verifier`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Verify with an ECDSA P-256 public key (SEC1-encoded, 33 or 65 bytes).
      */
     @Throws(Claim169Exception::class)override fun `verifyWithEcdsaP256`(`publicKey`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ecdsa_p256(
         it, FfiConverterByteArray.lower(`publicKey`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Verify with an ECDSA P-256 public key in PEM format.
      */
     @Throws(Claim169Exception::class)override fun `verifyWithEcdsaP256Pem`(`pem`: kotlin.String)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ecdsa_p256_pem(
         it, FfiConverterString.lower(`pem`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Verify with an Ed25519 public key (32 raw bytes).
      */
     @Throws(Claim169Exception::class)override fun `verifyWithEd25519`(`publicKey`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ed25519(
         it, FfiConverterByteArray.lower(`publicKey`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Verify with an Ed25519 public key in PEM format.
      */
     @Throws(Claim169Exception::class)override fun `verifyWithEd25519Pem`(`pem`: kotlin.String)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_verify_with_ed25519_pem(
         it, FfiConverterString.lower(`pem`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Disable timestamp validation (expiration and not-before checks).
      */
     @Throws(Claim169Exception::class)override fun `withoutTimestampValidation`()
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169decoder_without_timestamp_validation(
         it, _status)
 }
     }
+    
+    
 
+    
 
-
-
-
-
-
+    
+    
     companion object
-
+    
 }
 
 /**
@@ -2091,52 +2091,52 @@ public object FfiConverterTypeClaim169Decoder: FfiConverter<Claim169Decoder, Poi
  * Builder for encoding Claim 169 credentials into QR-ready strings.
  */
 public interface Claim169EncoderInterface {
-
+    
     /**
      * Allow encoding without a signature.
      */
     fun `allowUnsigned`()
-
+    
     /**
      * Encrypt with AES-128-GCM (16-byte key). Nonce is generated randomly.
      */
     fun `encryptWithAes128`(`key`: kotlin.ByteArray)
-
+    
     /**
      * Encrypt with AES-256-GCM (32-byte key). Nonce is generated randomly.
      */
     fun `encryptWithAes256`(`key`: kotlin.ByteArray)
-
+    
     /**
      * Encrypt with a custom encryptor callback (for HSM/KMS integration).
      */
     fun `encryptWithCallback`(`encryptor`: EncryptorCallback, `algorithm`: kotlin.String)
-
+    
     /**
      * Execute the encode operation and return the Base45-encoded QR string.
      */
     fun `execute`(): kotlin.String
-
+    
     /**
      * Sign with a custom signer callback (for HSM/KMS integration).
      */
     fun `signWithCallback`(`signer`: SignerCallback, `algorithm`: kotlin.String)
-
+    
     /**
      * Sign with an ECDSA P-256 private key (32-byte scalar).
      */
     fun `signWithEcdsaP256`(`privateKey`: kotlin.ByteArray)
-
+    
     /**
      * Sign with an Ed25519 private key (32 raw bytes).
      */
     fun `signWithEd25519`(`privateKey`: kotlin.ByteArray)
-
+    
     /**
      * Skip biometric data during encoding.
      */
     fun `skipBiometrics`()
-
+    
     companion object
 }
 
@@ -2234,67 +2234,67 @@ open class Claim169Encoder: Disposable, AutoCloseable, Claim169EncoderInterface 
         }
     }
 
-
+    
     /**
      * Allow encoding without a signature.
      */
     @Throws(Claim169Exception::class)override fun `allowUnsigned`()
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_allow_unsigned(
         it, _status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Encrypt with AES-128-GCM (16-byte key). Nonce is generated randomly.
      */
     @Throws(Claim169Exception::class)override fun `encryptWithAes128`(`key`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_aes128(
         it, FfiConverterByteArray.lower(`key`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Encrypt with AES-256-GCM (32-byte key). Nonce is generated randomly.
      */
     @Throws(Claim169Exception::class)override fun `encryptWithAes256`(`key`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_aes256(
         it, FfiConverterByteArray.lower(`key`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Encrypt with a custom encryptor callback (for HSM/KMS integration).
      */
     @Throws(Claim169Exception::class)override fun `encryptWithCallback`(`encryptor`: EncryptorCallback, `algorithm`: kotlin.String)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_encrypt_with_callback(
         it, FfiConverterTypeEncryptorCallback.lower(`encryptor`),FfiConverterString.lower(`algorithm`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Execute the encode operation and return the Base45-encoded QR string.
      */
@@ -2308,74 +2308,74 @@ open class Claim169Encoder: Disposable, AutoCloseable, Claim169EncoderInterface 
     }
     )
     }
+    
 
-
-
+    
     /**
      * Sign with a custom signer callback (for HSM/KMS integration).
      */
     @Throws(Claim169Exception::class)override fun `signWithCallback`(`signer`: SignerCallback, `algorithm`: kotlin.String)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_sign_with_callback(
         it, FfiConverterTypeSignerCallback.lower(`signer`),FfiConverterString.lower(`algorithm`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Sign with an ECDSA P-256 private key (32-byte scalar).
      */
     @Throws(Claim169Exception::class)override fun `signWithEcdsaP256`(`privateKey`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_sign_with_ecdsa_p256(
         it, FfiConverterByteArray.lower(`privateKey`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Sign with an Ed25519 private key (32 raw bytes).
      */
     @Throws(Claim169Exception::class)override fun `signWithEd25519`(`privateKey`: kotlin.ByteArray)
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_sign_with_ed25519(
         it, FfiConverterByteArray.lower(`privateKey`),_status)
 }
     }
+    
+    
 
-
-
-
+    
     /**
      * Skip biometric data during encoding.
      */
     @Throws(Claim169Exception::class)override fun `skipBiometrics`()
-        =
+        = 
     callWithPointer {
     uniffiRustCallWithError(Claim169Exception) { _status ->
     UniffiLib.INSTANCE.uniffi_claim169_jni_fn_method_claim169encoder_skip_biometrics(
         it, _status)
 }
     }
+    
+    
 
+    
 
-
-
-
-
-
+    
+    
     companion object
-
+    
 }
 
 /**
@@ -2415,21 +2415,21 @@ data class BiometricData (
     /**
      * Raw biometric data bytes.
      */
-    var `data`: kotlin.ByteArray,
+    var `data`: kotlin.ByteArray, 
     /**
      * Biometric format (0=Image, 1=Template, 2=Sound, 3=BioHash). None if not specified.
      */
-    var `format`: kotlin.Long?,
+    var `format`: kotlin.Long?, 
     /**
      * Biometric sub-format. None if not specified.
      */
-    var `subFormat`: kotlin.Long?,
+    var `subFormat`: kotlin.Long?, 
     /**
      * Issuer of the biometric data.
      */
     var `issuer`: kotlin.String?
 ) {
-
+    
     companion object
 }
 
@@ -2470,17 +2470,17 @@ data class CertificateHashData (
     /**
      * Hash algorithm — numeric COSE algorithm ID (e.g., -16 for SHA-256) or None if named.
      */
-    var `algorithmNumeric`: kotlin.Long?,
+    var `algorithmNumeric`: kotlin.Long?, 
     /**
      * Hash algorithm name (for non-numeric algorithms).
      */
-    var `algorithmName`: kotlin.String?,
+    var `algorithmName`: kotlin.String?, 
     /**
      * Hash value bytes.
      */
     var `hashValue`: kotlin.ByteArray
 ) {
-
+    
     companion object
 }
 
@@ -2515,48 +2515,48 @@ public object FfiConverterTypeCertificateHashData: FfiConverterRustBuffer<Certif
  * Claim 169 identity data.
  */
 data class Claim169Data (
-    var `id`: kotlin.String?,
-    var `version`: kotlin.String?,
-    var `language`: kotlin.String?,
-    var `fullName`: kotlin.String?,
-    var `firstName`: kotlin.String?,
-    var `middleName`: kotlin.String?,
-    var `lastName`: kotlin.String?,
-    var `dateOfBirth`: kotlin.String?,
-    var `gender`: kotlin.Long?,
-    var `address`: kotlin.String?,
-    var `email`: kotlin.String?,
-    var `phone`: kotlin.String?,
-    var `nationality`: kotlin.String?,
-    var `maritalStatus`: kotlin.Long?,
-    var `guardian`: kotlin.String?,
-    var `photo`: kotlin.ByteArray?,
-    var `photoFormat`: kotlin.Long?,
-    var `bestQualityFingers`: kotlin.ByteArray?,
-    var `secondaryFullName`: kotlin.String?,
-    var `secondaryLanguage`: kotlin.String?,
-    var `locationCode`: kotlin.String?,
-    var `legalStatus`: kotlin.String?,
-    var `countryOfIssuance`: kotlin.String?,
-    var `rightThumb`: List<BiometricData>?,
-    var `rightPointerFinger`: List<BiometricData>?,
-    var `rightMiddleFinger`: List<BiometricData>?,
-    var `rightRingFinger`: List<BiometricData>?,
-    var `rightLittleFinger`: List<BiometricData>?,
-    var `leftThumb`: List<BiometricData>?,
-    var `leftPointerFinger`: List<BiometricData>?,
-    var `leftMiddleFinger`: List<BiometricData>?,
-    var `leftRingFinger`: List<BiometricData>?,
-    var `leftLittleFinger`: List<BiometricData>?,
-    var `rightIris`: List<BiometricData>?,
-    var `leftIris`: List<BiometricData>?,
-    var `face`: List<BiometricData>?,
-    var `rightPalm`: List<BiometricData>?,
-    var `leftPalm`: List<BiometricData>?,
-    var `voice`: List<BiometricData>?,
+    var `id`: kotlin.String?, 
+    var `version`: kotlin.String?, 
+    var `language`: kotlin.String?, 
+    var `fullName`: kotlin.String?, 
+    var `firstName`: kotlin.String?, 
+    var `middleName`: kotlin.String?, 
+    var `lastName`: kotlin.String?, 
+    var `dateOfBirth`: kotlin.String?, 
+    var `gender`: kotlin.Long?, 
+    var `address`: kotlin.String?, 
+    var `email`: kotlin.String?, 
+    var `phone`: kotlin.String?, 
+    var `nationality`: kotlin.String?, 
+    var `maritalStatus`: kotlin.Long?, 
+    var `guardian`: kotlin.String?, 
+    var `photo`: kotlin.ByteArray?, 
+    var `photoFormat`: kotlin.Long?, 
+    var `bestQualityFingers`: kotlin.ByteArray?, 
+    var `secondaryFullName`: kotlin.String?, 
+    var `secondaryLanguage`: kotlin.String?, 
+    var `locationCode`: kotlin.String?, 
+    var `legalStatus`: kotlin.String?, 
+    var `countryOfIssuance`: kotlin.String?, 
+    var `rightThumb`: List<BiometricData>?, 
+    var `rightPointerFinger`: List<BiometricData>?, 
+    var `rightMiddleFinger`: List<BiometricData>?, 
+    var `rightRingFinger`: List<BiometricData>?, 
+    var `rightLittleFinger`: List<BiometricData>?, 
+    var `leftThumb`: List<BiometricData>?, 
+    var `leftPointerFinger`: List<BiometricData>?, 
+    var `leftMiddleFinger`: List<BiometricData>?, 
+    var `leftRingFinger`: List<BiometricData>?, 
+    var `leftLittleFinger`: List<BiometricData>?, 
+    var `rightIris`: List<BiometricData>?, 
+    var `leftIris`: List<BiometricData>?, 
+    var `face`: List<BiometricData>?, 
+    var `rightPalm`: List<BiometricData>?, 
+    var `leftPalm`: List<BiometricData>?, 
+    var `voice`: List<BiometricData>?, 
     var `unknownFieldsJson`: kotlin.String?
 ) {
-
+    
     companion object
 }
 
@@ -2705,25 +2705,25 @@ data class CwtMetaData (
     /**
      * Token issuer URI.
      */
-    var `issuer`: kotlin.String?,
+    var `issuer`: kotlin.String?, 
     /**
      * Token subject.
      */
-    var `subject`: kotlin.String?,
+    var `subject`: kotlin.String?, 
     /**
      * Expiration time (Unix timestamp).
      */
-    var `expiresAt`: kotlin.Long?,
+    var `expiresAt`: kotlin.Long?, 
     /**
      * Not-before time (Unix timestamp).
      */
-    var `notBefore`: kotlin.Long?,
+    var `notBefore`: kotlin.Long?, 
     /**
      * Issued-at time (Unix timestamp).
      */
     var `issuedAt`: kotlin.Long?
 ) {
-
+    
     companion object
 }
 
@@ -2767,25 +2767,29 @@ data class DecodeResultData (
     /**
      * The extracted Claim 169 identity data.
      */
-    var `claim169`: Claim169Data,
+    var `claim169`: Claim169Data, 
     /**
      * CWT metadata (issuer, expiration, etc.).
      */
-    var `cwtMeta`: CwtMetaData,
+    var `cwtMeta`: CwtMetaData, 
     /**
      * Verification status: "verified", "failed", or "skipped".
      */
-    var `verificationStatus`: kotlin.String,
+    var `verificationStatus`: kotlin.String, 
     /**
      * X.509 certificate headers from the COSE structure.
      */
-    var `x509Headers`: X509HeadersData,
+    var `x509Headers`: X509HeadersData, 
+    /**
+     * Detected compression format: "zlib", "brotli", or "none".
+     */
+    var `detectedCompression`: kotlin.String, 
     /**
      * Warnings generated during decoding.
      */
     var `warnings`: List<WarningData>
 ) {
-
+    
     companion object
 }
 
@@ -2799,6 +2803,7 @@ public object FfiConverterTypeDecodeResultData: FfiConverterRustBuffer<DecodeRes
             FfiConverterTypeCwtMetaData.read(buf),
             FfiConverterString.read(buf),
             FfiConverterTypeX509HeadersData.read(buf),
+            FfiConverterString.read(buf),
             FfiConverterSequenceTypeWarningData.read(buf),
         )
     }
@@ -2808,6 +2813,7 @@ public object FfiConverterTypeDecodeResultData: FfiConverterRustBuffer<DecodeRes
             FfiConverterTypeCwtMetaData.allocationSize(value.`cwtMeta`) +
             FfiConverterString.allocationSize(value.`verificationStatus`) +
             FfiConverterTypeX509HeadersData.allocationSize(value.`x509Headers`) +
+            FfiConverterString.allocationSize(value.`detectedCompression`) +
             FfiConverterSequenceTypeWarningData.allocationSize(value.`warnings`)
     )
 
@@ -2816,6 +2822,7 @@ public object FfiConverterTypeDecodeResultData: FfiConverterRustBuffer<DecodeRes
             FfiConverterTypeCwtMetaData.write(value.`cwtMeta`, buf)
             FfiConverterString.write(value.`verificationStatus`, buf)
             FfiConverterTypeX509HeadersData.write(value.`x509Headers`, buf)
+            FfiConverterString.write(value.`detectedCompression`, buf)
             FfiConverterSequenceTypeWarningData.write(value.`warnings`, buf)
     }
 }
@@ -2830,13 +2837,13 @@ data class WarningData (
      * Warning code string: "expiring_soon", "unknown_fields",
      * "timestamp_validation_skipped", "biometrics_skipped".
      */
-    var `code`: kotlin.String,
+    var `code`: kotlin.String, 
     /**
      * Human-readable warning message.
      */
     var `message`: kotlin.String
 ) {
-
+    
     companion object
 }
 
@@ -2871,21 +2878,21 @@ data class X509HeadersData (
     /**
      * Unordered bag of DER-encoded X.509 certificates.
      */
-    var `x5bag`: List<kotlin.ByteArray>?,
+    var `x5bag`: List<kotlin.ByteArray>?, 
     /**
      * Ordered chain of DER-encoded X.509 certificates.
      */
-    var `x5chain`: List<kotlin.ByteArray>?,
+    var `x5chain`: List<kotlin.ByteArray>?, 
     /**
      * Certificate thumbprint hash.
      */
-    var `x5t`: CertificateHashData?,
+    var `x5t`: CertificateHashData?, 
     /**
      * URI pointing to X.509 certificate.
      */
     var `x5u`: kotlin.String?
 ) {
-
+    
     companion object
 }
 
@@ -2929,51 +2936,51 @@ public object FfiConverterTypeX509HeadersData: FfiConverterRustBuffer<X509Header
  * error details, available via `e.message` in Kotlin.
  */
 sealed class Claim169Exception(message: String): kotlin.Exception(message) {
-
+        
         class Base45Decode(message: String) : Claim169Exception(message)
-
+        
         class Decompress(message: String) : Claim169Exception(message)
-
+        
         class DecompressLimitExceeded(message: String) : Claim169Exception(message)
-
+        
         class CoseParse(message: String) : Claim169Exception(message)
-
+        
         class UnsupportedCoseType(message: String) : Claim169Exception(message)
-
+        
         class SignatureInvalid(message: String) : Claim169Exception(message)
-
+        
         class DecryptionFailed(message: String) : Claim169Exception(message)
-
+        
         class CborParse(message: String) : Claim169Exception(message)
-
+        
         class CwtParse(message: String) : Claim169Exception(message)
-
+        
         class Claim169NotFound(message: String) : Claim169Exception(message)
-
+        
         class Claim169Invalid(message: String) : Claim169Exception(message)
-
+        
         class UnsupportedAlgorithm(message: String) : Claim169Exception(message)
-
+        
         class KeyNotFound(message: String) : Claim169Exception(message)
-
+        
         class Expired(message: String) : Claim169Exception(message)
-
+        
         class NotYetValid(message: String) : Claim169Exception(message)
-
+        
         class Crypto(message: String) : Claim169Exception(message)
-
+        
         class Io(message: String) : Claim169Exception(message)
-
+        
         class CborEncode(message: String) : Claim169Exception(message)
-
+        
         class SignatureFailed(message: String) : Claim169Exception(message)
-
+        
         class EncryptionFailed(message: String) : Claim169Exception(message)
-
+        
         class EncodingConfig(message: String) : Claim169Exception(message)
-
+        
         class DecodingConfig(message: String) : Claim169Exception(message)
-
+        
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<Claim169Exception> {
         override fun lift(error_buf: RustBuffer.ByValue): Claim169Exception = FfiConverterTypeClaim169Exception.lift(error_buf)
@@ -2985,7 +2992,7 @@ sealed class Claim169Exception(message: String): kotlin.Exception(message) {
  */
 public object FfiConverterTypeClaim169Exception : FfiConverterRustBuffer<Claim169Exception> {
     override fun read(buf: ByteBuffer): Claim169Exception {
-
+        
             return when(buf.getInt()) {
             1 -> Claim169Exception.Base45Decode(FfiConverterString.read(buf))
             2 -> Claim169Exception.Decompress(FfiConverterString.read(buf))
@@ -3011,7 +3018,7 @@ public object FfiConverterTypeClaim169Exception : FfiConverterRustBuffer<Claim16
             22 -> Claim169Exception.DecodingConfig(FfiConverterString.read(buf))
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
-
+        
     }
 
     override fun allocationSize(value: Claim169Exception): ULong {
@@ -3121,23 +3128,23 @@ public object FfiConverterTypeClaim169Exception : FfiConverterRustBuffer<Claim16
  * Low-level crypto error for callback interfaces.
  */
 sealed class CryptoException(message: String): kotlin.Exception(message) {
-
+        
         class InvalidKeyFormat(message: String) : CryptoException(message)
-
+        
         class KeyNotFound(message: String) : CryptoException(message)
-
+        
         class VerificationFailed(message: String) : CryptoException(message)
-
+        
         class DecryptionFailed(message: String) : CryptoException(message)
-
+        
         class SigningFailed(message: String) : CryptoException(message)
-
+        
         class EncryptionFailed(message: String) : CryptoException(message)
-
+        
         class UnsupportedAlgorithm(message: String) : CryptoException(message)
-
+        
         class Other(message: String) : CryptoException(message)
-
+        
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<CryptoException> {
         override fun lift(error_buf: RustBuffer.ByValue): CryptoException = FfiConverterTypeCryptoException.lift(error_buf)
@@ -3149,7 +3156,7 @@ sealed class CryptoException(message: String): kotlin.Exception(message) {
  */
 public object FfiConverterTypeCryptoException : FfiConverterRustBuffer<CryptoException> {
     override fun read(buf: ByteBuffer): CryptoException {
-
+        
             return when(buf.getInt()) {
             1 -> CryptoException.InvalidKeyFormat(FfiConverterString.read(buf))
             2 -> CryptoException.KeyNotFound(FfiConverterString.read(buf))
@@ -3161,7 +3168,7 @@ public object FfiConverterTypeCryptoException : FfiConverterRustBuffer<CryptoExc
             8 -> CryptoException.Other(FfiConverterString.read(buf))
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
-
+        
     }
 
     override fun allocationSize(value: CryptoException): ULong {
@@ -3215,12 +3222,12 @@ public object FfiConverterTypeCryptoException : FfiConverterRustBuffer<CryptoExc
  * Callback interface for custom decryption (HSM, KMS, etc.).
  */
 public interface DecryptorCallback {
-
+    
     /**
      * Decrypt ciphertext using AEAD.
      */
     fun `decrypt`(`algorithm`: kotlin.String, `keyId`: kotlin.ByteArray?, `nonce`: kotlin.ByteArray, `aad`: kotlin.ByteArray, `ciphertext`: kotlin.ByteArray): kotlin.ByteArray
-
+    
     companion object
 }
 
@@ -3314,12 +3321,12 @@ public object FfiConverterTypeDecryptorCallback: FfiConverterCallbackInterface<D
  * Callback interface for custom encryption (HSM, KMS, etc.).
  */
 public interface EncryptorCallback {
-
+    
     /**
      * Encrypt plaintext using AEAD.
      */
     fun `encrypt`(`algorithm`: kotlin.String, `keyId`: kotlin.ByteArray?, `nonce`: kotlin.ByteArray, `aad`: kotlin.ByteArray, `plaintext`: kotlin.ByteArray): kotlin.ByteArray
-
+    
     companion object
 }
 
@@ -3382,7 +3389,7 @@ public object FfiConverterTypeEncryptorCallback: FfiConverterCallbackInterface<E
  * Callback interface for custom signature verification (HSM, KMS, etc.).
  */
 public interface SignatureVerifierCallback {
-
+    
     /**
      * Verify a digital signature.
      *
@@ -3396,7 +3403,7 @@ public interface SignatureVerifierCallback {
      * Throw `CryptoException` if verification fails.
      */
     fun `verify`(`algorithm`: kotlin.String, `keyId`: kotlin.ByteArray?, `data`: kotlin.ByteArray, `signature`: kotlin.ByteArray)
-
+    
     companion object
 }
 
@@ -3458,17 +3465,17 @@ public object FfiConverterTypeSignatureVerifierCallback: FfiConverterCallbackInt
  * Callback interface for custom signing (HSM, KMS, etc.).
  */
 public interface SignerCallback {
-
+    
     /**
      * Sign data and return the signature.
      */
     fun `sign`(`algorithm`: kotlin.String, `keyId`: kotlin.ByteArray?, `data`: kotlin.ByteArray): kotlin.ByteArray
-
+    
     /**
      * Get the key ID for this signer. Returns None if no key ID.
      */
     fun `keyId`(): kotlin.ByteArray?
-
+    
     companion object
 }
 
@@ -3818,4 +3825,6 @@ public object FfiConverterSequenceTypeWarningData: FfiConverterRustBuffer<List<W
 }
     )
     }
+    
+
 

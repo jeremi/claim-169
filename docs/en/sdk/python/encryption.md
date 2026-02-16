@@ -56,11 +56,11 @@ encrypt_key = bytes.fromhex(
 )  # AES-256 key (32 bytes)
 
 # Encode with signing and encryption
-qr_data = claim169.encode_signed_encrypted(
+qr_data = claim169.encode(
     claim,
     meta,
-    sign_key,
-    encrypt_key
+    sign_with_ed25519=sign_key,
+    encrypt_with_aes256=encrypt_key,
 )
 
 print(f"Encrypted credential: {len(qr_data)} characters")
@@ -80,11 +80,11 @@ meta = claim169.CwtMetaInput(
 sign_key = bytes(32)  # Ed25519 private key
 encrypt_key = bytes(16)  # AES-128 key (16 bytes)
 
-qr_data = claim169.encode_signed_encrypted_aes128(
+qr_data = claim169.encode(
     claim,
     meta,
-    sign_key,
-    encrypt_key
+    sign_with_ed25519=sign_key,
+    encrypt_with_aes128=encrypt_key,
 )
 ```
 
@@ -113,7 +113,7 @@ public_key_bytes = bytes.fromhex(
 public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
 
 def verify_callback(algorithm, key_id, data, signature):
-    public_key.verify(bytes(signature), bytes(data))
+    public_key.verify(signature, data)
 
 # Decode and verify
 result = claim169.decode_encrypted_aes(
@@ -192,7 +192,7 @@ def my_decryptor(algorithm, key_id, nonce, aad, ciphertext):
         Decrypted plaintext bytes
     """
     aesgcm = AESGCM(aes_key)
-    return aesgcm.decrypt(bytes(nonce), bytes(ciphertext), bytes(aad))
+    return aesgcm.decrypt(nonce, ciphertext, aad)
 
 def my_verifier(algorithm, key_id, data, signature):
     # Your verification logic
@@ -229,7 +229,7 @@ def my_encryptor(algorithm, key_id, nonce, aad, plaintext):
         Ciphertext with authentication tag
     """
     aesgcm = AESGCM(aes_key)
-    return aesgcm.encrypt(bytes(nonce), bytes(plaintext), bytes(aad))
+    return aesgcm.encrypt(nonce, plaintext, aad)
 
 # Software signing with custom encryption
 sign_key = bytes(32)  # Ed25519 private key
@@ -258,10 +258,10 @@ sign_public_bytes = sign_private.public_key().public_bytes_raw()
 aes_key = bytes(32)
 
 def my_signer(algorithm, key_id, data):
-    return sign_private.sign(bytes(data))
+    return sign_private.sign(data)
 
 def my_encryptor(algorithm, key_id, nonce, aad, plaintext):
-    return AESGCM(aes_key).encrypt(bytes(nonce), bytes(plaintext), bytes(aad))
+    return AESGCM(aes_key).encrypt(nonce, plaintext, aad)
 
 # Encode with both custom callbacks
 claim = claim169.Claim169Input(id="CUSTOM-001", full_name="Jane Doe")
@@ -278,10 +278,10 @@ qr_data = claim169.encode_with_signer_and_encryptor(
 
 # Decode with custom callbacks
 def my_verifier(algorithm, key_id, data, signature):
-    sign_private.public_key().verify(bytes(signature), bytes(data))
+    sign_private.public_key().verify(signature, data)
 
 def my_decryptor(algorithm, key_id, nonce, aad, ciphertext):
-    return AESGCM(aes_key).decrypt(bytes(nonce), bytes(ciphertext), bytes(aad))
+    return AESGCM(aes_key).decrypt(nonce, ciphertext, aad)
 
 result = claim169.decode_with_decryptor(
     qr_data,
@@ -321,7 +321,7 @@ The library generates nonces automatically, but you can also generate them:
 import claim169
 
 nonce = claim169.generate_nonce()
-print(f"Nonce: {bytes(nonce).hex()}")  # 12 bytes
+print(f"Nonce: {nonce.hex()}")  # 12 bytes
 ```
 
 ## Error Handling

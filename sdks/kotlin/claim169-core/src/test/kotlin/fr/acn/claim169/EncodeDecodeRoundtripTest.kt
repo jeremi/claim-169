@@ -48,7 +48,7 @@ class EncodeDecodeRoundtripTest {
         assertEquals(Gender.Male.value, result.claim169.gender)
         assertEquals("https://test.example.com", result.cwtMeta.issuer)
         assertEquals(2000000000L, result.cwtMeta.expiresAt)
-        assertEquals("verified", result.verificationStatus)
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     @Test
@@ -73,7 +73,7 @@ class EncodeDecodeRoundtripTest {
 
         assertEquals("UNSIGNED-001", result.claim169.id)
         assertEquals("Unsigned Test", result.claim169.fullName)
-        assertEquals("skipped", result.verificationStatus)
+        assertEquals(VerificationStatus.Skipped, result.verificationStatus)
     }
 
     @Test

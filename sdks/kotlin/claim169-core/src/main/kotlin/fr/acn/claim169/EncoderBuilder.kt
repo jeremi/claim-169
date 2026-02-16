@@ -17,6 +17,7 @@ import uniffi.claim169_jni.CryptoException
  * }
  * ```
  */
+@Claim169Dsl
 class EncoderBuilder(claim169: Claim169Data, cwtMeta: CwtMetaData) {
     private val encoder = Claim169Encoder(claim169.raw, cwtMeta.raw)
 

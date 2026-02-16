@@ -90,7 +90,7 @@ def aws_kms_signer(algorithm: str, key_id: bytes | None, data: bytes) -> bytes:
 
     response = kms_client.sign(
         KeyId=KEY_ID,
-        Message=bytes(data),
+        Message=data,
         MessageType='RAW',
         SigningAlgorithm='ECDSA_SHA_256'
     )
@@ -126,7 +126,7 @@ qr_data = claim169.encode_with_signer(
 def aws_kms_verifier(algorithm: str, key_id: bytes | None, data: bytes, signature: bytes) -> None:
     """Vérifier une signature via AWS KMS."""
     # Convertir la signature raw r||s vers DER
-    raw_sig = bytes(signature)
+    raw_sig = signature
     r = int.from_bytes(raw_sig[:32], 'big')
     s = int.from_bytes(raw_sig[32:], 'big')
 
@@ -135,7 +135,7 @@ def aws_kms_verifier(algorithm: str, key_id: bytes | None, data: bytes, signatur
 
     response = kms_client.verify(
         KeyId=KEY_ID,
-        Message=bytes(data),
+        Message=data,
         MessageType='RAW',
         Signature=der_sig,
         SigningAlgorithm='ECDSA_SHA_256'
@@ -162,7 +162,7 @@ def aws_kms_encryptor(algorithm: str, key_id: bytes | None, nonce: bytes, aad: b
     # Chiffrer localement avec la clé en clair
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     aesgcm = AESGCM(response['Plaintext'])
-    ciphertext = aesgcm.encrypt(bytes(nonce), bytes(plaintext), bytes(aad))
+    ciphertext = aesgcm.encrypt(nonce, plaintext, aad)
 
     # En pratique, stocker response['CiphertextBlob'] avec les données chiffrées
     return ciphertext
@@ -198,7 +198,7 @@ def azure_kv_signer(algorithm: str, key_id: bytes | None, data: bytes) -> bytes:
 
     if algorithm == "ES256":
         # Azure exige des données pré-hachées pour ECDSA
-        digest = hashlib.sha256(bytes(data)).digest()
+        digest = hashlib.sha256(data).digest()
         result = crypto_client.sign(SignatureAlgorithm.es256, digest)
         return result.signature
     else:
@@ -224,8 +224,8 @@ def azure_kv_verifier(algorithm: str, key_id: bytes | None, data: bytes, signatu
     """Vérifier via Azure Key Vault."""
     import hashlib
 
-    digest = hashlib.sha256(bytes(data)).digest()
-    result = crypto_client.verify(SignatureAlgorithm.es256, digest, bytes(signature))
+    digest = hashlib.sha256(data).digest()
+    result = crypto_client.verify(SignatureAlgorithm.es256, digest, signature)
 
     if not result.is_valid:
         raise ValueError("Signature verification failed")
@@ -266,7 +266,7 @@ def gcp_kms_signer(algorithm: str, key_id: bytes | None, data: bytes) -> bytes:
         raise ValueError(f"GCP KMS signer configured for ES256, got {algorithm}")
 
     # GCP exige un digest SHA256 pour EC_SIGN_P256_SHA256
-    digest = {'sha256': hashlib.sha256(bytes(data)).digest()}
+    digest = {'sha256': hashlib.sha256(data).digest()}
 
     response = client.asymmetric_sign(
         request={'name': key_name, 'digest': digest}
@@ -304,12 +304,11 @@ def gcp_kms_verifier(algorithm: str, key_id: bytes | None, data: bytes, signatur
     from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 
     # Convertir raw r||s vers DER pour GCP
-    raw_sig = bytes(signature)
-    r = int.from_bytes(raw_sig[:32], 'big')
-    s = int.from_bytes(raw_sig[32:], 'big')
+    r = int.from_bytes(signature[:32], 'big')
+    s = int.from_bytes(signature[32:], 'big')
     der_sig = encode_dss_signature(r, s)
 
-    digest = {'sha256': hashlib.sha256(bytes(data)).digest()}
+    digest = {'sha256': hashlib.sha256(data).digest()}
 
     response = client.asymmetric_verify(
         request={
@@ -348,7 +347,7 @@ def vault_transit_signer(algorithm: str, key_id: bytes | None, data: bytes) -> b
     import base64
 
     # Vault attend une entrée en base64
-    input_b64 = base64.b64encode(bytes(data)).decode()
+    input_b64 = base64.b64encode(data).decode()
 
     response = client.secrets.transit.sign_data(
         name='my-signing-key',
@@ -405,7 +404,7 @@ def pkcs11_signer(algorithm: str, key_id: bytes | None, data: bytes) -> bytes:
         # Signer les données
         if algorithm == "ES256":
             signature = private_key.sign(
-                bytes(data),
+                data,
                 mechanism=Mechanism.ECDSA_SHA256
             )
         else:
@@ -444,7 +443,7 @@ def aws_signer(algorithm, key_id, data):
     """Signer via AWS KMS."""
     response = kms_client.sign(
         KeyId=SIGN_KEY_ID,
-        Message=bytes(data),
+        Message=data,
         MessageType='RAW',
         SigningAlgorithm='ECDSA_SHA_256'
     )
@@ -461,21 +460,20 @@ def aws_encryptor(algorithm, key_id, nonce, aad, plaintext):
 
     # Chiffrer localement avec la data key
     aesgcm = AESGCM(response['Plaintext'])
-    return aesgcm.encrypt(bytes(nonce), bytes(plaintext), bytes(aad))
+    return aesgcm.encrypt(nonce, plaintext, aad)
 
 
 def aws_verifier(algorithm, key_id, data, signature):
     """Vérifier via AWS KMS."""
-    raw_sig = bytes(signature)
-    r = int.from_bytes(raw_sig[:32], 'big')
-    s = int.from_bytes(raw_sig[32:], 'big')
+    r = int.from_bytes(signature[:32], 'big')
+    s = int.from_bytes(signature[32:], 'big')
 
     from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
     der_sig = encode_dss_signature(r, s)
 
     response = kms_client.verify(
         KeyId=SIGN_KEY_ID,
-        Message=bytes(data),
+        Message=data,
         MessageType='RAW',
         Signature=der_sig,
         SigningAlgorithm='ECDSA_SHA_256'
@@ -490,7 +488,7 @@ def aws_decryptor(algorithm, key_id, nonce, aad, ciphertext):
     # Exemple simplifié
     data_key = get_cached_data_key()  # Votre implémentation
     aesgcm = AESGCM(data_key)
-    return aesgcm.decrypt(bytes(nonce), bytes(ciphertext), bytes(aad))
+    return aesgcm.decrypt(nonce, ciphertext, aad)
 
 
 # Encoder

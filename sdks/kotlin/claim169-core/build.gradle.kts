@@ -30,6 +30,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    maxHeapSize = "2g"
 
     // Pass native library path for tests
     val nativeLibDir = rootProject.projectDir.resolve("../../target/debug")

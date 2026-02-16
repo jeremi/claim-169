@@ -351,6 +351,7 @@ try {
 } catch (error) {
   if (error instanceof Claim169Error) {
     console.error('Claim169Error:', error.message);
+    console.error('Error code:', error.code); // ex. "BASE45_DECODE", "SIGNATURE_INVALID"
     console.error('Stack:', error.stack);
   } else {
     console.error('Unknown error:', error);

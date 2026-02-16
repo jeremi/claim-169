@@ -5,6 +5,15 @@ package fr.acn.claim169
 import uniffi.claim169_jni.Claim169Data as NativeClaim169Data
 
 /**
+ * DSL marker for Claim 169 builder scopes.
+ *
+ * Prevents accidental access to outer builder receivers from nested DSL blocks.
+ */
+@DslMarker
+@Target(AnnotationTarget.CLASS)
+annotation class Claim169Dsl
+
+/**
  * Java-friendly functional interface for configuring a [Claim169DataBuilder].
  *
  * From Java: `Claim169.claim169(b -> { b.setId("X"); b.setFullName("Y"); })`
@@ -36,6 +45,7 @@ fun interface CwtMetaDataConfigurer {
  * }
  * ```
  */
+@Claim169Dsl
 class Claim169DataBuilder {
     var id: String? = null
     var version: String? = null
@@ -158,6 +168,7 @@ class Claim169DataBuilder {
  * }
  * ```
  */
+@Claim169Dsl
 class CwtMetaDataBuilder {
     var issuer: String? = null
     var subject: String? = null

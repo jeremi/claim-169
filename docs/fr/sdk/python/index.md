@@ -108,6 +108,7 @@ Erreurs fréquentes et solutions.
 
 | Fonction | Description |
 |----------|-------------|
+| `encode()` | Fonction d'encodage unifiée avec arguments nommés |
 | `encode_with_ed25519()` | Encoder avec signature Ed25519 |
 | `encode_with_ecdsa_p256()` | Encoder avec signature ECDSA P-256 |
 | `encode_with_signer()` | Encoder via callback de signature (HSM/KMS) |

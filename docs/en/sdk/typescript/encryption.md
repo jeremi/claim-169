@@ -144,12 +144,15 @@ try {
     .decode();
 } catch (error) {
   if (error instanceof Claim169Error) {
-    if (error.message.includes('decryption') || error.message.includes('Decryption')) {
-      console.error('Decryption failed - wrong key or corrupted data');
-    } else if (error.message.includes('signature')) {
-      console.error('Signature verification failed');
-    } else {
-      console.error('Decode failed:', error.message);
+    switch (error.code) {
+      case 'DECRYPTION':
+        console.error('Decryption failed - wrong key or corrupted data');
+        break;
+      case 'SIGNATURE_INVALID':
+        console.error('Signature verification failed');
+        break;
+      default:
+        console.error('Decode failed:', error.code, error.message);
     }
   }
 }

@@ -29,7 +29,7 @@ System.out.println("Statut: " + result.getVerificationStatus());
 DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) b -> {
     b.allowUnverified();
 });
-// result.getVerificationStatus() == "skipped"
+// result.getVerificationStatus() == VerificationStatus.Skipped
 ```
 
 ## Encoder (signer Ed25519)

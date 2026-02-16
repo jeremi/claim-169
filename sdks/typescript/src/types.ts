@@ -246,6 +246,30 @@ export interface Claim169 {
 }
 
 /**
+ * Compression mode for encoding.
+ *
+ * - `"zlib"`: Standard zlib compression (default)
+ * - `"none"`: No compression
+ * - `"adaptive"`: Automatically choose best compression
+ * - `` `brotli:${number}` ``: Brotli compression with quality level 0-11
+ * - `` `adaptive-brotli:${number}` ``: Adaptive with Brotli at quality level 0-11
+ */
+export type CompressionMode =
+  | "zlib"
+  | "none"
+  | "adaptive"
+  | `brotli:${number}`
+  | `adaptive-brotli:${number}`;
+
+/**
+ * Detected compression format from decoding.
+ *
+ * Known values are `"zlib"`, `"brotli"`, or `"none"`.
+ * Unknown formats are preserved as strings for forward compatibility.
+ */
+export type DetectedCompression = "zlib" | "brotli" | "none" | (string & {});
+
+/**
  * Signature verification status of the decoded credential.
  *
  * - `"verified"`: Signature was verified successfully with the provided public key
@@ -415,7 +439,7 @@ export interface DecodeResult {
    */
   x509Headers: X509Headers;
   /** Compression format detected during decoding (e.g., "zlib", "brotli", "none") */
-  detectedCompression: string;
+  detectedCompression: DetectedCompression;
   /** Warnings generated during decoding */
   warnings: EncodeWarning[];
 }
@@ -457,6 +481,73 @@ export interface EncodeResult {
   warnings: EncodeWarning[];
 }
 
+// ============================================================================
+// Spec Enum Constants
+// ============================================================================
+
+/**
+ * Gender values as defined in MOSIP Claim 169 (1-indexed).
+ *
+ * @example
+ * ```typescript
+ * if (claim.gender === Gender.Female) { ... }
+ * ```
+ */
+export const Gender = { Male: 1, Female: 2, Other: 3 } as const;
+/** Gender code type (1=Male, 2=Female, 3=Other) */
+export type Gender = (typeof Gender)[keyof typeof Gender];
+
+/**
+ * Marital status values as defined in MOSIP Claim 169 (1-indexed).
+ *
+ * @example
+ * ```typescript
+ * if (claim.maritalStatus === MaritalStatus.Married) { ... }
+ * ```
+ */
+export const MaritalStatus = {
+  Unmarried: 1,
+  Married: 2,
+  Divorced: 3,
+} as const;
+/** Marital status code type (1=Unmarried, 2=Married, 3=Divorced) */
+export type MaritalStatus = (typeof MaritalStatus)[keyof typeof MaritalStatus];
+
+/**
+ * Photo format values as defined in MOSIP Claim 169 (1-indexed).
+ *
+ * @example
+ * ```typescript
+ * if (claim.photoFormat === PhotoFormat.Jpeg) { ... }
+ * ```
+ */
+export const PhotoFormat = {
+  Jpeg: 1,
+  Jpeg2000: 2,
+  Avif: 3,
+  Webp: 4,
+} as const;
+/** Photo format code type (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP) */
+export type PhotoFormat = (typeof PhotoFormat)[keyof typeof PhotoFormat];
+
+/**
+ * Biometric data format values as defined in MOSIP Claim 169 (0-indexed).
+ *
+ * @example
+ * ```typescript
+ * if (biometric.format === BiometricFormat.Image) { ... }
+ * ```
+ */
+export const BiometricFormat = {
+  Image: 0,
+  Template: 1,
+  Sound: 2,
+  BioHash: 3,
+} as const;
+/** Biometric format code type (0=Image, 1=Template, 2=Sound, 3=BioHash) */
+export type BiometricFormat =
+  (typeof BiometricFormat)[keyof typeof BiometricFormat];
+
 /**
  * Error thrown when decoding fails.
  *
@@ -471,10 +562,72 @@ export interface EncodeResult {
  * }
  * ```
  */
+/**
+ * Error code for programmatic error handling.
+ *
+ * Maps to error types from the Rust core library pipeline stages.
+ */
+export type Claim169ErrorCode =
+  | "BASE45_DECODE"
+  | "DECOMPRESS"
+  | "DECOMPRESS_LIMIT"
+  | "COSE_PARSE"
+  | "UNSUPPORTED_COSE_TYPE"
+  | "SIGNATURE_INVALID"
+  | "DECRYPTION_FAILED"
+  | "CBOR_PARSE"
+  | "CWT_PARSE"
+  | "CLAIM169_NOT_FOUND"
+  | "CLAIM169_INVALID"
+  | "UNSUPPORTED_ALGORITHM"
+  | "KEY_NOT_FOUND"
+  | "EXPIRED"
+  | "NOT_YET_VALID"
+  | "CRYPTO"
+  | "CBOR_ENCODE"
+  | "SIGNATURE_FAILED"
+  | "ENCRYPTION_FAILED"
+  | "ENCODING_CONFIG"
+  | "DECODING_CONFIG"
+  | "UNKNOWN";
+
+/**
+ * Parse a WASM error message prefix to determine the error code.
+ */
+function parseErrorCode(message: string): Claim169ErrorCode {
+  const lower = message.toLowerCase();
+  if (lower.startsWith("invalid base45")) return "BASE45_DECODE";
+  if (lower.startsWith("decompression limit")) return "DECOMPRESS_LIMIT";
+  if (lower.startsWith("decompression failed")) return "DECOMPRESS";
+  if (lower.startsWith("invalid cose")) return "COSE_PARSE";
+  if (lower.startsWith("unsupported cose type")) return "UNSUPPORTED_COSE_TYPE";
+  if (lower.startsWith("signature verification failed")) return "SIGNATURE_INVALID";
+  if (lower.startsWith("decryption failed")) return "DECRYPTION_FAILED";
+  if (lower.startsWith("invalid cbor")) return "CBOR_PARSE";
+  if (lower.startsWith("cwt parsing failed")) return "CWT_PARSE";
+  if (lower.startsWith("claim 169 not found")) return "CLAIM169_NOT_FOUND";
+  if (lower.startsWith("invalid claim 169")) return "CLAIM169_INVALID";
+  if (lower.startsWith("unsupported algorithm")) return "UNSUPPORTED_ALGORITHM";
+  if (lower.startsWith("key not found")) return "KEY_NOT_FOUND";
+  if (lower.startsWith("credential expired")) return "EXPIRED";
+  if (lower.startsWith("credential not valid until")) return "NOT_YET_VALID";
+  if (lower.startsWith("cbor encoding failed")) return "CBOR_ENCODE";
+  if (lower.startsWith("signing failed")) return "SIGNATURE_FAILED";
+  if (lower.startsWith("encryption failed")) return "ENCRYPTION_FAILED";
+  if (lower.startsWith("encoding configuration")) return "ENCODING_CONFIG";
+  if (lower.startsWith("decoding configuration")) return "DECODING_CONFIG";
+  if (lower.startsWith("crypto error")) return "CRYPTO";
+  return "UNKNOWN";
+}
+
 export class Claim169Error extends Error {
-  constructor(message: string) {
+  /** Programmatic error code for matching error types. */
+  readonly code: Claim169ErrorCode;
+
+  constructor(message: string, code?: Claim169ErrorCode) {
     super(message);
     this.name = "Claim169Error";
+    this.code = code ?? parseErrorCode(message);
   }
 }
 
@@ -709,7 +862,7 @@ export interface IEncoder {
    * @returns The encoder instance for chaining
    * @throws {Claim169Error} If the mode is invalid or unsupported by the WASM build
    */
-  compression(mode: string): IEncoder;
+  compression(mode: CompressionMode): IEncoder;
 
   /**
    * Encode the credential to a QR-ready result object.
@@ -815,7 +968,7 @@ export interface IDecoder {
   skipBiometrics(): IDecoder;
 
   /**
-   * Enable timestamp validation.
+   * Re-enable timestamp validation (enabled by default).
    * When enabled, expired or not-yet-valid credentials will throw an error.
    * @returns The decoder instance for chaining
    */

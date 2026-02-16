@@ -59,7 +59,7 @@ class DecodeValidTest {
         assertEquals(expectedMeta.get("expiresAt").asLong, result.cwtMeta.expiresAt)
         assertEquals(expectedMeta.get("issuedAt").asLong, result.cwtMeta.issuedAt)
 
-        assertEquals("skipped", result.verificationStatus)
+        assertEquals(VerificationStatus.Skipped, result.verificationStatus)
     }
 
     @Test
@@ -77,7 +77,7 @@ class DecodeValidTest {
 
         assertEquals("ID-SIGNED-001", result.claim169.id)
         assertEquals("Signed Test Person", result.claim169.fullName)
-        assertEquals("verified", result.verificationStatus)
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     @Test
@@ -95,7 +95,7 @@ class DecodeValidTest {
 
         assertEquals("ID-ECDSA-001", result.claim169.id)
         assertEquals("ECDSA Test Person", result.claim169.fullName)
-        assertEquals("verified", result.verificationStatus)
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     @Test
@@ -135,7 +135,7 @@ class DecodeValidTest {
 
         assertEquals("ID-ENC-SIGN-001", result.claim169.id)
         assertEquals("Encrypted Signed Test Person", result.claim169.fullName)
-        assertEquals("verified", result.verificationStatus)
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     @Test
@@ -204,7 +204,7 @@ class DecodeValidTest {
 
         assertEquals("ID-SIGNED-001", result.claim169.id)
         assertEquals("Signed Test Person", result.claim169.fullName)
-        assertEquals("verified", result.verificationStatus)
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     @Test
@@ -223,7 +223,7 @@ class DecodeValidTest {
 
         assertEquals("ID-ECDSA-001", result.claim169.id)
         assertEquals("ECDSA Test Person", result.claim169.fullName)
-        assertEquals("verified", result.verificationStatus)
+        assertEquals(VerificationStatus.Verified, result.verificationStatus)
     }
 
     @Test

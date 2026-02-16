@@ -14,7 +14,7 @@ val result = Claim169.decode(qrData) {
   verifyWithEd25519(publicKey)
 }
 
-check(result.isVerified)
+check(result.verificationStatus == VerificationStatus.Verified)
 println(result.claim169.fullName)
 ```
 
@@ -31,8 +31,8 @@ val result = Claim169.decode(qrData) {
 
 ## Statut vs erreurs
 
-- `verificationStatus == "verified"` : signature valide
-- `verificationStatus == "skipped"` : vérification explicitement ignorée (tests uniquement)
+- `verificationStatus == VerificationStatus.Verified` : signature valide
+- `verificationStatus == VerificationStatus.Skipped` : vérification explicitement ignorée (tests uniquement)
 - Erreur/exception : structure invalide, signature invalide, chiffrement invalide, expiré, etc.
 
 ## Accéder aux données décodées
@@ -52,14 +52,11 @@ val claim = result.claim169
 // Métadonnées CWT (issuer, timestamps)
 val meta = result.cwtMeta
 
-// Statut de vérification
-val status = result.verificationStatus  // "verified", "skipped", etc.
+// Statut de vérification (enum VerificationStatus)
+val status = result.verificationStatus  // VerificationStatus.Verified, .Skipped, etc.
 
 // Format de compression détecté pendant le décodage
 val compression = result.detectedCompression  // "zlib", "brotli", or "none"
-
-// Propriété helper
-val isVerified = result.isVerified  // true/false
 ```
 
 !!! note "Détails"

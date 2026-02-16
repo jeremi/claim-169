@@ -9,9 +9,15 @@ import uniffi.claim169_jni.WarningData as NativeWarningData
 import uniffi.claim169_jni.X509HeadersData as NativeX509HeadersData
 
 /**
- * Wrapper for biometric data that keeps the public API in `fr.acn.claim169`.
+ * A single biometric data entry (fingerprint, iris, face, palm, or voice).
+ *
+ * @property data Raw biometric data bytes (template or image).
+ * @property format Biometric format: 0=Image, 1=Template, 2=Sound, 3=BioHash. `null` if not specified.
+ * @property subFormat Biometric sub-format (interpretation depends on [format]). `null` if not specified.
+ * @property issuer Issuer URI of the biometric data. `null` if not specified.
  */
 class BiometricData private constructor(internal val raw: NativeBiometricData) {
+    @JvmOverloads
     constructor(
         data: ByteArray,
         format: Long? = null,
@@ -53,9 +59,14 @@ class BiometricData private constructor(internal val raw: NativeBiometricData) {
 }
 
 /**
- * Wrapper for X.509 certificate hash data.
+ * X.509 certificate hash used in COSE `x5t` headers.
+ *
+ * @property algorithmNumeric Numeric COSE hash algorithm ID (e.g., -16 for SHA-256). `null` if named.
+ * @property algorithmName Hash algorithm name (for non-numeric algorithms). `null` if numeric.
+ * @property hashValue The certificate hash value bytes.
  */
 class CertificateHashData private constructor(internal val raw: NativeCertificateHashData) {
+    @JvmOverloads
     constructor(
         algorithmNumeric: Long? = null,
         algorithmName: String? = null,
@@ -90,7 +101,11 @@ class CertificateHashData private constructor(internal val raw: NativeCertificat
 }
 
 /**
- * Wrapper for decode warnings.
+ * Warning generated during decoding.
+ *
+ * @property code Warning code: `"expiring_soon"`, `"unknown_fields"`,
+ *   `"timestamp_validation_skipped"`, `"biometrics_skipped"`, or `"non_standard_compression"`.
+ * @property message Human-readable warning description.
  */
 class WarningData private constructor(internal val raw: NativeWarningData) {
     constructor(code: String, message: String) : this(NativeWarningData(code, message))
@@ -117,9 +132,15 @@ class WarningData private constructor(internal val raw: NativeWarningData) {
 }
 
 /**
- * Wrapper for COSE X.509 header data.
+ * X.509 certificate headers extracted from the COSE structure.
+ *
+ * @property x5bag Unordered bag of DER-encoded X.509 certificates. `null` if not present.
+ * @property x5chain Ordered chain of DER-encoded X.509 certificates. `null` if not present.
+ * @property x5t Certificate thumbprint hash. `null` if not present.
+ * @property x5u URI pointing to an X.509 certificate. `null` if not present.
  */
 class X509HeadersData private constructor(internal val raw: NativeX509HeadersData) {
+    @JvmOverloads
     constructor(
         x5bag: List<ByteArray>? = null,
         x5chain: List<ByteArray>? = null,
@@ -161,7 +182,39 @@ class X509HeadersData private constructor(internal val raw: NativeX509HeadersDat
 }
 
 /**
- * Claim 169 identity data wrapper.
+ * Identity data from a MOSIP Claim 169 QR code (CBOR keys 1–23 for demographics, 50–65 for biometrics).
+ *
+ * Demographic fields use CBOR key ranges 1–23. Enum-valued fields ([gender], [maritalStatus],
+ * [photoFormat]) store raw integer values matching the spec; use the extension properties
+ * [genderEnum], [maritalStatusEnum], and [photoFormatEnum] for typed access.
+ *
+ * @property id Unique credential identifier (CBOR key 1).
+ * @property version Specification version string (CBOR key 2).
+ * @property language Primary language code, e.g. `"en"` (CBOR key 3).
+ * @property fullName Full name of the credential holder (CBOR key 4).
+ * @property firstName First/given name (CBOR key 5).
+ * @property middleName Middle name (CBOR key 6).
+ * @property lastName Last/family name (CBOR key 7).
+ * @property dateOfBirth Date of birth as `"YYYYMMDD"` or `"YYYY-MM-DD"` (CBOR key 8).
+ * @property gender Gender as a 1-indexed integer: 1=Male, 2=Female, 3=Other (CBOR key 9).
+ *   Use [genderEnum] for typed access.
+ * @property address Full postal address (CBOR key 10).
+ * @property email Email address (CBOR key 11).
+ * @property phone Phone number (CBOR key 12).
+ * @property nationality ISO 3166-1 alpha-2 country code (CBOR key 13).
+ * @property maritalStatus Marital status as a 1-indexed integer: 1=Unmarried, 2=Married, 3=Divorced (CBOR key 14).
+ *   Use [maritalStatusEnum] for typed access.
+ * @property guardian Guardian name (CBOR key 15).
+ * @property photo Photo bytes (CBOR key 16). Format indicated by [photoFormat].
+ * @property photoFormat Photo format as a 1-indexed integer: 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP (CBOR key 17).
+ *   Use [photoFormatEnum] for typed access.
+ * @property bestQualityFingers Ordered list of best-quality finger positions, values 0–10 (CBOR key 18).
+ * @property secondaryFullName Secondary full name in alternate language (CBOR key 19).
+ * @property secondaryLanguage Secondary language code (CBOR key 20).
+ * @property locationCode Location code (CBOR key 21).
+ * @property legalStatus Legal status string (CBOR key 22).
+ * @property countryOfIssuance ISO 3166-1 alpha-2 country of issuance (CBOR key 23).
+ * @property unknownFieldsJson JSON-encoded map of unrecognized CBOR keys, preserved for forward compatibility.
  */
 class Claim169Data private constructor(internal val raw: NativeClaim169Data) {
     var id: String?
@@ -414,9 +467,18 @@ class Claim169Data private constructor(internal val raw: NativeClaim169Data) {
 }
 
 /**
- * CWT (CBOR Web Token) metadata wrapper.
+ * CWT (CBOR Web Token) metadata extracted from the COSE payload.
+ *
+ * Timestamps are Unix epoch seconds (not milliseconds).
+ *
+ * @property issuer Token issuer URI (CWT claim 1). `null` if not present.
+ * @property subject Token subject identifier (CWT claim 2). `null` if not present.
+ * @property expiresAt Expiration time as Unix timestamp in seconds (CWT claim 4). `null` if not present.
+ * @property notBefore Not-before time as Unix timestamp in seconds (CWT claim 5). `null` if not present.
+ * @property issuedAt Issued-at time as Unix timestamp in seconds (CWT claim 6). `null` if not present.
  */
 class CwtMetaData private constructor(internal val raw: NativeCwtMetaData) {
+    @JvmOverloads
     constructor(
         issuer: String? = null,
         subject: String? = null,
@@ -466,37 +528,35 @@ class CwtMetaData private constructor(internal val raw: NativeCwtMetaData) {
 
 /**
  * Result of decoding a Claim 169 QR payload.
+ *
+ * All properties are read-only to prevent accidental mutation of security-sensitive
+ * fields such as [verificationStatus].
+ *
+ * @property claim169 The extracted Claim 169 identity data.
+ * @property cwtMeta CWT metadata (issuer, expiration timestamps, etc.).
+ * @property verificationStatus Signature verification outcome.
+ * @property x509Headers X.509 certificate headers from the COSE structure, if present.
+ * @property detectedCompression Detected compression format: `"zlib"`, `"brotli"`, or `"none"`.
+ * @property warnings Warnings generated during decoding (e.g., expiring soon, unknown fields).
  */
 class DecodeResultData private constructor(internal val raw: NativeDecodeResultData) {
-    var claim169: Claim169Data
+    val claim169: Claim169Data
         get() = Claim169Data.fromNative(raw.claim169)
-        set(value) {
-            raw.claim169 = value.raw
-        }
 
-    var cwtMeta: CwtMetaData
+    val cwtMeta: CwtMetaData
         get() = CwtMetaData.fromNative(raw.cwtMeta)
-        set(value) {
-            raw.cwtMeta = value.raw
-        }
 
-    var verificationStatus: String
-        get() = raw.verificationStatus
-        set(value) {
-            raw.verificationStatus = value
-        }
+    val verificationStatus: VerificationStatus
+        get() = VerificationStatus.fromValue(raw.verificationStatus)
 
-    var x509Headers: X509HeadersData
+    val x509Headers: X509HeadersData
         get() = X509HeadersData.fromNative(raw.x509Headers)
-        set(value) {
-            raw.x509Headers = value.raw
-        }
 
-    var warnings: List<WarningData>
+    val detectedCompression: String
+        get() = raw.detectedCompression
+
+    val warnings: List<WarningData>
         get() = raw.warnings.toSdkWarnings()
-        set(value) {
-            raw.warnings = value.toNativeWarnings()
-        }
 
     override fun equals(other: Any?): Boolean = other is DecodeResultData && raw == other.raw
     override fun hashCode(): Int = raw.hashCode()

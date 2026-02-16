@@ -154,7 +154,7 @@ def my_verifier(algorithm: str, key_id: bytes | None, data: bytes, signature: by
         Any exception if verification fails
     """
     # Verify using your crypto provider
-    public_key.verify(bytes(signature), bytes(data))
+    public_key.verify(signature, data)
 
 result = claim169.decode_with_verifier(qr_data, my_verifier)
 print(f"Verified: {result.is_verified()}")
@@ -225,15 +225,15 @@ claim.first_name            # str | None
 claim.middle_name           # str | None
 claim.last_name             # str | None
 claim.date_of_birth         # str | None
-claim.gender                # int | None (1=Male, 2=Female, 3=Other)
+claim.gender                # int | None (Gender.MALE, Gender.FEMALE, Gender.OTHER)
 claim.address               # str | None
 claim.email                 # str | None
 claim.phone                 # str | None
 claim.nationality           # str | None
-claim.marital_status        # int | None (1=Unmarried, 2=Married, 3=Divorced)
+claim.marital_status        # int | None (MaritalStatus.UNMARRIED, MaritalStatus.MARRIED, MaritalStatus.DIVORCED)
 claim.guardian              # str | None
 claim.photo                 # bytes | None
-claim.photo_format          # int | None (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP)
+claim.photo_format          # int | None (PhotoFormat.JPEG, PhotoFormat.JPEG2000, PhotoFormat.AVIF, PhotoFormat.WEBP)
 claim.secondary_full_name   # str | None
 claim.secondary_language    # str | None
 claim.location_code         # str | None

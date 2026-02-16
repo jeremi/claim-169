@@ -300,13 +300,19 @@ try {
   if (error instanceof Claim169Error) {
     console.error('Decode failed:', error.message);
 
-    // Check for specific error types
-    if (error.message.includes('Base45')) {
-      console.log('Invalid QR code encoding');
-    } else if (error.message.includes('signature')) {
-      console.log('Signature verification failed');
-    } else if (error.message.includes('expired')) {
-      console.log('Credential has expired');
+    // Check for specific error types using error codes
+    switch (error.code) {
+      case 'BASE45_DECODE':
+        console.log('Invalid QR code encoding');
+        break;
+      case 'SIGNATURE_INVALID':
+        console.log('Signature verification failed');
+        break;
+      case 'TIMESTAMP_EXPIRED':
+        console.log('Credential has expired');
+        break;
+      default:
+        console.log('Other error:', error.code);
     }
   }
 }
@@ -394,12 +400,14 @@ if (claim169.voice) {
 
 ### Biometric Format Codes
 
-| Format | Description |
-|--------|-------------|
-| 0 | Image |
-| 1 | Template |
-| 2 | Sound |
-| 3 | BioHash |
+The SDK exports a `BiometricFormat` constant for these values:
+
+| Constant | Code | Description |
+|----------|------|-------------|
+| `BiometricFormat.Image` | 0 | Image |
+| `BiometricFormat.Template` | 1 | Template |
+| `BiometricFormat.Sound` | 2 | Sound |
+| `BiometricFormat.BioHash` | 3 | BioHash |
 
 ### Image Sub-Formats
 

@@ -90,10 +90,13 @@ export type {
   Biometric,
   CertificateHash,
   Claim169,
+  Claim169ErrorCode,
   Claim169Input,
+  CompressionMode,
   CwtMeta,
   CwtMetaInput,
   DecodeResult,
+  DetectedCompression,
   DecryptorCallback,
   EncodeResult,
   EncodeWarning,
@@ -106,12 +109,22 @@ export type {
   X509Headers,
 } from "./types.js";
 
-export { Claim169Error } from "./types.js";
+export {
+  BiometricFormat,
+  Claim169Error,
+  Gender,
+  MaritalStatus,
+  PhotoFormat,
+} from "./types.js";
 
 import type {
+  Biometric,
+  Claim169,
   Claim169Input,
+  CompressionMode,
   CwtMetaInput,
   DecodeResult,
+  DetectedCompression,
   DecryptorCallback,
   EncodeResult,
   EncryptorCallback,
@@ -125,6 +138,21 @@ import { Claim169Error } from "./types.js";
 
 // Import WASM module (auto-initialized with bundler target)
 import * as wasm from "../wasm/claim169_wasm.js";
+
+/**
+ * Wrap a WASM call so that any thrown error becomes a Claim169Error.
+ */
+function wrapWasmCall<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (error) {
+    throw error instanceof Claim169Error
+      ? error
+      : error instanceof Error
+        ? new Claim169Error(error.message)
+        : new Claim169Error(String(error));
+  }
+}
 
 /**
  * Get the library version
@@ -259,34 +287,52 @@ function transformX509Headers(
 }
 
 /**
- * Transform raw WASM result to typed DecodeResult
+ * Transform raw WASM result to typed DecodeResult.
+ * Performs runtime validation to catch malformed WASM output.
  */
 function transformResult(raw: unknown): DecodeResult {
-  const result = raw as {
-    claim169: Record<string, unknown>;
-    cwtMeta: Record<string, unknown>;
-    verificationStatus: string;
-    x509Headers: Record<string, unknown>;
-    detectedCompression: string;
-    warnings: Array<{ code: string; message: string }>;
-  };
+  if (typeof raw !== "object" || raw === null) {
+    throw new Claim169Error("Malformed WASM output: expected object");
+  }
+
+  const result = raw as Record<string, unknown>;
+
+  if (typeof result.claim169 !== "object" || result.claim169 === null) {
+    throw new Claim169Error("Malformed WASM output: missing claim169");
+  }
+
+  if (typeof result.cwtMeta !== "object" || result.cwtMeta === null) {
+    throw new Claim169Error("Malformed WASM output: missing cwtMeta");
+  }
+
+  if (typeof result.verificationStatus !== "string") {
+    throw new Claim169Error(
+      "Malformed WASM output: missing verificationStatus",
+    );
+  }
+
+  const cwtMeta = result.cwtMeta as Record<string, unknown>;
 
   return {
-    claim169: transformClaim169(result.claim169),
+    claim169: transformClaim169(
+      result.claim169 as Record<string, unknown>,
+    ),
     cwtMeta: {
-      issuer: result.cwtMeta.issuer as string | undefined,
-      subject: result.cwtMeta.subject as string | undefined,
-      expiresAt: result.cwtMeta.expiresAt as number | undefined,
-      notBefore: result.cwtMeta.notBefore as number | undefined,
-      issuedAt: result.cwtMeta.issuedAt as number | undefined,
+      issuer: cwtMeta.issuer as string | undefined,
+      subject: cwtMeta.subject as string | undefined,
+      expiresAt: cwtMeta.expiresAt as number | undefined,
+      notBefore: cwtMeta.notBefore as number | undefined,
+      issuedAt: cwtMeta.issuedAt as number | undefined,
     },
     verificationStatus: result.verificationStatus as
       | "verified"
       | "skipped"
       | "failed",
-    x509Headers: transformX509Headers(result.x509Headers),
-    detectedCompression: result.detectedCompression ?? "zlib",
-    warnings: result.warnings ?? [],
+    x509Headers: transformX509Headers(
+      result.x509Headers as Record<string, unknown> | undefined,
+    ),
+    detectedCompression: ((result.detectedCompression as string) ?? "zlib") as DetectedCompression,
+    warnings: (result.warnings as Array<{ code: string; message: string }>) ?? [],
   };
 }
 
@@ -306,7 +352,7 @@ function safeUint8Array(value: unknown): Uint8Array | undefined {
  */
 function transformClaim169(
   raw: Record<string, unknown>,
-): import("./types.js").Claim169 {
+): Claim169 {
   return {
     id: raw.id as string | undefined,
     version: raw.version as string | undefined,
@@ -355,17 +401,23 @@ function transformClaim169(
  */
 function transformBiometrics(
   raw: unknown,
-): import("./types.js").Biometric[] | undefined {
+): Biometric[] | undefined {
   if (!raw || !Array.isArray(raw)) {
     return undefined;
   }
 
-  return raw.map((b: Record<string, unknown>) => ({
-    data: safeUint8Array(b.data) as Uint8Array,
-    format: b.format as number,
-    subFormat: b.subFormat as number | undefined,
-    issuer: b.issuer as string | undefined,
-  }));
+  return raw.map((b: Record<string, unknown>) => {
+    const data = safeUint8Array(b.data);
+    if (!data) {
+      throw new Claim169Error("Biometric entry missing data field");
+    }
+    return {
+      data,
+      format: b.format as number,
+      subFormat: b.subFormat as number | undefined,
+      issuer: b.issuer as string | undefined,
+    };
+  });
 }
 
 function validateTimestampsHost(
@@ -482,15 +534,10 @@ export class Decoder implements IDecoder {
    * @throws {Claim169Error} If the public key is invalid
    */
   verifyWithEd25519(publicKey: Uint8Array): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.verifyWithEd25519(publicKey);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.verifyWithEd25519(publicKey),
+    );
+    return this;
   }
 
   /**
@@ -500,15 +547,10 @@ export class Decoder implements IDecoder {
    * @throws {Claim169Error} If the public key is invalid
    */
   verifyWithEcdsaP256(publicKey: Uint8Array): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.verifyWithEcdsaP256(publicKey);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.verifyWithEcdsaP256(publicKey),
+    );
+    return this;
   }
 
   /**
@@ -519,15 +561,10 @@ export class Decoder implements IDecoder {
    * @throws {Claim169Error} If the PEM is invalid
    */
   verifyWithEd25519Pem(pem: string): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.verifyWithEd25519Pem(pem);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.verifyWithEd25519Pem(pem),
+    );
+    return this;
   }
 
   /**
@@ -538,15 +575,10 @@ export class Decoder implements IDecoder {
    * @throws {Claim169Error} If the PEM is invalid
    */
   verifyWithEcdsaP256Pem(pem: string): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.verifyWithEcdsaP256Pem(pem);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.verifyWithEcdsaP256Pem(pem),
+    );
+    return this;
   }
 
   /**
@@ -567,15 +599,10 @@ export class Decoder implements IDecoder {
    * @throws {Claim169Error} If the key is invalid
    */
   decryptWithAes256(key: Uint8Array): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.decryptWithAes256(key);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.decryptWithAes256(key),
+    );
+    return this;
   }
 
   /**
@@ -585,15 +612,10 @@ export class Decoder implements IDecoder {
    * @throws {Claim169Error} If the key is invalid
    */
   decryptWithAes128(key: Uint8Array): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.decryptWithAes128(key);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.decryptWithAes128(key),
+    );
+    return this;
   }
 
   /**
@@ -607,7 +629,7 @@ export class Decoder implements IDecoder {
   }
 
   /**
-   * Enable timestamp validation.
+   * Re-enable timestamp validation (enabled by default).
    * When enabled, expired or not-yet-valid credentials will throw an error.
    * Implemented in the host (JavaScript) to avoid WASM runtime time limitations.
    * @returns The decoder instance for chaining
@@ -667,15 +689,10 @@ export class Decoder implements IDecoder {
    * ```
    */
   verifyWith(verifier: VerifierCallback): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.verifyWith(verifier);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.verifyWith(verifier),
+    );
+    return this;
   }
 
   /**
@@ -696,15 +713,10 @@ export class Decoder implements IDecoder {
    * ```
    */
   decryptWith(decryptor: DecryptorCallback): Decoder {
-    try {
-      this.wasmDecoder = this.wasmDecoder.decryptWith(decryptor);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmDecoder = wrapWasmCall(() =>
+      this.wasmDecoder.decryptWith(decryptor),
+    );
+    return this;
   }
 
   /**
@@ -715,7 +727,7 @@ export class Decoder implements IDecoder {
    * @throws {Claim169Error} If decoding fails or no verification method specified
    */
   decode(): DecodeResult {
-    try {
+    return wrapWasmCall(() => {
       const result = this.wasmDecoder.decode();
       const transformed = transformResult(result);
 
@@ -729,12 +741,7 @@ export class Decoder implements IDecoder {
         );
       }
       return transformed;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    });
   }
 }
 
@@ -744,6 +751,8 @@ export class Decoder implements IDecoder {
  * Notes:
  * - If you don't provide a verification key, you must explicitly set `allowUnverified: true` (testing only).
  * - Timestamp validation is enabled by default in JS (host-side). Set `validateTimestamps: false` to disable.
+ * - PEM keys and custom verifier/decryptor callbacks are not supported here.
+ *   Use the `Decoder` builder class directly for those features.
  */
 export interface DecodeOptions {
   verifyWithEd25519?: Uint8Array;
@@ -841,14 +850,9 @@ export class Encoder implements IEncoder {
    * @param cwtMeta - CWT metadata including issuer, expiration, etc.
    */
   constructor(claim169: Claim169Input, cwtMeta: CwtMetaInput) {
-    try {
-      this.wasmEncoder = new wasm.WasmEncoder(claim169, cwtMeta);
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmEncoder = wrapWasmCall(
+      () => new wasm.WasmEncoder(claim169, cwtMeta),
+    );
   }
 
   /**
@@ -857,15 +861,10 @@ export class Encoder implements IEncoder {
    * @returns The encoder instance for chaining
    */
   signWithEd25519(privateKey: Uint8Array): Encoder {
-    try {
-      this.wasmEncoder = this.wasmEncoder.signWithEd25519(privateKey);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmEncoder = wrapWasmCall(() =>
+      this.wasmEncoder.signWithEd25519(privateKey),
+    );
+    return this;
   }
 
   /**
@@ -874,15 +873,10 @@ export class Encoder implements IEncoder {
    * @returns The encoder instance for chaining
    */
   signWithEcdsaP256(privateKey: Uint8Array): Encoder {
-    try {
-      this.wasmEncoder = this.wasmEncoder.signWithEcdsaP256(privateKey);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmEncoder = wrapWasmCall(() =>
+      this.wasmEncoder.signWithEcdsaP256(privateKey),
+    );
+    return this;
   }
 
   /**
@@ -891,15 +885,10 @@ export class Encoder implements IEncoder {
    * @returns The encoder instance for chaining
    */
   encryptWithAes256(key: Uint8Array): Encoder {
-    try {
-      this.wasmEncoder = this.wasmEncoder.encryptWithAes256(key);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmEncoder = wrapWasmCall(() =>
+      this.wasmEncoder.encryptWithAes256(key),
+    );
+    return this;
   }
 
   /**
@@ -908,15 +897,10 @@ export class Encoder implements IEncoder {
    * @returns The encoder instance for chaining
    */
   encryptWithAes128(key: Uint8Array): Encoder {
-    try {
-      this.wasmEncoder = this.wasmEncoder.encryptWithAes128(key);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmEncoder = wrapWasmCall(() =>
+      this.wasmEncoder.encryptWithAes128(key),
+    );
+    return this;
   }
 
   /**
@@ -961,20 +945,15 @@ export class Encoder implements IEncoder {
     algorithm: "EdDSA" | "ES256",
     keyId?: Uint8Array | null,
   ): Encoder {
-    try {
-      // Wrap the callback so callers can optionally provide a keyId even if the
-      // underlying WASM bindings don't expose key-id configuration yet.
-      const signerWithKeyId: SignerCallback = (alg, wasmKeyId, data) =>
-        signer(alg, keyId ?? wasmKeyId, data);
+    // Wrap the callback so callers can optionally provide a keyId even if the
+    // underlying WASM bindings don't expose key-id configuration yet.
+    const signerWithKeyId: SignerCallback = (alg, wasmKeyId, data) =>
+      signer(alg, keyId ?? wasmKeyId, data);
 
-      this.wasmEncoder = this.wasmEncoder.signWith(signerWithKeyId, algorithm);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmEncoder = wrapWasmCall(() =>
+      this.wasmEncoder.signWith(signerWithKeyId, algorithm),
+    );
+    return this;
   }
 
   /**
@@ -999,15 +978,10 @@ export class Encoder implements IEncoder {
     encryptor: EncryptorCallback,
     algorithm: "A256GCM" | "A128GCM",
   ): Encoder {
-    try {
-      this.wasmEncoder = this.wasmEncoder.encryptWith(encryptor, algorithm);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    this.wasmEncoder = wrapWasmCall(() =>
+      this.wasmEncoder.encryptWith(encryptor, algorithm),
+    );
+    return this;
   }
 
   /**
@@ -1016,16 +990,11 @@ export class Encoder implements IEncoder {
    * @returns The encoder instance for chaining
    * @throws {Claim169Error} If the mode is invalid or unsupported by the WASM build
    */
-  compression(mode: string): Encoder {
-    try {
-      this.wasmEncoder = this.wasmEncoder.compression(mode);
-      return this;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+  compression(mode: CompressionMode): Encoder {
+    this.wasmEncoder = wrapWasmCall(() =>
+      this.wasmEncoder.compression(mode),
+    );
+    return this;
   }
 
   /**
@@ -1034,7 +1003,7 @@ export class Encoder implements IEncoder {
    * @throws {Claim169Error} If encoding fails
    */
   encode(): EncodeResult {
-    try {
+    return wrapWasmCall(() => {
       const raw = this.wasmEncoder.encode() as unknown as {
         qrData: string;
         compressionUsed: string;
@@ -1045,12 +1014,7 @@ export class Encoder implements IEncoder {
         compressionUsed: raw.compressionUsed,
         warnings: raw.warnings ?? [],
       };
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Claim169Error(error.message);
-      }
-      throw new Claim169Error(String(error));
-    }
+    });
   }
 }
 

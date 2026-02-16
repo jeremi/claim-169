@@ -21,33 +21,29 @@ La classe `Claim169Input` contient tous les champs d’identité :
 ```python
 import claim169
 
-# Créer avec des champs requis
+# Créer avec tous les champs en arguments nommés
 claim = claim169.Claim169Input(
     id="MOSIP-2024-001",
-    full_name="Jane Doe"
+    full_name="Jane Doe",
+    version="1.0.0",
+    language="en",
+    first_name="Jane",
+    middle_name="Marie",
+    last_name="Doe",
+    date_of_birth="1990-05-15",
+    gender=claim169.Gender.FEMALE,
+    address="123 Main Street, Springfield, IL 62701",
+    email="jane.doe@example.org",
+    phone="+1-555-123-4567",
+    nationality="US",
+    marital_status=claim169.MaritalStatus.UNMARRIED,
+    guardian="John Doe Sr.",
+    secondary_full_name="Jane Marie Doe",
+    secondary_language="es",
+    location_code="US-IL",
+    legal_status="citizen",
+    country_of_issuance="US",
 )
-
-# Renseigner des données démographiques supplémentaires
-claim.version = "1.0.0"
-claim.language = "en"
-claim.first_name = "Jane"
-claim.middle_name = "Marie"
-claim.last_name = "Doe"
-claim.date_of_birth = "1990-05-15"
-claim.gender = 2  # 1=Male, 2=Female, 3=Other
-claim.address = "123 Main Street, Springfield, IL 62701"
-claim.email = "jane.doe@example.org"
-claim.phone = "+1-555-123-4567"
-claim.nationality = "US"
-claim.marital_status = 1  # 1=Unmarried, 2=Married, 3=Divorced
-
-# Champs optionnels
-claim.guardian = "John Doe Sr."
-claim.secondary_full_name = "Jane Marie Doe"
-claim.secondary_language = "es"
-claim.location_code = "US-IL"
-claim.legal_status = "citizen"
-claim.country_of_issuance = "US"
 ```
 
 ### Référence des champs
@@ -62,15 +58,15 @@ claim.country_of_issuance = "US"
 | `middle_name` | `str` | Deuxième prénom |
 | `last_name` | `str` | Nom de famille |
 | `date_of_birth` | `str` | Date de naissance (YYYY-MM-DD) |
-| `gender` | `int` | 1=Male, 2=Female, 3=Other |
+| `gender` | `int` | `Gender.MALE`, `Gender.FEMALE`, `Gender.OTHER` |
 | `address` | `str` | Adresse complète |
 | `email` | `str` | Adresse email |
 | `phone` | `str` | Numéro de téléphone |
 | `nationality` | `str` | Code nationalité |
-| `marital_status` | `int` | 1=Unmarried, 2=Married, 3=Divorced |
+| `marital_status` | `int` | `MaritalStatus.UNMARRIED`, `MaritalStatus.MARRIED`, `MaritalStatus.DIVORCED` |
 | `guardian` | `str` | Nom du tuteur/responsable |
 | `photo` | `bytes` | Données photo |
-| `photo_format` | `int` | 1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP |
+| `photo_format` | `int` | `PhotoFormat.JPEG`, `PhotoFormat.JPEG2000`, `PhotoFormat.AVIF`, `PhotoFormat.WEBP` |
 | `secondary_full_name` | `str` | Nom en langue secondaire |
 | `secondary_language` | `str` | Code langue secondaire |
 | `location_code` | `str` | Code de localisation |
@@ -84,9 +80,12 @@ claim.country_of_issuance = "US"
 with open("photo.jpg", "rb") as f:
     photo_data = f.read()
 
-claim = claim169.Claim169Input(id="PHOTO-001", full_name="Jane Doe")
-claim.photo = photo_data
-claim.photo_format = 1  # JPEG
+claim = claim169.Claim169Input(
+    id="PHOTO-001",
+    full_name="Jane Doe",
+    photo=photo_data,
+    photo_format=claim169.PhotoFormat.JPEG,
+)
 ```
 
 ## Créer les métadonnées du jeton
@@ -124,24 +123,27 @@ Ed25519 est recommandé pour ses signatures courtes et sa vérification rapide.
 ```python
 import claim169
 
-# Données d’identité
-claim = claim169.Claim169Input(id="ED25519-001", full_name="Jane Doe")
-claim.date_of_birth = "1990-05-15"
+# Données d'identité
+claim = claim169.Claim169Input(
+    id="ED25519-001",
+    full_name="Jane Doe",
+    date_of_birth="1990-05-15",
+)
 
 # Métadonnées du jeton
 meta = claim169.CwtMetaInput(
     issuer="https://id.example.org",
-    expires_at=1900000000
+    expires_at=1900000000,
+    issued_at=1700000000,
 )
-meta.issued_at = 1700000000
 
 # Clé privée Ed25519 (32 octets)
 private_key = bytes.fromhex(
     "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
 )
 
-# Encoder
-qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+# Encoder avec la fonction unifiée encode()
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
 print(f"Encoded: {len(qr_data)} characters")
 ```
 
@@ -177,7 +179,7 @@ meta = claim169.CwtMetaInput(
 # Clé privée ECDSA P-256 (32 octets)
 private_key = bytes(32)  # Remplacer par la clé réelle
 
-qr_data = claim169.encode_with_ecdsa_p256(claim, meta, private_key)
+qr_data = claim169.encode(claim, meta, sign_with_ecdsa_p256=private_key)
 ```
 
 ### Générer des clés ECDSA P-256
@@ -215,7 +217,7 @@ claim = claim169.Claim169Input(id="TEST-001", full_name="Test User")
 meta = claim169.CwtMetaInput(expires_at=1900000000)
 
 # Encoder sans signature (INSÉCURISÉ - tests uniquement)
-qr_data = claim169.encode_unsigned(claim, meta)
+qr_data = claim169.encode(claim, meta, allow_unsigned=True)
 ```
 
 ## Ignorer la biométrie
@@ -223,11 +225,11 @@ qr_data = claim169.encode_unsigned(claim, meta)
 Pour réduire la taille du QR code, ignorez l’encodage des données biométriques :
 
 ```python
-qr_data = claim169.encode_with_ed25519(
+qr_data = claim169.encode(
     claim,
     meta,
-    private_key,
-    skip_biometrics=True
+    sign_with_ed25519=private_key,
+    skip_biometrics=True,
 )
 ```
 
@@ -239,28 +241,28 @@ Exemple complet avec toutes les données démographiques :
 import claim169
 import time
 
-# Créer des données d’identité complètes
+# Créer des données d'identité complètes
 claim = claim169.Claim169Input(
     id="FULL-DEMO-2024-001",
-    full_name="Jane Marie Doe"
+    full_name="Jane Marie Doe",
+    version="1.0.0",
+    language="en",
+    first_name="Jane",
+    middle_name="Marie",
+    last_name="Doe",
+    date_of_birth="1990-05-15",
+    gender=claim169.Gender.FEMALE,
+    address="123 Main Street, Springfield, IL 62701, USA",
+    email="jane.doe@example.org",
+    phone="+1-555-123-4567",
+    nationality="US",
+    marital_status=claim169.MaritalStatus.MARRIED,
+    secondary_full_name="Juana Maria Doe",
+    secondary_language="es",
+    location_code="US-IL-SPR",
+    legal_status="citizen",
+    country_of_issuance="US",
 )
-claim.version = "1.0.0"
-claim.language = "en"
-claim.first_name = "Jane"
-claim.middle_name = "Marie"
-claim.last_name = "Doe"
-claim.date_of_birth = "1990-05-15"
-claim.gender = 2
-claim.address = "123 Main Street, Springfield, IL 62701, USA"
-claim.email = "jane.doe@example.org"
-claim.phone = "+1-555-123-4567"
-claim.nationality = "US"
-claim.marital_status = 2
-claim.secondary_full_name = "Juana Maria Doe"
-claim.secondary_language = "es"
-claim.location_code = "US-IL-SPR"
-claim.legal_status = "citizen"
-claim.country_of_issuance = "US"
 
 # Créer les métadonnées du jeton
 now = int(time.time())
@@ -277,7 +279,7 @@ private_key = bytes.fromhex(
     "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
 )
 
-qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
 
 print(f"QR Code content ({len(qr_data)} characters)")
 print(f"Ready for QR code generation")
@@ -289,7 +291,7 @@ print(f"Ready for QR code generation")
 import claim169
 
 try:
-    qr_data = claim169.encode_with_ed25519(claim, meta, private_key)
+    qr_data = claim169.encode(claim, meta, sign_with_ed25519=private_key)
 except ValueError as e:
     print(f"Invalid key format: {e}")
 except claim169.Claim169Exception as e:

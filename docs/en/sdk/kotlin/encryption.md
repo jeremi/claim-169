@@ -119,7 +119,7 @@ val result = Claim169.decode(qrData) {
 }
 
 println("ID: ${result.claim169.id}")
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")
 ```
 
 ### Decrypt AES-128-GCM with Verification
@@ -144,7 +144,7 @@ val result = Claim169.decode(qrData) {
     allowUnverified()
 }
 
-println("Status: ${result.verificationStatus}")  // "skipped"
+println("Status: ${result.verificationStatus}")  // VerificationStatus.Skipped
 ```
 
 ## Custom Decryption
@@ -276,7 +276,7 @@ val result = Claim169.decode(qrData) {
 }
 
 println("ID: ${result.claim169.id}")
-println("Verified: ${result.isVerified}")
+println("Status: ${result.verificationStatus}")
 ```
 
 ## Error Handling
@@ -315,7 +315,11 @@ try {
 
 - **Never reuse nonces** with the same key
 - The library generates random nonces automatically
-- For custom encryption, always use cryptographically secure random nonces
+- For custom encryption, use `Claim169.generateNonce()` to create a cryptographically secure 12-byte nonce:
+
+```kotlin
+val nonce = Claim169.generateNonce()  // 12 random bytes from SecureRandom
+```
 
 ### Key Distribution
 

@@ -49,14 +49,14 @@ console.log('Verified:', result.verificationStatus); // "verified"
 Créer un QR code d’identifiant signé :
 
 ```typescript
-import { Encoder, type Claim169Input, type CwtMetaInput } from 'claim169';
+import { Encoder, Gender, type Claim169Input, type CwtMetaInput } from 'claim169';
 
-// Données d’identité à encoder
+// Données d'identité à encoder
 const claim169: Claim169Input = {
   id: "123456789",
   fullName: "Jane Smith",
   dateOfBirth: "1990-05-20",
-  gender: 2,  // Female
+  gender: Gender.Female,
   email: "jane@example.com",
 };
 
@@ -97,7 +97,7 @@ try {
 } catch (error) {
   if (error instanceof Claim169Error) {
     console.error('Decode failed:', error.message);
-    // Gérer des erreurs spécifiques selon le contenu du message
+    console.error('Error code:', error.code); // ex. "BASE45_DECODE", "SIGNATURE_INVALID"
   } else {
     throw error;
   }

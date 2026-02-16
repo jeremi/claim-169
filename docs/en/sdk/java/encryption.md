@@ -148,7 +148,7 @@ DecodeResultData result = Claim169.decode(qrData, (DecoderConfigurer) builder ->
     builder.allowUnverified();
 });
 
-System.out.println("Status: " + Claim169.verificationStatus(result));  // "skipped"
+System.out.println("Status: " + Claim169.verificationStatus(result));  // VerificationStatus.Skipped
 ```
 
 ## Custom Decryption
@@ -318,7 +318,11 @@ try {
 
 - **Never reuse nonces** with the same key
 - The library generates random nonces automatically
-- For custom encryption, always use cryptographically secure random nonces
+- For custom encryption, use `Claim169.generateNonce()` to create a cryptographically secure 12-byte nonce:
+
+```java
+byte[] nonce = Claim169.generateNonce();  // 12 random bytes from SecureRandom
+```
 
 ### Key Distribution
 

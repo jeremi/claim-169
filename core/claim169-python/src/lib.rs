@@ -88,14 +88,13 @@ fn core_decode_result_to_py(result: claim169_core::DecodeResult) -> DecodeResult
 /// along with format metadata and issuer information.
 ///
 /// Attributes:
-///     data (list[int]): Raw biometric data bytes.
+///     data (bytes): Raw biometric data bytes.
 ///     format (int | None): Biometric format code (0=Image, 1=Template, 2=Sound, 3=BioHash).
 ///     sub_format (int | None): Sub-format code (depends on format type).
 ///     issuer (str | None): Biometric data issuer/provider identifier.
 #[pyclass]
 #[derive(Clone)]
 pub struct Biometric {
-    #[pyo3(get)]
     pub data: Vec<u8>,
     #[pyo3(get)]
     pub format: Option<i64>,
@@ -107,6 +106,11 @@ pub struct Biometric {
 
 #[pymethods]
 impl Biometric {
+    #[getter]
+    fn data<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.data)
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "Biometric(format={:?}, sub_format={:?}, data_len={})",
@@ -213,7 +217,7 @@ impl From<&CoreCwtMeta> for CwtMeta {
 ///
 /// Attributes:
 ///     algorithm (str): Hash algorithm identifier (numeric COSE algorithm ID or string name).
-///     hash_value (list[int]): Hash value bytes.
+///     hash_value (bytes): Hash value bytes.
 #[pyclass]
 #[derive(Clone)]
 pub struct CertificateHash {
@@ -221,12 +225,16 @@ pub struct CertificateHash {
     #[pyo3(get)]
     pub algorithm: String,
     /// Hash value bytes
-    #[pyo3(get)]
     pub hash_value: Vec<u8>,
 }
 
 #[pymethods]
 impl CertificateHash {
+    #[getter]
+    fn hash_value<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.hash_value)
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "CertificateHash(algorithm={}, hash_len={})",
@@ -255,18 +263,16 @@ impl From<&CoreCertificateHash> for CertificateHash {
 /// including certificate bags, chains, thumbprints, and URIs.
 ///
 /// Attributes:
-///     x5bag (list[list[int]] | None): Unordered bag of X.509 certificates (DER-encoded).
-///     x5chain (list[list[int]] | None): Ordered chain of X.509 certificates (DER-encoded).
+///     x5bag (list[bytes] | None): Unordered bag of X.509 certificates (DER-encoded).
+///     x5chain (list[bytes] | None): Ordered chain of X.509 certificates (DER-encoded).
 ///     x5t (CertificateHash | None): Certificate thumbprint hash.
 ///     x5u (str | None): URI pointing to an X.509 certificate.
 #[pyclass]
 #[derive(Clone)]
 pub struct X509Headers {
     /// x5bag (label 32): Unordered bag of X.509 certificates (DER-encoded)
-    #[pyo3(get)]
     pub x5bag: Option<Vec<Vec<u8>>>,
     /// x5chain (label 33): Ordered chain of X.509 certificates (DER-encoded)
-    #[pyo3(get)]
     pub x5chain: Option<Vec<Vec<u8>>>,
     /// x5t (label 34): Certificate thumbprint hash
     #[pyo3(get)]
@@ -278,6 +284,20 @@ pub struct X509Headers {
 
 #[pymethods]
 impl X509Headers {
+    #[getter]
+    fn x5bag<'py>(&self, py: Python<'py>) -> Option<Vec<Bound<'py, PyBytes>>> {
+        self.x5bag.as_ref().map(|bags| {
+            bags.iter().map(|b| PyBytes::new(py, b)).collect()
+        })
+    }
+
+    #[getter]
+    fn x5chain<'py>(&self, py: Python<'py>) -> Option<Vec<Bound<'py, PyBytes>>> {
+        self.x5chain.as_ref().map(|bags| {
+            bags.iter().map(|b| PyBytes::new(py, b)).collect()
+        })
+    }
+
     fn __repr__(&self) -> String {
         let parts: Vec<&str> = [
             self.x5bag.as_ref().map(|_| "x5bag"),
@@ -334,9 +354,9 @@ impl From<&CoreX509Headers> for X509Headers {
 ///     nationality (str | None): Nationality code.
 ///     marital_status (int | None): Marital status (1=Unmarried, 2=Married, 3=Divorced).
 ///     guardian (str | None): Guardian name.
-///     photo (list[int] | None): Photo data bytes.
+///     photo (bytes | None): Photo data bytes.
 ///     photo_format (int | None): Photo format (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP).
-///     best_quality_fingers (list[int] | None): Best quality finger indices (0-10).
+///     best_quality_fingers (bytes | None): Best quality finger indices (0-10).
 ///     secondary_full_name (str | None): Name in secondary language.
 ///     secondary_language (str | None): Secondary language code.
 ///     location_code (str | None): Location code.
@@ -392,11 +412,9 @@ pub struct Claim169 {
     pub marital_status: Option<i64>,
     #[pyo3(get)]
     pub guardian: Option<String>,
-    #[pyo3(get)]
     pub photo: Option<Vec<u8>>,
     #[pyo3(get)]
     pub photo_format: Option<i64>,
-    #[pyo3(get)]
     pub best_quality_fingers: Option<Vec<u8>>,
     #[pyo3(get)]
     pub secondary_full_name: Option<String>,
@@ -446,6 +464,16 @@ pub struct Claim169 {
 
 #[pymethods]
 impl Claim169 {
+    #[getter]
+    fn photo<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
+        self.photo.as_ref().map(|p| PyBytes::new(py, p))
+    }
+
+    #[getter]
+    fn best_quality_fingers<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
+        self.best_quality_fingers.as_ref().map(|f| PyBytes::new(py, f))
+    }
+
     fn __repr__(&self) -> String {
         format!("Claim169(id={:?}, full_name={:?})", self.id, self.full_name)
     }
@@ -476,6 +504,12 @@ impl Claim169 {
 
         if let Some(ref v) = self.id {
             dict.set_item("id", v)?;
+        }
+        if let Some(ref v) = self.version {
+            dict.set_item("version", v)?;
+        }
+        if let Some(ref v) = self.language {
+            dict.set_item("language", v)?;
         }
         if let Some(ref v) = self.full_name {
             dict.set_item("fullName", v)?;
@@ -509,6 +543,33 @@ impl Claim169 {
         }
         if let Some(v) = self.marital_status {
             dict.set_item("maritalStatus", v)?;
+        }
+        if let Some(ref v) = self.guardian {
+            dict.set_item("guardian", v)?;
+        }
+        if let Some(ref v) = self.photo {
+            dict.set_item("photo", PyBytes::new(py, v))?;
+        }
+        if let Some(v) = self.photo_format {
+            dict.set_item("photoFormat", v)?;
+        }
+        if let Some(ref v) = self.best_quality_fingers {
+            dict.set_item("bestQualityFingers", PyBytes::new(py, v))?;
+        }
+        if let Some(ref v) = self.secondary_full_name {
+            dict.set_item("secondaryFullName", v)?;
+        }
+        if let Some(ref v) = self.secondary_language {
+            dict.set_item("secondaryLanguage", v)?;
+        }
+        if let Some(ref v) = self.location_code {
+            dict.set_item("locationCode", v)?;
+        }
+        if let Some(ref v) = self.legal_status {
+            dict.set_item("legalStatus", v)?;
+        }
+        if let Some(ref v) = self.country_of_issuance {
+            dict.set_item("countryOfIssuance", v)?;
         }
 
         Ok(dict)
@@ -619,7 +680,7 @@ impl DecodeResult {
 /// Args:
 ///     callback: A callable ``(algorithm, key_id, data, signature) -> None``
 ///         that raises an exception if verification fails.
-#[pyclass]
+#[pyclass(name = "SignatureVerifier")]
 pub struct PySignatureVerifier {
     callback: Py<PyAny>,
 }
@@ -666,7 +727,7 @@ impl CoreSignatureVerifier for PySignatureVerifier {
 /// Args:
 ///     callback: A callable ``(algorithm, key_id, nonce, aad, ciphertext) -> bytes``
 ///         that returns decrypted plaintext bytes.
-#[pyclass]
+#[pyclass(name = "Decryptor")]
 pub struct PyDecryptor {
     callback: Py<PyAny>,
 }
@@ -722,7 +783,7 @@ impl CoreDecryptor for PyDecryptor {
 /// - Cloud KMS (AWS KMS, Google Cloud KMS, Azure Key Vault)
 /// - Remote signing services
 /// - Smart cards and TPMs
-#[pyclass]
+#[pyclass(name = "Signer")]
 pub struct PySigner {
     callback: Py<PyAny>,
     key_id: Option<Vec<u8>>,
@@ -779,7 +840,7 @@ impl CoreSigner for PySigner {
 /// Args:
 ///     callback: A callable ``(algorithm, key_id, nonce, aad, plaintext) -> bytes``
 ///         that returns encrypted ciphertext bytes.
-#[pyclass]
+#[pyclass(name = "Encryptor")]
 pub struct PyEncryptor {
     callback: Py<PyAny>,
 }
@@ -1072,6 +1133,10 @@ fn decode_with_ecdsa_p256_pem(
 ///     qr_text: The QR code text content
 ///     verifier: A callable that takes (algorithm, key_id, data, signature)
 ///               and raises an exception if verification fails
+///     skip_biometrics: If True, skip decoding biometric data (default: False)
+///     max_decompressed_bytes: Maximum decompressed size (default: 65536)
+///     validate_timestamps: If True, validate exp/nbf timestamps (default: True)
+///     clock_skew_tolerance_seconds: Tolerance for timestamp validation (default: 0)
 ///
 /// Example:
 ///     def my_verify(algorithm, key_id, data, signature):
@@ -1080,13 +1145,34 @@ fn decode_with_ecdsa_p256_pem(
 ///
 ///     result = decode_with_verifier(qr_text, my_verify)
 #[pyfunction]
-#[pyo3(name = "decode_with_verifier")]
-fn py_decode_with_verifier(qr_text: &str, verifier: Py<PyAny>) -> PyResult<DecodeResult> {
+#[pyo3(
+    name = "decode_with_verifier",
+    text_signature = "(qr_text, verifier, skip_biometrics=False, max_decompressed_bytes=65536, validate_timestamps=True, clock_skew_tolerance_seconds=0)",
+    signature = (qr_text, verifier, skip_biometrics=false, max_decompressed_bytes=65536, validate_timestamps=true, clock_skew_tolerance_seconds=0)
+)]
+fn py_decode_with_verifier(
+    qr_text: &str,
+    verifier: Py<PyAny>,
+    skip_biometrics: bool,
+    max_decompressed_bytes: usize,
+    validate_timestamps: bool,
+    clock_skew_tolerance_seconds: i64,
+) -> PyResult<DecodeResult> {
     let py_verifier = PySignatureVerifier::new(verifier);
-    let result = Decoder::new(qr_text)
+    let mut decoder = Decoder::new(qr_text)
         .verify_with(py_verifier)
-        .decode()
-        .map_err(to_py_err)?;
+        .max_decompressed_bytes(max_decompressed_bytes)
+        .clock_skew_tolerance(clock_skew_tolerance_seconds);
+
+    if skip_biometrics {
+        decoder = decoder.skip_biometrics();
+    }
+
+    if !validate_timestamps {
+        decoder = decoder.without_timestamp_validation();
+    }
+
+    let result = decoder.decode().map_err(to_py_err)?;
 
     Ok(core_decode_result_to_py(result))
 }
@@ -1288,7 +1374,7 @@ fn version() -> &'static str {
 ///     nationality (str | None): Nationality code.
 ///     marital_status (int | None): Marital status (1=Unmarried, 2=Married, 3=Divorced).
 ///     guardian (str | None): Guardian name.
-///     photo (list[int] | None): Photo data bytes.
+///     photo (bytes | None): Photo data bytes.
 ///     photo_format (int | None): Photo format (1=JPEG, 2=JPEG2000, 3=AVIF, 4=WebP).
 ///     secondary_full_name (str | None): Name in secondary language.
 ///     secondary_language (str | None): Secondary language code.
@@ -1333,7 +1419,7 @@ pub struct Claim169Input {
     pub marital_status: Option<i64>,
     #[pyo3(get, set)]
     pub guardian: Option<String>,
-    #[pyo3(get, set)]
+    #[pyo3(set)]
     pub photo: Option<Vec<u8>>,
     #[pyo3(get, set)]
     pub photo_format: Option<i64>,
@@ -1351,32 +1437,70 @@ pub struct Claim169Input {
 
 #[pymethods]
 impl Claim169Input {
+    #[getter]
+    fn photo<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
+        self.photo.as_ref().map(|p| PyBytes::new(py, p))
+    }
+
     #[new]
-    #[pyo3(signature = (id=None, full_name=None))]
-    fn new(id: Option<String>, full_name: Option<String>) -> Self {
+    #[pyo3(signature = (
+        id=None, version=None, language=None, full_name=None,
+        first_name=None, middle_name=None, last_name=None,
+        date_of_birth=None, gender=None, address=None,
+        email=None, phone=None, nationality=None,
+        marital_status=None, guardian=None, photo=None,
+        photo_format=None, secondary_full_name=None,
+        secondary_language=None, location_code=None,
+        legal_status=None, country_of_issuance=None,
+    ))]
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        id: Option<String>,
+        version: Option<String>,
+        language: Option<String>,
+        full_name: Option<String>,
+        first_name: Option<String>,
+        middle_name: Option<String>,
+        last_name: Option<String>,
+        date_of_birth: Option<String>,
+        gender: Option<i64>,
+        address: Option<String>,
+        email: Option<String>,
+        phone: Option<String>,
+        nationality: Option<String>,
+        marital_status: Option<i64>,
+        guardian: Option<String>,
+        photo: Option<Vec<u8>>,
+        photo_format: Option<i64>,
+        secondary_full_name: Option<String>,
+        secondary_language: Option<String>,
+        location_code: Option<String>,
+        legal_status: Option<String>,
+        country_of_issuance: Option<String>,
+    ) -> Self {
         Claim169Input {
             id,
             full_name,
-            version: None,
-            language: None,
-            first_name: None,
-            middle_name: None,
-            last_name: None,
-            date_of_birth: None,
-            gender: None,
-            address: None,
-            email: None,
-            phone: None,
-            nationality: None,
-            marital_status: None,
-            guardian: None,
-            photo: None,
-            photo_format: None,
-            secondary_full_name: None,
-            secondary_language: None,
-            location_code: None,
-            legal_status: None,
-            country_of_issuance: None,
+            version,
+            language,
+            first_name,
+            middle_name,
+            last_name,
+            date_of_birth,
+            gender,
+            address,
+            email,
+            phone,
+            nationality,
+            marital_status,
+            guardian,
+            photo,
+            photo_format,
+            secondary_full_name,
+            secondary_language,
+            location_code,
+            legal_status,
+            country_of_issuance,
         }
     }
 
@@ -1884,11 +2008,12 @@ fn encode_with_encryptor(
 /// Generate a random 12-byte nonce for AES-GCM encryption.
 ///
 /// Returns:
-///     list[int]: 12-byte nonce as a list of integers. Convert with ``bytes(nonce)``.
+///     bytes: 12-byte nonce suitable for AES-GCM IV.
 #[pyfunction]
 #[pyo3(text_signature = "()")]
-fn generate_nonce() -> Vec<u8> {
-    claim169_core::generate_random_nonce().to_vec()
+fn generate_nonce<'py>(py: Python<'py>) -> Bound<'py, PyBytes> {
+    let nonce = claim169_core::generate_random_nonce();
+    PyBytes::new(py, &nonce)
 }
 
 // ============================================================================

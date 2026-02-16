@@ -42,7 +42,7 @@ class JavaApiTest {
 
         assertEquals("JAVA-DECODE-001", result.getClaim169().getId());
         assertEquals("Java Decode Test", result.getClaim169().getFullName());
-        assertEquals("skipped", result.getVerificationStatus());
+        assertEquals(VerificationStatus.Skipped, result.getVerificationStatus());
     }
 
     // -- Build data with Claim169DataConfigurer lambda --

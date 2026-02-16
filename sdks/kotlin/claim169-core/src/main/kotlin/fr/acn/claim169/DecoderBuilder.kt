@@ -18,6 +18,7 @@ import uniffi.claim169_jni.CryptoException
  * }
  * ```
  */
+@Claim169Dsl
 class DecoderBuilder(qrText: String) {
     private val decoder = Claim169Decoder(qrText)
 
@@ -147,6 +148,19 @@ class DecoderBuilder(qrText: String) {
     fun clockSkewTolerance(seconds: Long) {
         require(seconds >= 0) { "Clock skew tolerance must be non-negative, got $seconds" }
         decoder.clockSkewTolerance(seconds)
+    }
+
+    /**
+     * Set clock skew tolerance for timestamp validation using [kotlin.time.Duration].
+     *
+     * ```kotlin
+     * Claim169.decode(qrText) {
+     *     clockSkewTolerance(30.seconds)
+     * }
+     * ```
+     */
+    fun clockSkewTolerance(duration: kotlin.time.Duration) {
+        clockSkewTolerance(duration.inWholeSeconds)
     }
 
     /**

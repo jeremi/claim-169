@@ -89,7 +89,7 @@ class ConformanceTest {
                 gender = result.claim169.gender,
                 issuer = result.cwtMeta.issuer,
                 expiresAt = result.cwtMeta.expiresAt,
-                verificationStatus = result.verificationStatus,
+                verificationStatus = result.verificationStatus.value,
                 error = null,
             )
         } catch (e: Exception) {
