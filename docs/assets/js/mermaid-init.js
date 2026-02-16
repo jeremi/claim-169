@@ -45,6 +45,13 @@
     nodes.forEach(snapshotSource);
     nodes.forEach(restoreSource);
 
+    // Filter out nodes with empty source text to avoid "No diagram type detected" errors.
+    // This can happen during instant navigation when the DOM is not fully populated yet.
+    const validNodes = nodes.filter(
+      (el) => el.textContent && el.textContent.trim().length > 0,
+    );
+    if (validNodes.length === 0) return;
+
     window.mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
@@ -54,7 +61,7 @@
     });
 
     try {
-      await window.mermaid.run({ nodes });
+      await window.mermaid.run({ nodes: validNodes });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Mermaid render failed:", err);
