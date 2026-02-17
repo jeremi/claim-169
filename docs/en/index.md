@@ -13,14 +13,7 @@
 
 Claim 169 is an [IANA-registered](https://www.iana.org/assignments/cwt/cwt.xhtml) CBOR Web Token (CWT) claim for encoding identity credentials in QR codes. It enables **offline verification** of identity documents without network connectivity.
 
-<div class="diagram" markdown>
-
-```mermaid
-flowchart LR
-  A[Identity Data] --> B[CBOR] --> C[CWT] --> D[COSE Sign] --> E[zlib] --> F[Base45] --> G[QR Code]
-```
-
-</div>
+![](../assets/img/encapsulation-en.drawio)
 
 ## Choose Your SDK
 

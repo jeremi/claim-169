@@ -88,6 +88,8 @@ plugins:
             docstring_style: google
             merge_init_into_class: true
   - search
+  - drawio:
+      darkmode: true
 
 hooks:
   - scripts/mkdocs_hooks.py
@@ -99,11 +101,7 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
   - admonition
@@ -126,10 +124,6 @@ copyright: Copyright &copy; 2026 Claim 169 Contributors. MIT License.
 
 extra_css:
   - assets/css/extra.css
-extra_javascript:
-  - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
-  - assets/js/mermaid-init.js
-
 dev_addr: 127.0.0.1:8001
 
 nav:

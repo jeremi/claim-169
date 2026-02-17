@@ -190,26 +190,6 @@
   font-size: 1.2rem;
 }
 
-/* Mermaid diagrams */
-.diagram {
-  margin: 2rem 0;
-  padding: 1.5rem;
-  background: var(--md-default-bg-color);
-  border: 1px solid var(--md-default-fg-color--lighter);
-  border-radius: 0.5rem;
-}
-
-.mermaid {
-  display: flex;
-  justify-content: center;
-}
-
-.mermaid svg {
-  width: min(900px, 100%);
-  max-width: 100%;
-  height: auto;
-}
-
 /* Algorithm table enhancements */
 .md-typeset table:not([class]) {
   border-radius: 0.5rem;

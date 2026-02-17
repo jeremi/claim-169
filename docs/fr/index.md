@@ -13,14 +13,7 @@
 
 Claim 169 est une revendication (claim) **CWT** (CBOR Web Token) [enregistrée auprès de l’IANA](https://www.iana.org/assignments/cwt/cwt.xhtml), destinée à encoder des identifiants d’identité dans des QR codes. Elle permet une **vérification hors ligne** de documents d’identité, sans connectivité réseau.
 
-<div class="diagram" markdown>
-
-```mermaid
-flowchart LR
-  A[Données d’identité] --> B[CBOR] --> C[CWT] --> D[Signature COSE] --> E[zlib] --> F[Base45] --> G[QR Code]
-```
-
-</div>
+![](../assets/img/encapsulation-fr.drawio)
 
 ## Choisissez votre SDK
 
