@@ -24,7 +24,7 @@ d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
 === "Python"
 
     ```python
-    from claim169 import decode
+    import claim169
 
     qr_data = "6BF590B20FFWJWG.FKJ05H7B0XKA8FA9DIWENPEJ/5P$DPQE88EB$CBECP9ERZC04E21DDF3/E96007F3ORAO001KL580 B9%W5*B9C+9%R8646%86HKESED1/DRTC5UA QE$345$CVQEX.DX88WBK0NG8PB4 O/38TL6XDALLKLPQATHO.3ZPJMUAVQFSB1:+B*21V FWMC6SU439YU774475LJ2U5T02$VBSIMLQ3:6J.E1-1STM$4"
 
@@ -32,7 +32,7 @@ d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
         "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
     )
 
-    result = decode(qr_data, verify_with_ed25519=public_key)
+    result = claim169.decode(qr_data, verify_with_ed25519=public_key)
 
     print(f"ID: {result.claim169.id}")
     print(f"Name: {result.claim169.full_name}")
