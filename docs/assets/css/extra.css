@@ -49,6 +49,13 @@
   opacity: 0.95;
 }
 
+.hero-section .hero-subtitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  opacity: 1;
+  margin-bottom: 0.5rem;
+}
+
 .hero-section .cta-button {
   background: rgba(255, 255, 255, 0.92);
   color: var(--md-primary-fg-color);
@@ -287,6 +294,19 @@
 
 .md-typeset .tabbed-content {
   padding: 1rem;
+}
+
+/* Playground CTA */
+.playground-cta {
+  border: 2px solid var(--md-primary-fg-color);
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.playground-cta p {
+  margin: 0;
 }
 
 /* Quick links section */
