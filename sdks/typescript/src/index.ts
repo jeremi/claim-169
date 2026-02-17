@@ -93,6 +93,7 @@ export type {
   Claim169ErrorCode,
   Claim169Input,
   CompressionMode,
+  CoseType,
   CwtMeta,
   CwtMetaInput,
   DecodeResult,
@@ -103,6 +104,7 @@ export type {
   EncryptorCallback,
   IDecoder,
   IEncoder,
+  InspectResult,
   SignerCallback,
   VerificationStatus,
   VerifierCallback,
@@ -122,6 +124,7 @@ import type {
   Claim169,
   Claim169Input,
   CompressionMode,
+  CoseType,
   CwtMetaInput,
   DecodeResult,
   DetectedCompression,
@@ -130,6 +133,7 @@ import type {
   EncryptorCallback,
   IDecoder,
   IEncoder,
+  InspectResult,
   SignerCallback,
   VerifierCallback,
   X509Headers,
@@ -333,6 +337,8 @@ function transformResult(raw: unknown): DecodeResult {
     ),
     detectedCompression: ((result.detectedCompression as string) ?? "zlib") as DetectedCompression,
     warnings: (result.warnings as Array<{ code: string; message: string }>) ?? [],
+    keyId: safeUint8Array(result.keyId),
+    algorithm: result.algorithm as string | undefined,
   };
 }
 
@@ -1024,4 +1030,61 @@ export class Encoder implements IEncoder {
  */
 export function generateNonce(): Uint8Array {
   return new Uint8Array(wasm.generateNonce());
+}
+
+/**
+ * Transform raw WASM inspect result to typed InspectResult.
+ */
+function transformInspectResult(raw: unknown): InspectResult {
+  if (typeof raw !== "object" || raw === null) {
+    throw new Claim169Error("Malformed WASM output: expected object");
+  }
+
+  const result = raw as Record<string, unknown>;
+
+  if (typeof result.coseType !== "string") {
+    throw new Claim169Error("Malformed WASM output: missing coseType");
+  }
+
+  return {
+    issuer: result.issuer as string | undefined,
+    subject: result.subject as string | undefined,
+    keyId: safeUint8Array(result.keyId),
+    algorithm: result.algorithm as string | undefined,
+    x509Headers: transformX509Headers(
+      result.x509Headers as Record<string, unknown> | undefined,
+    ),
+    expiresAt: result.expiresAt as number | undefined,
+    coseType: result.coseType as CoseType,
+  };
+}
+
+/**
+ * Inspect credential metadata without full decoding or verification.
+ *
+ * Extracts metadata (issuer, key ID, algorithm, expiration) from a QR code
+ * without verifying the signature. Useful for multi-issuer key lookup.
+ *
+ * For encrypted credentials (COSE_Encrypt0), only COSE-level headers are
+ * available; CWT-level fields (issuer, subject, expiresAt) will be `undefined`.
+ *
+ * @param qrText - The Base45-encoded QR code content
+ * @returns Metadata extracted from the credential
+ * @throws {Claim169Error} On parse errors
+ *
+ * @example
+ * ```typescript
+ * import { inspect } from 'claim169';
+ *
+ * const meta = inspect(qrText);
+ * console.log(meta.issuer);     // "https://issuer.example.com"
+ * console.log(meta.algorithm);  // "EdDSA"
+ * console.log(meta.coseType);   // "Sign1"
+ * ```
+ */
+export function inspect(qrText: string): InspectResult {
+  return wrapWasmCall(() => {
+    const raw = wasm.inspect(qrText);
+    return transformInspectResult(raw);
+  });
 }

@@ -55,6 +55,9 @@ from .claim169 import (
     Decryptor,
     Signer,
     Encryptor,
+    # Inspect
+    InspectResult,
+    inspect,
     # Decode functions
     decode_unverified,
     decode_with_ed25519,
@@ -342,6 +345,9 @@ __all__ = [
     "PyDecryptor",
     "PySigner",
     "PyEncryptor",
+    # Inspect
+    "InspectResult",
+    "inspect",
     # Decode functions
     "decode_unverified",
     "decode",

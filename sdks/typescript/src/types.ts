@@ -442,6 +442,35 @@ export interface DecodeResult {
   detectedCompression: DetectedCompression;
   /** Warnings generated during decoding */
   warnings: EncodeWarning[];
+  /** Key ID from the COSE header, if present. */
+  keyId?: Uint8Array;
+  /** COSE algorithm name (e.g., "EdDSA", "ES256"), if present. */
+  algorithm?: string;
+}
+
+/** COSE structure type */
+export type CoseType = "Sign1" | "Encrypt0";
+
+/**
+ * Metadata extracted from a credential without full verification or decoding.
+ *
+ * Useful for determining which key to use in multi-issuer scenarios.
+ */
+export interface InspectResult {
+  /** Issuer from CWT claims. `undefined` if not present or encrypted. */
+  issuer?: string;
+  /** Subject from CWT claims. `undefined` if not present or encrypted. */
+  subject?: string;
+  /** Key ID from the COSE header. `undefined` if not present. */
+  keyId?: Uint8Array;
+  /** COSE algorithm name (e.g., "EdDSA", "ES256"). `undefined` if not present. */
+  algorithm?: string;
+  /** X.509 certificate headers from the COSE structure. */
+  x509Headers: X509Headers;
+  /** Expiration time (Unix epoch seconds). `undefined` if not present or encrypted. */
+  expiresAt?: number;
+  /** COSE structure type. */
+  coseType: CoseType;
 }
 
 /**

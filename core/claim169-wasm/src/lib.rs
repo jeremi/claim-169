@@ -35,6 +35,7 @@ use claim169_core::model::{
 };
 use claim169_core::{Decoder, Encoder};
 use coset::iana;
+use coset::iana::EnumI64;
 
 // Install panic hook on module load
 #[wasm_bindgen(start)]
@@ -61,9 +62,12 @@ fn algorithm_to_string(alg: iana::Algorithm) -> String {
     match alg {
         iana::Algorithm::EdDSA => "EdDSA".to_string(),
         iana::Algorithm::ES256 => "ES256".to_string(),
+        iana::Algorithm::ES384 => "ES384".to_string(),
+        iana::Algorithm::ES512 => "ES512".to_string(),
         iana::Algorithm::A128GCM => "A128GCM".to_string(),
+        iana::Algorithm::A192GCM => "A192GCM".to_string(),
         iana::Algorithm::A256GCM => "A256GCM".to_string(),
-        other => format!("{:?}", other),
+        other => format!("COSE_ALG_{}", other.to_i64()),
     }
 }
 
@@ -583,6 +587,12 @@ pub struct JsDecodeResult {
     pub x509_headers: JsX509Headers,
     pub detected_compression: String,
     pub warnings: Vec<JsWarning>,
+    /// Key ID from the COSE header, if present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_id: Option<Vec<u8>>,
+    /// COSE algorithm name (e.g., "EdDSA", "ES256"), if present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
 }
 
 /// Encode result
@@ -877,6 +887,8 @@ impl WasmDecoder {
                     message: w.message.clone(),
                 })
                 .collect(),
+            key_id: result.key_id,
+            algorithm: result.algorithm.map(algorithm_to_string),
         };
 
         serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))
@@ -1379,4 +1391,56 @@ pub fn is_loaded() -> bool {
 #[wasm_bindgen(js_name = "generateNonce")]
 pub fn generate_nonce() -> Vec<u8> {
     claim169_core::generate_random_nonce().to_vec()
+}
+
+// ============================================================================
+// Inspect (metadata extraction without full decode)
+// ============================================================================
+
+/// Inspect result serialized as JSON for JavaScript
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsInspectResult {
+    /// Issuer from CWT claims.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// Subject from CWT claims.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    /// Key ID from the COSE header.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_id: Option<Vec<u8>>,
+    /// COSE algorithm name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    /// X.509 certificate headers.
+    pub x509_headers: JsX509Headers,
+    /// Expiration time (Unix epoch seconds).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    /// COSE structure type: "Sign1" or "Encrypt0".
+    pub cose_type: String,
+}
+
+/// Inspect credential metadata without full decoding or verification.
+///
+/// Extracts metadata (issuer, key ID, algorithm, expiration) from a QR code
+/// without verifying the signature. Useful for multi-issuer key lookup.
+#[wasm_bindgen(js_name = "inspect")]
+pub fn wasm_inspect(qr_text: &str) -> Result<JsValue, JsValue> {
+    let result = claim169_core::inspect(qr_text).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let cose_type = match result.cose_type {
+        claim169_core::pipeline::CoseType::Sign1 => "Sign1",
+        claim169_core::pipeline::CoseType::Encrypt0 => "Encrypt0",
+    };
+    let js_result = JsInspectResult {
+        issuer: result.issuer,
+        subject: result.subject,
+        key_id: result.key_id,
+        algorithm: result.algorithm.map(algorithm_to_string),
+        x509_headers: JsX509Headers::from(&result.x509_headers),
+        expires_at: result.expires_at,
+        cose_type: cose_type.to_string(),
+    };
+    serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsValue::from_str(&e.to_string()))
 }

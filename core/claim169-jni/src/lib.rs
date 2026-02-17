@@ -566,6 +566,29 @@ pub struct DecodeResultData {
     pub detected_compression: String,
     /// Warnings generated during decoding.
     pub warnings: Vec<WarningData>,
+    /// Key ID from the COSE header. None if not present.
+    pub key_id: Option<Vec<u8>>,
+    /// COSE algorithm name (e.g., "EdDSA", "ES256"). None if not present.
+    pub algorithm: Option<String>,
+}
+
+/// Result of inspecting a credential's metadata without full decoding.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct InspectResultData {
+    /// Issuer from CWT claims.
+    pub issuer: Option<String>,
+    /// Subject from CWT claims.
+    pub subject: Option<String>,
+    /// Key ID from the COSE header.
+    pub key_id: Option<Vec<u8>>,
+    /// COSE algorithm name (e.g., "EdDSA", "ES256").
+    pub algorithm: Option<String>,
+    /// X.509 certificate headers from the COSE structure.
+    pub x509_headers: X509HeadersData,
+    /// Expiration time (Unix epoch seconds).
+    pub expires_at: Option<i64>,
+    /// COSE structure type: "Sign1" or "Encrypt0".
+    pub cose_type: String,
 }
 
 // ============================================================
@@ -949,6 +972,8 @@ impl Claim169Decoder {
             detected_compression: detected_compression_to_string(&result.detected_compression)
                 .to_string(),
             warnings: result.warnings.iter().map(WarningData::from).collect(),
+            key_id: result.key_id,
+            algorithm: result.algorithm.map(algorithm_to_string),
         })
     }
 }
@@ -1082,6 +1107,28 @@ impl Claim169Encoder {
 // ============================================================
 // Convenience free functions
 // ============================================================
+
+/// Inspect credential metadata without full decoding or verification.
+///
+/// Extracts metadata (issuer, key ID, algorithm, expiration) from a QR code
+/// without verifying the signature. Useful for multi-issuer key lookup.
+#[uniffi::export]
+pub fn inspect(qr_text: String) -> Result<InspectResultData, Claim169Exception> {
+    let result = claim169::inspect(&qr_text).map_err(Claim169Exception::from)?;
+    let cose_type = match result.cose_type {
+        claim169::pipeline::CoseType::Sign1 => "Sign1",
+        claim169::pipeline::CoseType::Encrypt0 => "Encrypt0",
+    };
+    Ok(InspectResultData {
+        issuer: result.issuer,
+        subject: result.subject,
+        key_id: result.key_id,
+        algorithm: result.algorithm.map(algorithm_to_string),
+        x509_headers: X509HeadersData::from(&result.x509_headers),
+        expires_at: result.expires_at,
+        cose_type: cose_type.to_string(),
+    })
+}
 
 /// Get the library version.
 #[uniffi::export]

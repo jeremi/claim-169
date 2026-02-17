@@ -203,6 +203,7 @@ pub use crypto::{
 ///     println!("Warning: {}", warning.message);
 /// }
 /// ```
+#[non_exhaustive]
 #[derive(Debug)]
 pub struct DecodeResult {
     /// The extracted Claim 169 identity data.
@@ -241,6 +242,17 @@ pub struct DecodeResult {
     /// Non-fatal issues that don't prevent decoding but may warrant attention,
     /// such as unknown fields (forward compatibility) or skipped validations.
     pub warnings: Vec<Warning>,
+
+    /// Key ID from the COSE protected header, if present.
+    ///
+    /// Useful for identifying which key was used for signing in multi-issuer
+    /// or key-rotation scenarios.
+    pub key_id: Option<Vec<u8>>,
+
+    /// COSE algorithm used for signing or encryption.
+    ///
+    /// Reflects the algorithm declared in the COSE protected header (e.g., EdDSA, ES256).
+    pub algorithm: Option<coset::iana::Algorithm>,
 }
 
 /// A warning generated during the decoding process.
@@ -277,6 +289,93 @@ pub enum WarningCode {
     NonStandardCompression,
 }
 
+/// Metadata extracted from a credential without full verification or decoding.
+///
+/// Useful for determining which key to use before calling `Decoder::decode()`.
+/// This allows verifiers in multi-issuer scenarios to:
+/// 1. Inspect the credential to find the issuer and key ID
+/// 2. Look up the correct verification key
+/// 3. Perform full decoding with the appropriate key
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use claim169_core::inspect;
+///
+/// let info = inspect(qr_text)?;
+/// println!("Issuer: {:?}, Key ID: {:?}", info.issuer, info.key_id);
+///
+/// // Use the metadata to select the right verification key
+/// let public_key = key_store.get(&info.issuer, &info.key_id);
+/// let result = Decoder::new(qr_text)
+///     .verify_with_ed25519(&public_key)?
+///     .decode()?;
+/// ```
+#[non_exhaustive]
+#[derive(Debug, Clone)]
+pub struct InspectResult {
+    /// Issuer from CWT claims (claim key 1).
+    pub issuer: Option<String>,
+    /// Subject from CWT claims (claim key 2).
+    pub subject: Option<String>,
+    /// Key ID from the COSE header.
+    pub key_id: Option<Vec<u8>>,
+    /// COSE algorithm declared in the protected header.
+    pub algorithm: Option<coset::iana::Algorithm>,
+    /// X.509 certificate headers from the COSE structure.
+    pub x509_headers: X509Headers,
+    /// Expiration time from CWT claims (Unix epoch seconds).
+    pub expires_at: Option<i64>,
+    /// COSE structure type (Sign1 or Encrypt0).
+    pub cose_type: pipeline::CoseType,
+}
+
+/// Inspect credential metadata without full decoding or verification.
+///
+/// Runs Base45 → decompress → COSE header parse → CWT parse, but skips
+/// signature verification. For encrypted credentials (COSE_Encrypt0), only
+/// the outer COSE headers are accessible since the CWT payload is encrypted;
+/// CWT-level fields (issuer, subject, expires_at) will be `None`.
+///
+/// This is useful for multi-issuer or key-rotation scenarios where you need
+/// to determine which verification key to use before decoding.
+pub fn inspect(qr_text: &str) -> error::Result<InspectResult> {
+    let compressed = pipeline::base45_decode(qr_text)?;
+    let (cose_bytes, _) =
+        pipeline::decompress(&compressed, decode::DEFAULT_MAX_DECOMPRESSED_BYTES)?;
+
+    // Try full path: parse COSE headers + CWT payload (works for Sign1)
+    match pipeline::cose_parse(&cose_bytes, None, None) {
+        Ok(cose_result) => {
+            let cwt_result = pipeline::cwt_parse(&cose_result.payload)?;
+            Ok(InspectResult {
+                issuer: cwt_result.meta.issuer,
+                subject: cwt_result.meta.subject,
+                key_id: cose_result.key_id,
+                algorithm: cose_result.algorithm,
+                x509_headers: cose_result.x509_headers,
+                expires_at: cwt_result.meta.expires_at,
+                cose_type: pipeline::CoseType::Sign1,
+            })
+        }
+        Err(Claim169Error::DecryptionFailed(_) | Claim169Error::UnsupportedCoseType(_)) => {
+            // Expected for Encrypt0 payloads or unsupported COSE types -
+            // fall back to header-only inspection
+            let inspect_result = pipeline::cose_inspect(&cose_bytes)?;
+            Ok(InspectResult {
+                issuer: None,
+                subject: None,
+                key_id: inspect_result.key_id,
+                algorithm: inspect_result.algorithm,
+                x509_headers: inspect_result.x509_headers,
+                expires_at: None,
+                cose_type: inspect_result.cose_type,
+            })
+        }
+        Err(e) => Err(e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -296,5 +395,92 @@ mod tests {
         let cloned = warning.clone();
         assert_eq!(cloned.code, warning.code);
         assert_eq!(cloned.message, warning.message);
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_inspect_returns_issuer_kid_algorithm() {
+        use crypto::software::Ed25519Signer;
+
+        let claim = model::Claim169::minimal("inspect-test", "Test User");
+        let cwt = model::CwtMeta::new()
+            .with_issuer("https://inspect.issuer.io")
+            .with_subject("subject-456")
+            .with_expires_at(1900000000);
+
+        let mut signer = Ed25519Signer::generate();
+        signer.set_key_id(b"inspect-key-1".to_vec());
+
+        let qr_data = Encoder::new(claim, cwt)
+            .sign_with(signer, coset::iana::Algorithm::EdDSA)
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        let info = inspect(&qr_data).unwrap();
+
+        assert_eq!(info.issuer.as_deref(), Some("https://inspect.issuer.io"));
+        assert_eq!(info.subject.as_deref(), Some("subject-456"));
+        assert_eq!(info.key_id, Some(b"inspect-key-1".to_vec()));
+        assert_eq!(info.algorithm, Some(coset::iana::Algorithm::EdDSA));
+        assert_eq!(info.expires_at, Some(1900000000));
+        assert_eq!(info.cose_type, pipeline::CoseType::Sign1);
+    }
+
+    #[test]
+    fn test_inspect_unsigned_credential() {
+        let claim = model::Claim169::minimal("unsigned-inspect", "Unsigned User");
+        let cwt = model::CwtMeta::new()
+            .with_issuer("https://unsigned.issuer")
+            .with_expires_at(i64::MAX);
+
+        let qr_data = Encoder::new(claim, cwt)
+            .allow_unsigned()
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        let info = inspect(&qr_data).unwrap();
+
+        assert_eq!(info.issuer.as_deref(), Some("https://unsigned.issuer"));
+        assert_eq!(info.key_id, None);
+        assert_eq!(info.cose_type, pipeline::CoseType::Sign1);
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_inspect_encrypted_credential_returns_header_info() {
+        use crypto::software::Ed25519Signer;
+
+        let claim = model::Claim169::minimal("encrypted-inspect", "Encrypted User");
+        let cwt = model::CwtMeta::new()
+            .with_issuer("https://encrypted.issuer")
+            .with_expires_at(i64::MAX);
+
+        let signer = Ed25519Signer::generate();
+
+        // Generate AES-256 key (32 bytes)
+        let aes_key = [0xABu8; 32];
+
+        let qr_data = Encoder::new(claim, cwt)
+            .sign_with(signer, coset::iana::Algorithm::EdDSA)
+            .encrypt_with_aes256(&aes_key)
+            .unwrap()
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        let info = inspect(&qr_data).unwrap();
+
+        // For encrypted credentials, CWT-level fields are not accessible
+        assert_eq!(info.cose_type, pipeline::CoseType::Encrypt0);
+        // Algorithm should be the encryption algorithm
+        assert!(info.algorithm.is_some());
+    }
+
+    #[test]
+    fn test_inspect_invalid_base45() {
+        let result = inspect("!!!INVALID_BASE45!!!");
+        assert!(result.is_err());
     }
 }

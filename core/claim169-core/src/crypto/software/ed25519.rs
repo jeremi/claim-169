@@ -181,6 +181,7 @@ impl SignatureVerifier for Ed25519Verifier {
 #[cfg(feature = "software-crypto")]
 pub struct Ed25519Signer {
     signing_key: SigningKey,
+    key_id: Option<Vec<u8>>,
 }
 
 #[cfg(feature = "software-crypto")]
@@ -192,14 +193,28 @@ impl Ed25519Signer {
         })?;
 
         let signing_key = SigningKey::from_bytes(&bytes);
-        Ok(Self { signing_key })
+        Ok(Self {
+            signing_key,
+            key_id: None,
+        })
     }
 
     /// Generate a new random signing key
     pub fn generate() -> Self {
         use rand::rngs::OsRng;
         let signing_key = SigningKey::generate(&mut OsRng);
-        Self { signing_key }
+        Self {
+            signing_key,
+            key_id: None,
+        }
+    }
+
+    /// Set the key ID for this signer.
+    ///
+    /// When set, the key ID will be included in the COSE protected header
+    /// during signing, enabling key identification in multi-issuer scenarios.
+    pub fn set_key_id(&mut self, kid: Vec<u8>) {
+        self.key_id = Some(kid);
     }
 
     /// Get the verifying (public) key
@@ -232,6 +247,10 @@ impl Signer for Ed25519Signer {
 
         let signature = self.signing_key.sign(data);
         Ok(signature.to_bytes().to_vec())
+    }
+
+    fn key_id(&self) -> Option<&[u8]> {
+        self.key_id.as_deref()
     }
 }
 

@@ -152,8 +152,12 @@ fn create_signed_cose(
 ) -> Result<Vec<u8>> {
     match (signer, algorithm) {
         (Some(signer), Some(alg)) => {
-            // Build protected header with algorithm
-            let protected = HeaderBuilder::new().algorithm(alg).build();
+            // Build protected header with algorithm and optional key ID
+            let mut header_builder = HeaderBuilder::new().algorithm(alg);
+            if let Some(kid) = signer.key_id() {
+                header_builder = header_builder.key_id(kid.to_vec());
+            }
+            let protected = header_builder.build();
 
             // Build COSE_Sign1 with payload
             let mut sign1 = CoseSign1Builder::new()
@@ -325,6 +329,81 @@ mod tests {
             result.unwrap_err(),
             Claim169Error::EncodingConfig(_)
         ));
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_encode_with_signer_key_id_writes_kid_to_cose_header() {
+        use crate::crypto::software::Ed25519Signer;
+        use crate::pipeline::cose::parse_and_verify;
+        use crate::pipeline::{base45_decode, decompress};
+
+        let claim169 = Claim169 {
+            id: Some("kid-test".to_string()),
+            ..Default::default()
+        };
+
+        let cwt_meta = CwtMeta::new().with_issuer("https://test.mosip.io");
+
+        let mut signer = Ed25519Signer::generate();
+        let expected_kid = b"issuer-key-2024";
+        signer.set_key_id(expected_kid.to_vec());
+
+        let config = EncodeConfig::default();
+
+        let result = encode_signed(
+            &claim169,
+            &cwt_meta,
+            Some(&signer),
+            Some(iana::Algorithm::EdDSA),
+            &config,
+        )
+        .unwrap();
+
+        // Decode and check kid is in the COSE header
+        let compressed = base45_decode(&result.qr_data).unwrap();
+        let (cose_bytes, _) = decompress(&compressed, 65536).unwrap();
+        let verifier = signer.verifying_key();
+        let cose_result = parse_and_verify(&cose_bytes, Some(&verifier), None).unwrap();
+
+        assert_eq!(cose_result.key_id, Some(expected_kid.to_vec()));
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_encode_without_signer_key_id_no_kid_in_cose_header() {
+        use crate::crypto::software::Ed25519Signer;
+        use crate::pipeline::cose::parse_and_verify;
+        use crate::pipeline::{base45_decode, decompress};
+
+        let claim169 = Claim169 {
+            id: Some("no-kid-test".to_string()),
+            ..Default::default()
+        };
+
+        let cwt_meta = CwtMeta::new().with_issuer("https://test.mosip.io");
+
+        // Default signer has no key_id
+        let signer = Ed25519Signer::generate();
+
+        let config = EncodeConfig::default();
+
+        let result = encode_signed(
+            &claim169,
+            &cwt_meta,
+            Some(&signer),
+            Some(iana::Algorithm::EdDSA),
+            &config,
+        )
+        .unwrap();
+
+        // Decode and check no kid in the COSE header
+        let compressed = base45_decode(&result.qr_data).unwrap();
+        let (cose_bytes, _) = decompress(&compressed, 65536).unwrap();
+        let verifier = signer.verifying_key();
+        let cose_result = parse_and_verify(&cose_bytes, Some(&verifier), None).unwrap();
+
+        assert_eq!(cose_result.key_id, None);
     }
 
     #[cfg(feature = "software-crypto")]

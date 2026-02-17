@@ -11,10 +11,8 @@ use claim169_core::Decoder;
 fn test_getting_started_decode() {
     let qr_data = "6BF590B20FFWJWG.FKJ05H7B0XKA8FA9DIWENPEJ/5P$DPQE88EB$CBECP9ERZC04E21DDF3/E96007F3ORAO001KL580 B9%W5*B9C+9%R8646%86HKESED1/DRTC5UA QE$345$CVQEX.DX88WBK0NG8PB4 O/38TL6XDALLKLPQATHO.3ZPJMUAVQFSB1:+B*21V FWMC6SU439YU774475LJ2U5T02$VBSIMLQ3:6J.E1-1STM$4";
 
-    let public_key = hex::decode(
-        "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
-    )
-    .unwrap();
+    let public_key =
+        hex::decode("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a").unwrap();
 
     let result = Decoder::new(qr_data)
         .verify_with_ed25519(&public_key)
@@ -40,10 +38,8 @@ fn test_landing_page_quick_example() {
     // The landing page uses the same Decoder API with placeholder values.
     // We test the API shape with real test vector data.
     let qr_data = "6BF590B20FFWJWG.FKJ05H7B0XKA8FA9DIWENPEJ/5P$DPQE88EB$CBECP9ERZC04E21DDF3/E96007F3ORAO001KL580 B9%W5*B9C+9%R8646%86HKESED1/DRTC5UA QE$345$CVQEX.DX88WBK0NG8PB4 O/38TL6XDALLKLPQATHO.3ZPJMUAVQFSB1:+B*21V FWMC6SU439YU774475LJ2U5T02$VBSIMLQ3:6J.E1-1STM$4";
-    let public_key = hex::decode(
-        "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
-    )
-    .unwrap();
+    let public_key =
+        hex::decode("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a").unwrap();
 
     let result = Decoder::new(qr_data)
         .verify_with_ed25519(&public_key)

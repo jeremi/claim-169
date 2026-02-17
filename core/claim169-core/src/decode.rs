@@ -40,7 +40,7 @@
 //!     .decode()?;
 //! ```
 
-use crate::crypto::traits::{Decryptor, SignatureVerifier};
+use crate::crypto::traits::{Decryptor, KeyResolver, SignatureVerifier};
 use crate::error::{Claim169Error, Result};
 use crate::model::VerificationStatus;
 use crate::pipeline;
@@ -53,7 +53,7 @@ use crate::crypto::software::{AesGcmDecryptor, EcdsaP256Verifier, Ed25519Verifie
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Default maximum decompressed size (64KB)
-const DEFAULT_MAX_DECOMPRESSED_BYTES: usize = 65536;
+pub(crate) const DEFAULT_MAX_DECOMPRESSED_BYTES: usize = 65536;
 
 /// Builder for decoding Claim 169 credentials from QR strings.
 ///
@@ -88,6 +88,7 @@ pub struct Decoder {
     qr_text: String,
     verifier: Option<Box<dyn SignatureVerifier + Send + Sync>>,
     decryptor: Option<Box<dyn Decryptor + Send + Sync>>,
+    resolver: Option<Box<dyn KeyResolver + Send + Sync>>,
     allow_unverified: bool,
     skip_biometrics: bool,
     validate_timestamps: bool,
@@ -114,6 +115,7 @@ impl Decoder {
             qr_text: qr_text.into(),
             verifier: None,
             decryptor: None,
+            resolver: None,
             allow_unverified: false,
             skip_biometrics: false,
             validate_timestamps: true,
@@ -271,6 +273,39 @@ impl Decoder {
         Ok(self.decrypt_with(decryptor))
     }
 
+    /// Use a key resolver for dynamic key lookup.
+    ///
+    /// The resolver receives the key ID and algorithm from the COSE header
+    /// and returns the appropriate verifier or decryptor. This is the
+    /// recommended approach for multi-issuer or key-rotation scenarios.
+    ///
+    /// A resolver cannot be combined with `verify_with()` or `decrypt_with()` —
+    /// doing so will return a `DecodingConfig` error at decode time.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use claim169_core::{Decoder, KeyResolver, SignatureVerifier, Decryptor};
+    /// use claim169_core::error::CryptoResult;
+    ///
+    /// struct MyKeyStore { /* ... */ }
+    ///
+    /// impl KeyResolver for MyKeyStore {
+    ///     fn resolve_verifier(&self, key_id: Option<&[u8]>, algorithm: coset::iana::Algorithm)
+    ///         -> CryptoResult<Box<dyn SignatureVerifier>> { /* ... */ }
+    ///     fn resolve_decryptor(&self, key_id: Option<&[u8]>, algorithm: coset::iana::Algorithm)
+    ///         -> CryptoResult<Box<dyn Decryptor>> { /* ... */ }
+    /// }
+    ///
+    /// let result = Decoder::new(qr_text)
+    ///     .resolve_with(MyKeyStore { /* ... */ })
+    ///     .decode()?;
+    /// ```
+    pub fn resolve_with<R: KeyResolver + 'static>(mut self, resolver: R) -> Self {
+        self.resolver = Some(Box::new(resolver));
+        self
+    }
+
     /// Allow decoding without signature verification.
     ///
     /// **Security Warning**: Unverified credentials cannot be trusted for authenticity.
@@ -416,14 +451,36 @@ impl Decoder {
             });
         }
 
+        // Check for conflicting configuration
+        if self.resolver.is_some() && self.verifier.is_some() {
+            return Err(Claim169Error::DecodingConfig(
+                "cannot use both resolve_with() and verify_with() — \
+                 resolve_with() provides its own verifier via key lookup"
+                    .to_string(),
+            ));
+        }
+        if self.resolver.is_some() && self.decryptor.is_some() {
+            return Err(Claim169Error::DecodingConfig(
+                "cannot use both resolve_with() and decrypt_with() — \
+                 resolve_with() provides its own decryptor via key lookup"
+                    .to_string(),
+            ));
+        }
+
         // Step 3-4: Parse COSE and verify/decrypt
-        let cose_result = pipeline::cose_parse(&cose_bytes, verifier_ref, decryptor_ref)?;
+        let cose_result = if let Some(ref resolver) = self.resolver {
+            // Use key resolver for dynamic key lookup
+            pipeline::cose_parse_with_resolver(&cose_bytes, resolver.as_ref())?
+        } else {
+            pipeline::cose_parse(&cose_bytes, verifier_ref, decryptor_ref)?
+        };
 
         // Check if verification was required but skipped
         if !self.allow_unverified && cose_result.verification_status == VerificationStatus::Skipped
         {
             return Err(Claim169Error::DecodingConfig(
-                "verification required but no verifier provided - use allow_unverified() to skip"
+                "verification required but no verifier or resolver provided - \
+                 use verify_with(), resolve_with(), or allow_unverified() to configure"
                     .to_string(),
             ));
         }
@@ -495,6 +552,8 @@ impl Decoder {
             x509_headers: cose_result.x509_headers,
             detected_compression,
             warnings,
+            key_id: cose_result.key_id,
+            algorithm: cose_result.algorithm,
         })
     }
 }
@@ -810,5 +869,305 @@ mod tests {
             result.unwrap_err(),
             Claim169Error::DecompressLimitExceeded { .. }
         ));
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_resolver_selects_verifier_by_kid() {
+        use crate::crypto::software::Ed25519Signer;
+        use crate::crypto::traits::{Decryptor as DecryptorTrait, KeyResolver};
+        use crate::error::{CryptoError, CryptoResult};
+        use coset::iana;
+        use std::collections::HashMap;
+
+        let claim169 = Claim169 {
+            id: Some("resolver-test".to_string()),
+            ..Default::default()
+        };
+        let cwt_meta = CwtMeta::new()
+            .with_issuer("https://issuer-a.test")
+            .with_expires_at(i64::MAX);
+
+        // Create two signers with different kids
+        let mut signer_a = Ed25519Signer::generate();
+        signer_a.set_key_id(b"key-a".to_vec());
+        let pub_key_a = signer_a.public_key_bytes();
+
+        let mut signer_b = Ed25519Signer::generate();
+        signer_b.set_key_id(b"key-b".to_vec());
+        let pub_key_b = signer_b.public_key_bytes();
+
+        // Encode with signer A
+        let qr_data = crate::Encoder::new(claim169, cwt_meta)
+            .sign_with(signer_a, iana::Algorithm::EdDSA)
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        // Resolver that maps kid -> public key bytes
+        struct SimpleResolver {
+            keys: HashMap<Vec<u8>, Vec<u8>>,
+        }
+
+        impl KeyResolver for SimpleResolver {
+            fn resolve_verifier(
+                &self,
+                key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn SignatureVerifier>> {
+                let kid = key_id.ok_or(CryptoError::KeyNotFound)?;
+                let public_key = self.keys.get(kid).ok_or(CryptoError::KeyNotFound)?;
+                let verifier = crate::crypto::software::Ed25519Verifier::from_bytes(public_key)
+                    .map_err(|e| CryptoError::Other(e.to_string()))?;
+                Ok(Box::new(verifier))
+            }
+
+            fn resolve_decryptor(
+                &self,
+                _key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn DecryptorTrait>> {
+                Err(CryptoError::KeyNotFound)
+            }
+        }
+
+        let mut keys = HashMap::new();
+        keys.insert(b"key-a".to_vec(), pub_key_a.to_vec());
+        keys.insert(b"key-b".to_vec(), pub_key_b.to_vec());
+
+        let resolver = SimpleResolver { keys };
+
+        let result = Decoder::new(&qr_data)
+            .resolve_with(resolver)
+            .decode()
+            .unwrap();
+
+        assert_eq!(result.claim169.id, Some("resolver-test".to_string()));
+        assert_eq!(result.verification_status, VerificationStatus::Verified);
+        assert_eq!(result.key_id, Some(b"key-a".to_vec()));
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_resolver_unknown_kid_returns_error() {
+        use crate::crypto::traits::{Decryptor as DecryptorTrait, KeyResolver};
+        use crate::error::{CryptoError, CryptoResult};
+        use coset::iana;
+
+        let claim169 = Claim169 {
+            id: Some("unknown-kid-test".to_string()),
+            ..Default::default()
+        };
+        let cwt_meta = CwtMeta::new()
+            .with_issuer("https://issuer.test")
+            .with_expires_at(i64::MAX);
+
+        let mut signer = crate::crypto::software::Ed25519Signer::generate();
+        signer.set_key_id(b"unknown-key".to_vec());
+
+        let qr_data = crate::Encoder::new(claim169, cwt_meta)
+            .sign_with(signer, iana::Algorithm::EdDSA)
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        // Resolver that never finds a key
+        struct EmptyResolver;
+        impl KeyResolver for EmptyResolver {
+            fn resolve_verifier(
+                &self,
+                _key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn SignatureVerifier>> {
+                Err(CryptoError::KeyNotFound)
+            }
+            fn resolve_decryptor(
+                &self,
+                _key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn DecryptorTrait>> {
+                Err(CryptoError::KeyNotFound)
+            }
+        }
+
+        let result = Decoder::new(&qr_data).resolve_with(EmptyResolver).decode();
+
+        assert!(result.is_err());
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_decode_result_exposes_key_id_and_algorithm() {
+        use crate::crypto::software::Ed25519Signer;
+        use crate::Encoder;
+        use coset::iana;
+
+        let claim169 = Claim169 {
+            id: Some("kid-decode-test".to_string()),
+            ..Default::default()
+        };
+
+        let cwt_meta = CwtMeta::new()
+            .with_issuer("https://test.issuer")
+            .with_expires_at(i64::MAX);
+
+        let mut signer = Ed25519Signer::generate();
+        let kid = b"my-key-id-123";
+        signer.set_key_id(kid.to_vec());
+        let public_key = signer.public_key_bytes();
+
+        let qr_data = Encoder::new(claim169, cwt_meta)
+            .sign_with(signer, iana::Algorithm::EdDSA)
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        let result = Decoder::new(&qr_data)
+            .verify_with_ed25519(&public_key)
+            .unwrap()
+            .decode()
+            .unwrap();
+
+        assert_eq!(result.key_id, Some(kid.to_vec()));
+        assert_eq!(result.algorithm, Some(iana::Algorithm::EdDSA));
+        assert_eq!(result.verification_status, VerificationStatus::Verified);
+    }
+
+    #[test]
+    fn test_decode_result_no_key_id_when_absent() {
+        let qr_text = create_test_qr();
+
+        let result = Decoder::new(&qr_text).allow_unverified().decode().unwrap();
+
+        assert_eq!(result.key_id, None);
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_resolver_conflicts_with_verify_with() {
+        use crate::crypto::traits::{Decryptor as DecryptorTrait, KeyResolver};
+        use crate::error::{CryptoError, CryptoResult};
+        use coset::iana;
+
+        struct DummyResolver;
+        impl KeyResolver for DummyResolver {
+            fn resolve_verifier(
+                &self,
+                _key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn SignatureVerifier>> {
+                Err(CryptoError::KeyNotFound)
+            }
+            fn resolve_decryptor(
+                &self,
+                _key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn DecryptorTrait>> {
+                Err(CryptoError::KeyNotFound)
+            }
+        }
+
+        let signer = crate::crypto::software::Ed25519Signer::generate();
+        let public_key = signer.public_key_bytes();
+
+        let qr_text = create_test_qr();
+
+        let result = Decoder::new(&qr_text)
+            .resolve_with(DummyResolver)
+            .verify_with_ed25519(&public_key)
+            .unwrap()
+            .decode();
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::DecodingConfig(msg) => {
+                assert!(msg.contains("resolve_with()"));
+                assert!(msg.contains("verify_with()"));
+            }
+            e => panic!("Expected DecodingConfig error, got: {:?}", e),
+        }
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_resolver_conflicts_with_decrypt_with() {
+        use crate::crypto::traits::{Decryptor as DecryptorTrait, KeyResolver};
+        use crate::error::{CryptoError, CryptoResult};
+        use coset::iana;
+
+        struct DummyResolver;
+        impl KeyResolver for DummyResolver {
+            fn resolve_verifier(
+                &self,
+                _key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn SignatureVerifier>> {
+                Err(CryptoError::KeyNotFound)
+            }
+            fn resolve_decryptor(
+                &self,
+                _key_id: Option<&[u8]>,
+                _algorithm: iana::Algorithm,
+            ) -> CryptoResult<Box<dyn DecryptorTrait>> {
+                Err(CryptoError::KeyNotFound)
+            }
+        }
+
+        let aes_key = [42u8; 32];
+        let qr_text = create_test_qr();
+
+        let result = Decoder::new(&qr_text)
+            .resolve_with(DummyResolver)
+            .decrypt_with_aes256(&aes_key)
+            .unwrap()
+            .decode();
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Claim169Error::DecodingConfig(msg) => {
+                assert!(msg.contains("resolve_with()"));
+                assert!(msg.contains("decrypt_with()"));
+            }
+            e => panic!("Expected DecodingConfig error, got: {:?}", e),
+        }
+    }
+
+    #[cfg(feature = "software-crypto")]
+    #[test]
+    fn test_empty_key_id_roundtrips_as_none() {
+        // COSE headers treat an empty key_id (zero-length bstr) as semantically
+        // absent. When we encode with set_key_id(vec![]), the decoded result
+        // should report key_id as None rather than Some(vec![]).
+        use crate::crypto::software::Ed25519Signer;
+        use crate::Encoder;
+        use coset::iana;
+
+        let claim169 = Claim169 {
+            id: Some("empty-kid-test".to_string()),
+            ..Default::default()
+        };
+        let cwt_meta = CwtMeta::new()
+            .with_issuer("https://empty-kid.test")
+            .with_expires_at(i64::MAX);
+
+        let mut signer = Ed25519Signer::generate();
+        signer.set_key_id(vec![]); // Empty key_id
+        let public_key = signer.public_key_bytes();
+
+        let qr_data = Encoder::new(claim169, cwt_meta)
+            .sign_with(signer, iana::Algorithm::EdDSA)
+            .encode()
+            .unwrap()
+            .qr_data;
+
+        let result = Decoder::new(&qr_data)
+            .verify_with_ed25519(&public_key)
+            .unwrap()
+            .decode()
+            .unwrap();
+
+        // Empty key_id should be normalized to None
+        assert_eq!(result.key_id, None);
+        assert_eq!(result.verification_status, VerificationStatus::Verified);
     }
 }

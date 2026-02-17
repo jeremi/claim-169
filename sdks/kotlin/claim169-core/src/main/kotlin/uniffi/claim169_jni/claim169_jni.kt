@@ -859,6 +859,8 @@ internal open class UniffiVTableCallbackInterfaceSignerCallback(
 
 
 
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -948,6 +950,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_claim169_jni_fn_init_callback_vtable_signercallback(`vtable`: UniffiVTableCallbackInterfaceSignerCallback,
     ): Unit
+    fun uniffi_claim169_jni_fn_func_inspect(`qrText`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_claim169_jni_fn_func_version(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_claim169_jni_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1062,6 +1066,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_claim169_jni_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_claim169_jni_checksum_func_inspect(
+    ): Short
     fun uniffi_claim169_jni_checksum_func_version(
     ): Short
     fun uniffi_claim169_jni_checksum_method_claim169decoder_allow_unverified(
@@ -1141,6 +1147,9 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
+    if (lib.uniffi_claim169_jni_checksum_func_inspect() != 21896.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_claim169_jni_checksum_func_version() != 64308.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -2787,7 +2796,15 @@ data class DecodeResultData (
     /**
      * Warnings generated during decoding.
      */
-    var `warnings`: List<WarningData>
+    var `warnings`: List<WarningData>, 
+    /**
+     * Key ID from the COSE header. None if not present.
+     */
+    var `keyId`: kotlin.ByteArray?, 
+    /**
+     * COSE algorithm name (e.g., "EdDSA", "ES256"). None if not present.
+     */
+    var `algorithm`: kotlin.String?
 ) {
     
     companion object
@@ -2805,6 +2822,8 @@ public object FfiConverterTypeDecodeResultData: FfiConverterRustBuffer<DecodeRes
             FfiConverterTypeX509HeadersData.read(buf),
             FfiConverterString.read(buf),
             FfiConverterSequenceTypeWarningData.read(buf),
+            FfiConverterOptionalByteArray.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -2814,7 +2833,9 @@ public object FfiConverterTypeDecodeResultData: FfiConverterRustBuffer<DecodeRes
             FfiConverterString.allocationSize(value.`verificationStatus`) +
             FfiConverterTypeX509HeadersData.allocationSize(value.`x509Headers`) +
             FfiConverterString.allocationSize(value.`detectedCompression`) +
-            FfiConverterSequenceTypeWarningData.allocationSize(value.`warnings`)
+            FfiConverterSequenceTypeWarningData.allocationSize(value.`warnings`) +
+            FfiConverterOptionalByteArray.allocationSize(value.`keyId`) +
+            FfiConverterOptionalString.allocationSize(value.`algorithm`)
     )
 
     override fun write(value: DecodeResultData, buf: ByteBuffer) {
@@ -2824,6 +2845,84 @@ public object FfiConverterTypeDecodeResultData: FfiConverterRustBuffer<DecodeRes
             FfiConverterTypeX509HeadersData.write(value.`x509Headers`, buf)
             FfiConverterString.write(value.`detectedCompression`, buf)
             FfiConverterSequenceTypeWarningData.write(value.`warnings`, buf)
+            FfiConverterOptionalByteArray.write(value.`keyId`, buf)
+            FfiConverterOptionalString.write(value.`algorithm`, buf)
+    }
+}
+
+
+
+/**
+ * Result of inspecting a credential's metadata without full decoding.
+ */
+data class InspectResultData (
+    /**
+     * Issuer from CWT claims.
+     */
+    var `issuer`: kotlin.String?, 
+    /**
+     * Subject from CWT claims.
+     */
+    var `subject`: kotlin.String?, 
+    /**
+     * Key ID from the COSE header.
+     */
+    var `keyId`: kotlin.ByteArray?, 
+    /**
+     * COSE algorithm name (e.g., "EdDSA", "ES256").
+     */
+    var `algorithm`: kotlin.String?, 
+    /**
+     * X.509 certificate headers from the COSE structure.
+     */
+    var `x509Headers`: X509HeadersData, 
+    /**
+     * Expiration time (Unix epoch seconds).
+     */
+    var `expiresAt`: kotlin.Long?, 
+    /**
+     * COSE structure type: "Sign1" or "Encrypt0".
+     */
+    var `coseType`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeInspectResultData: FfiConverterRustBuffer<InspectResultData> {
+    override fun read(buf: ByteBuffer): InspectResultData {
+        return InspectResultData(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalByteArray.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterTypeX509HeadersData.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: InspectResultData) = (
+            FfiConverterOptionalString.allocationSize(value.`issuer`) +
+            FfiConverterOptionalString.allocationSize(value.`subject`) +
+            FfiConverterOptionalByteArray.allocationSize(value.`keyId`) +
+            FfiConverterOptionalString.allocationSize(value.`algorithm`) +
+            FfiConverterTypeX509HeadersData.allocationSize(value.`x509Headers`) +
+            FfiConverterOptionalLong.allocationSize(value.`expiresAt`) +
+            FfiConverterString.allocationSize(value.`coseType`)
+    )
+
+    override fun write(value: InspectResultData, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`issuer`, buf)
+            FfiConverterOptionalString.write(value.`subject`, buf)
+            FfiConverterOptionalByteArray.write(value.`keyId`, buf)
+            FfiConverterOptionalString.write(value.`algorithm`, buf)
+            FfiConverterTypeX509HeadersData.write(value.`x509Headers`, buf)
+            FfiConverterOptionalLong.write(value.`expiresAt`, buf)
+            FfiConverterString.write(value.`coseType`, buf)
     }
 }
 
@@ -3815,6 +3914,22 @@ public object FfiConverterSequenceTypeWarningData: FfiConverterRustBuffer<List<W
         }
     }
 }
+        /**
+         * Inspect credential metadata without full decoding or verification.
+         *
+         * Extracts metadata (issuer, key ID, algorithm, expiration) from a QR code
+         * without verifying the signature. Useful for multi-issuer key lookup.
+         */
+    @Throws(Claim169Exception::class) fun `inspect`(`qrText`: kotlin.String): InspectResultData {
+            return FfiConverterTypeInspectResultData.lift(
+    uniffiRustCallWithError(Claim169Exception) { _status ->
+    UniffiLib.INSTANCE.uniffi_claim169_jni_fn_func_inspect(
+        FfiConverterString.lower(`qrText`),_status)
+}
+    )
+    }
+    
+
         /**
          * Get the library version.
          */ fun `version`(): kotlin.String {

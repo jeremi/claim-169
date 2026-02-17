@@ -73,7 +73,10 @@ pub fn parse_and_verify(
 ///
 /// This function extracts the key_id and algorithm from the COSE headers,
 /// then uses the resolver to obtain the appropriate verifier or decryptor.
-pub fn parse_with_resolver<R: KeyResolver>(data: &[u8], resolver: &R) -> Result<CoseResult> {
+pub fn parse_with_resolver<R: KeyResolver + ?Sized>(
+    data: &[u8],
+    resolver: &R,
+) -> Result<CoseResult> {
     // First try COSE_Sign1 (most common case)
     if let Ok(sign1) = CoseSign1::from_tagged_slice(data) {
         return process_sign1_with_resolver(sign1, resolver);
@@ -98,8 +101,71 @@ pub fn parse_with_resolver<R: KeyResolver>(data: &[u8], resolver: &R) -> Result<
     ))
 }
 
+/// Result of inspecting COSE headers without full verification or decryption.
+#[derive(Debug)]
+pub struct CoseInspectResult {
+    /// COSE algorithm from the protected header.
+    pub algorithm: Option<iana::Algorithm>,
+    /// Key ID from COSE headers.
+    pub key_id: Option<Vec<u8>>,
+    /// X.509 certificate headers.
+    pub x509_headers: X509Headers,
+    /// Detected COSE structure type.
+    pub cose_type: CoseType,
+}
+
+/// Inspect COSE headers without verifying signatures or decrypting payload.
+///
+/// Extracts metadata (algorithm, key ID, X.509 headers, structure type) from
+/// the COSE headers without accessing the payload. This works for both
+/// COSE_Sign1 and COSE_Encrypt0 structures.
+pub fn inspect_headers(data: &[u8]) -> Result<CoseInspectResult> {
+    // Try COSE_Sign1 (most common case)
+    if let Ok(sign1) = CoseSign1::from_tagged_slice(data) {
+        return Ok(CoseInspectResult {
+            algorithm: get_algorithm(&sign1.protected.header),
+            key_id: get_key_id(&sign1.protected.header, &sign1.unprotected),
+            x509_headers: get_x509_headers(&sign1.protected.header, &sign1.unprotected),
+            cose_type: CoseType::Sign1,
+        });
+    }
+
+    // Try COSE_Encrypt0
+    if let Ok(encrypt0) = CoseEncrypt0::from_tagged_slice(data) {
+        return Ok(CoseInspectResult {
+            algorithm: get_algorithm(&encrypt0.protected.header),
+            key_id: get_key_id(&encrypt0.protected.header, &encrypt0.unprotected),
+            x509_headers: get_x509_headers(&encrypt0.protected.header, &encrypt0.unprotected),
+            cose_type: CoseType::Encrypt0,
+        });
+    }
+
+    // Try without tags
+    if let Ok(sign1) = CoseSign1::from_slice(data) {
+        return Ok(CoseInspectResult {
+            algorithm: get_algorithm(&sign1.protected.header),
+            key_id: get_key_id(&sign1.protected.header, &sign1.unprotected),
+            x509_headers: get_x509_headers(&sign1.protected.header, &sign1.unprotected),
+            cose_type: CoseType::Sign1,
+        });
+    }
+
+    if let Ok(encrypt0) = CoseEncrypt0::from_slice(data) {
+        return Ok(CoseInspectResult {
+            algorithm: get_algorithm(&encrypt0.protected.header),
+            key_id: get_key_id(&encrypt0.protected.header, &encrypt0.unprotected),
+            x509_headers: get_x509_headers(&encrypt0.protected.header, &encrypt0.unprotected),
+            cose_type: CoseType::Encrypt0,
+        });
+    }
+
+    Err(Claim169Error::CoseParse(
+        "data is not a valid COSE_Sign1 or COSE_Encrypt0 structure".to_string(),
+    ))
+}
+
 /// Process a COSE_Sign1 message using a KeyResolver
-fn process_sign1_with_resolver<R: KeyResolver>(
+fn process_sign1_with_resolver<R: KeyResolver + ?Sized>(
     sign1: CoseSign1,
     resolver: &R,
 ) -> Result<CoseResult> {
@@ -144,7 +210,7 @@ fn process_sign1_with_resolver<R: KeyResolver>(
 }
 
 /// Process a COSE_Encrypt0 message using a KeyResolver
-fn process_encrypt0_with_resolver<R: KeyResolver>(
+fn process_encrypt0_with_resolver<R: KeyResolver + ?Sized>(
     encrypt0: CoseEncrypt0,
     resolver: &R,
 ) -> Result<CoseResult> {

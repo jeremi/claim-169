@@ -174,6 +174,7 @@ impl SignatureVerifier for EcdsaP256Verifier {
 #[cfg(feature = "software-crypto")]
 pub struct EcdsaP256Signer {
     signing_key: SigningKey,
+    key_id: Option<Vec<u8>>,
 }
 
 #[cfg(feature = "software-crypto")]
@@ -184,14 +185,28 @@ impl EcdsaP256Signer {
             .map_err(|e| CryptoError::InvalidKeyFormat(e.to_string()))?;
 
         let signing_key = SigningKey::from(secret_key);
-        Ok(Self { signing_key })
+        Ok(Self {
+            signing_key,
+            key_id: None,
+        })
     }
 
     /// Generate a new random signing key
     pub fn generate() -> Self {
         use rand::rngs::OsRng;
         let signing_key = SigningKey::random(&mut OsRng);
-        Self { signing_key }
+        Self {
+            signing_key,
+            key_id: None,
+        }
+    }
+
+    /// Set the key ID for this signer.
+    ///
+    /// When set, the key ID will be included in the COSE protected header
+    /// during signing, enabling key identification in multi-issuer scenarios.
+    pub fn set_key_id(&mut self, kid: Vec<u8>) {
+        self.key_id = Some(kid);
     }
 
     /// Get the verifier for this signer
@@ -243,6 +258,10 @@ impl Signer for EcdsaP256Signer {
 
         let signature: Signature = self.signing_key.sign(data);
         Ok(signature.to_bytes().to_vec())
+    }
+
+    fn key_id(&self) -> Option<&[u8]> {
+        self.key_id.as_deref()
     }
 }
 

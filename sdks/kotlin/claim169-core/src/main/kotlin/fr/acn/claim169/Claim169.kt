@@ -2,6 +2,7 @@ package fr.acn.claim169
 
 import java.security.SecureRandom
 import uniffi.claim169_jni.Claim169Exception as NativeClaim169Exception
+import uniffi.claim169_jni.inspect as nativeInspect
 import uniffi.claim169_jni.version as nativeVersion
 
 fun interface DecoderConfigurer {
@@ -138,6 +139,30 @@ object Claim169 {
             val builder = EncoderBuilder(claim169, cwtMeta)
             configure.configure(builder)
             return builder.execute()
+        } catch (e: NativeClaim169Exception) {
+            throw e.toSdkException()
+        }
+    }
+
+    /**
+     * Inspect credential metadata without full decoding or verification.
+     *
+     * Extracts metadata (issuer, key ID, algorithm, expiration) from a QR code
+     * without verifying the signature. Useful for multi-issuer key lookup.
+     *
+     * For encrypted credentials (COSE_Encrypt0), only COSE-level headers are
+     * available; CWT-level fields (issuer, subject, expiresAt) will be `null`.
+     *
+     * @param qrText The Base45-encoded QR code content
+     * @return Metadata extracted from the credential
+     * @throws Claim169Exception on parse errors
+     */
+    @JvmStatic
+    @Throws(Claim169Exception::class)
+    fun inspect(qrText: String): InspectResultData {
+        try {
+            val native = nativeInspect(qrText)
+            return InspectResultData.fromNative(native)
         } catch (e: NativeClaim169Exception) {
             throw e.toSdkException()
         }

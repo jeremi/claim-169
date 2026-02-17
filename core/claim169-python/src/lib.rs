@@ -67,6 +67,20 @@ fn detected_compression_to_string(dc: &claim169_core::DetectedCompression) -> &'
     }
 }
 
+fn algorithm_to_string(alg: &iana::Algorithm) -> String {
+    use coset::iana::EnumI64;
+    match alg {
+        iana::Algorithm::EdDSA => "EdDSA".to_string(),
+        iana::Algorithm::ES256 => "ES256".to_string(),
+        iana::Algorithm::ES384 => "ES384".to_string(),
+        iana::Algorithm::ES512 => "ES512".to_string(),
+        iana::Algorithm::A128GCM => "A128GCM".to_string(),
+        iana::Algorithm::A192GCM => "A192GCM".to_string(),
+        iana::Algorithm::A256GCM => "A256GCM".to_string(),
+        other => format!("COSE_ALG_{}", other.to_i64()),
+    }
+}
+
 fn core_decode_result_to_py(result: claim169_core::DecodeResult) -> DecodeResult {
     DecodeResult {
         claim169: Claim169::from(&result.claim169),
@@ -75,6 +89,8 @@ fn core_decode_result_to_py(result: claim169_core::DecodeResult) -> DecodeResult
         x509_headers: X509Headers::from(&result.x509_headers),
         detected_compression: detected_compression_to_string(&result.detected_compression)
             .to_string(),
+        key_id: result.key_id,
+        algorithm: result.algorithm.as_ref().map(algorithm_to_string),
     }
 }
 
@@ -322,16 +338,16 @@ pub struct X509Headers {
 impl X509Headers {
     #[getter]
     fn x5bag<'py>(&self, py: Python<'py>) -> Option<Vec<Bound<'py, PyBytes>>> {
-        self.x5bag.as_ref().map(|bags| {
-            bags.iter().map(|b| PyBytes::new(py, b)).collect()
-        })
+        self.x5bag
+            .as_ref()
+            .map(|bags| bags.iter().map(|b| PyBytes::new(py, b)).collect())
     }
 
     #[getter]
     fn x5chain<'py>(&self, py: Python<'py>) -> Option<Vec<Bound<'py, PyBytes>>> {
-        self.x5chain.as_ref().map(|bags| {
-            bags.iter().map(|b| PyBytes::new(py, b)).collect()
-        })
+        self.x5chain
+            .as_ref()
+            .map(|bags| bags.iter().map(|b| PyBytes::new(py, b)).collect())
     }
 
     fn __repr__(&self) -> String {
@@ -507,7 +523,9 @@ impl Claim169 {
 
     #[getter]
     fn best_quality_fingers<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
-        self.best_quality_fingers.as_ref().map(|f| PyBytes::new(py, f))
+        self.best_quality_fingers
+            .as_ref()
+            .map(|f| PyBytes::new(py, f))
     }
 
     fn __repr__(&self) -> String {
@@ -693,6 +711,11 @@ pub struct DecodeResult {
     pub x509_headers: X509Headers,
     #[pyo3(get)]
     pub detected_compression: String,
+    /// Key ID from the COSE header, if present.
+    pub key_id: Option<Vec<u8>>,
+    /// COSE algorithm name (e.g., "EdDSA", "ES256"), if present.
+    #[pyo3(get)]
+    pub algorithm: Option<String>,
 }
 
 #[pymethods]
@@ -707,6 +730,12 @@ impl DecodeResult {
     /// Check if signature was verified
     fn is_verified(&self) -> bool {
         self.verification_status == "verified"
+    }
+
+    /// Key ID from the COSE header (bytes), or None if not present.
+    #[getter]
+    fn key_id<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
+        self.key_id.as_ref().map(|kid| PyBytes::new(py, kid))
     }
 }
 
@@ -2147,6 +2176,94 @@ fn generate_nonce<'py>(py: Python<'py>) -> Bound<'py, PyBytes> {
 }
 
 // ============================================================================
+// Inspect (metadata extraction without full decode)
+// ============================================================================
+
+/// Metadata extracted from a credential without full verification or decoding.
+///
+/// Useful for determining which key to use in multi-issuer scenarios.
+///
+/// Attributes:
+///     issuer (str | None): Token issuer from CWT claims.
+///     subject (str | None): Token subject from CWT claims.
+///     key_id (bytes | None): Key ID from the COSE header.
+///     algorithm (str | None): COSE algorithm name (e.g., "EdDSA", "ES256").
+///     x509_headers (X509Headers): X.509 certificate headers from COSE structure.
+///     expires_at (int | None): Expiration timestamp (Unix epoch seconds).
+///     cose_type (str): COSE structure type: "Sign1" or "Encrypt0".
+#[pyclass]
+#[derive(Clone)]
+pub struct InspectResult {
+    #[pyo3(get)]
+    pub issuer: Option<String>,
+    #[pyo3(get)]
+    pub subject: Option<String>,
+    pub key_id_bytes: Option<Vec<u8>>,
+    #[pyo3(get)]
+    pub algorithm: Option<String>,
+    #[pyo3(get)]
+    pub x509_headers: X509Headers,
+    #[pyo3(get)]
+    pub expires_at: Option<i64>,
+    #[pyo3(get)]
+    pub cose_type: String,
+}
+
+#[pymethods]
+impl InspectResult {
+    /// Key ID from the COSE header (bytes), or None if not present.
+    #[getter]
+    fn key_id<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
+        self.key_id_bytes.as_ref().map(|kid| PyBytes::new(py, kid))
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "InspectResult(issuer={:?}, cose_type={}, algorithm={:?})",
+            self.issuer, self.cose_type, self.algorithm
+        )
+    }
+}
+
+/// Inspect credential metadata without full decoding or verification.
+///
+/// Extracts metadata (issuer, key ID, algorithm, expiration) from a QR code
+/// without verifying the signature. For encrypted credentials, only COSE-level
+/// headers are available; CWT-level fields (issuer, subject, expires_at) will be None.
+///
+/// This is useful for multi-issuer or key-rotation scenarios where you need to
+/// determine which verification key to use before decoding.
+///
+/// Args:
+///     qr_text (str): Base45-encoded QR code content.
+///
+/// Returns:
+///     InspectResult: Metadata extracted from the credential.
+///
+/// Raises:
+///     Base45DecodeError: If the QR text is not valid Base45.
+///     DecompressError: If decompression fails.
+///     CoseParseError: If the COSE structure is invalid.
+#[pyfunction]
+#[pyo3(text_signature = "(qr_text)")]
+fn inspect(qr_text: &str) -> PyResult<InspectResult> {
+    let result = claim169_core::inspect(qr_text).map_err(to_py_err)?;
+    let cose_type = match result.cose_type {
+        claim169_core::pipeline::CoseType::Sign1 => "Sign1",
+        claim169_core::pipeline::CoseType::Encrypt0 => "Encrypt0",
+    };
+    Ok(InspectResult {
+        issuer: result.issuer,
+        subject: result.subject,
+        key_id_bytes: result.key_id,
+        algorithm: result.algorithm.as_ref().map(algorithm_to_string),
+        x509_headers: X509Headers::from(&result.x509_headers),
+        expires_at: result.expires_at,
+        cose_type: cose_type.to_string(),
+    })
+}
+
+// ============================================================================
 // Module Definition
 // ============================================================================
 
@@ -2191,6 +2308,7 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEncryptor>()?;
     m.add_class::<Claim169Input>()?;
     m.add_class::<CwtMetaInput>()?;
+    m.add_class::<InspectResult>()?;
 
     // Add decode functions
     m.add_function(wrap_pyfunction!(decode_unverified, m)?)?;
@@ -2214,6 +2332,9 @@ fn claim169(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(encode_with_signer_and_encryptor, m)?)?;
     m.add_function(wrap_pyfunction!(encode_with_encryptor, m)?)?;
     m.add_function(wrap_pyfunction!(generate_nonce, m)?)?;
+
+    // Inspect
+    m.add_function(wrap_pyfunction!(inspect, m)?)?;
 
     // Utilities
     m.add_function(wrap_pyfunction!(version, m)?)?;

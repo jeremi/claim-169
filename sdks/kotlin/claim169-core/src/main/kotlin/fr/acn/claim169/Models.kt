@@ -5,6 +5,7 @@ import uniffi.claim169_jni.CertificateHashData as NativeCertificateHashData
 import uniffi.claim169_jni.Claim169Data as NativeClaim169Data
 import uniffi.claim169_jni.CwtMetaData as NativeCwtMetaData
 import uniffi.claim169_jni.DecodeResultData as NativeDecodeResultData
+import uniffi.claim169_jni.InspectResultData as NativeInspectResultData
 import uniffi.claim169_jni.WarningData as NativeWarningData
 import uniffi.claim169_jni.X509HeadersData as NativeX509HeadersData
 
@@ -558,12 +559,64 @@ class DecodeResultData private constructor(internal val raw: NativeDecodeResultD
     val warnings: List<WarningData>
         get() = raw.warnings.toSdkWarnings()
 
+    /** Key ID from the COSE header, if present. */
+    val keyId: ByteArray?
+        get() = raw.keyId
+
+    /** COSE algorithm name (e.g., "EdDSA", "ES256"), if present. */
+    val algorithm: String?
+        get() = raw.algorithm
+
     override fun equals(other: Any?): Boolean = other is DecodeResultData && raw == other.raw
     override fun hashCode(): Int = raw.hashCode()
     override fun toString(): String = raw.toString()
 
     internal companion object {
         fun fromNative(raw: NativeDecodeResultData): DecodeResultData = DecodeResultData(raw)
+    }
+}
+
+/**
+ * Metadata extracted from a credential without full verification or decoding.
+ *
+ * Useful for determining which key to use in multi-issuer scenarios.
+ *
+ * @property issuer Token issuer from CWT claims. `null` if not present or encrypted.
+ * @property subject Token subject from CWT claims. `null` if not present or encrypted.
+ * @property keyId Key ID from the COSE header. `null` if not present.
+ * @property algorithm COSE algorithm name (e.g., "EdDSA", "ES256"). `null` if not present.
+ * @property x509Headers X.509 certificate headers from the COSE structure.
+ * @property expiresAt Expiration time (Unix epoch seconds). `null` if not present or encrypted.
+ * @property coseType COSE structure type: `"Sign1"` or `"Encrypt0"`.
+ */
+class InspectResultData private constructor(internal val raw: NativeInspectResultData) {
+    val issuer: String?
+        get() = raw.issuer
+
+    val subject: String?
+        get() = raw.subject
+
+    val keyId: ByteArray?
+        get() = raw.keyId
+
+    val algorithm: String?
+        get() = raw.algorithm
+
+    val x509Headers: X509HeadersData
+        get() = X509HeadersData.fromNative(raw.x509Headers)
+
+    val expiresAt: Long?
+        get() = raw.expiresAt
+
+    val coseType: String
+        get() = raw.coseType
+
+    override fun equals(other: Any?): Boolean = other is InspectResultData && raw == other.raw
+    override fun hashCode(): Int = raw.hashCode()
+    override fun toString(): String = raw.toString()
+
+    internal companion object {
+        fun fromNative(raw: NativeInspectResultData): InspectResultData = InspectResultData(raw)
     }
 }
 
